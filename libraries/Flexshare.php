@@ -1884,11 +1884,12 @@ class Flexshare extends Engine
         }
 
         // Add or update user account information
+        // FIXME: plugin group may not exist (different scenario compared to 5.x)
 
         if ($adduser) {
             $userinfo = array();
-            $userinfo['mailFlag'] = TRUE; // Mail-to-flexshare
-            $userinfo['ftpFlag'] = TRUE;  // Anonymous FTP
+            // $userinfo['mailFlag'] = TRUE; // Mail-to-flexshare
+            $userinfo['plugins']['ftp']['state'] = TRUE;  // Anonymous FTP
             $userinfo['core']['last_name'] = 'System';
             $userinfo['core']['first_name'] = 'Flexshare';
             $userinfo['core']['home_directory'] = self::PATH_ROOT;
@@ -1897,11 +1898,8 @@ class Flexshare extends Engine
         } else {
             $userinfo = array();
 
-            if (! $currentinfo['mailFlag'])
-                $userinfo['mailFlag'] = TRUE;
-
-            if (! $currentinfo['ftpFlag'])
-                $userinfo['ftpFlag'] = TRUE;
+            // $userinfo['mailFlag'] = TRUE; // Mail-to-flexshare
+            $userinfo['plugins']['ftp']['state'] = TRUE;  // Anonymous FTP
 
             $user->update($userinfo);
             $user->reset_password($password, $password, 'api');
