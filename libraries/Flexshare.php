@@ -55,72 +55,58 @@ clearos_load_language('flexshare');
 // Factories
 //----------
 
-use \clearos\apps\groups\Group_Factory as Group_Factory;
-use \clearos\apps\users\User_Factory as User_Factory;
+use \clearos\apps\groups\Group_Factory as Group;
 
 clearos_load_library('groups/Group_Factory');
-clearos_load_library('users/User_Factory');
 
 // Classes
 //--------
 
-//use \clearos\apps\\Aliases as Aliases;
-//use \clearos\apps\\ClearDirectory as ClearDirectory;
-//use \clearos\apps\\Ssl as Ssl;
 use \clearos\apps\base\Configuration_File as Configuration_File;
 use \clearos\apps\base\Engine as Engine;
 use \clearos\apps\base\File as File;
 use \clearos\apps\base\Folder as Folder;
 use \clearos\apps\base\Mime as Mime;
 use \clearos\apps\base\Shell as Shell;
-use \clearos\apps\date\Time as Time;
 use \clearos\apps\ftp\ProFTPd as ProFTPd;
+use \clearos\apps\groups\Group_Factory as Group_Factory;
 use \clearos\apps\imap\Cyrus as Cyrus;
-use \clearos\apps\users\User_Utilities as User_Utilities;
 use \clearos\apps\mail_notification\Mail_Notification as Mail_Notification;
 use \clearos\apps\mode\Mode_Factory as Mode_Factory;
 use \clearos\apps\network\Hostname as Hostname;
 use \clearos\apps\network\Iface_Manager as Iface_Manager;
-use \clearos\apps\network\Network as Network;
 use \clearos\apps\network\Network_Utils as Network_Utils;
-use \clearos\apps\openldap_directory\Group_Driver as Group_Driver;
-use \clearos\apps\openldap_directory\User_Driver as User_Driver;
 use \clearos\apps\samba\Samba as Samba;
 use \clearos\apps\samba\Smbd as Smbd;
 use \clearos\apps\smtp\Postfix as Postfix;
+use \clearos\apps\users\User_Factory as User_Factory;
+use \clearos\apps\users\User_Utilities as User_Utilities;
 use \clearos\apps\web\Httpd as Httpd;
 
-//clearos_load_library('/Aliases');
-//clearos_load_library('/ClearDirectory');
-//clearos_load_library('/Ssl');
 clearos_load_library('base/Configuration_File');
 clearos_load_library('base/Engine');
 clearos_load_library('base/File');
 clearos_load_library('base/Folder');
 clearos_load_library('base/Mime');
 clearos_load_library('base/Shell');
-clearos_load_library('date/Time');
 clearos_load_library('ftp/ProFTPd');
+clearos_load_library('groups/Group_Factory');
 clearos_load_library('imap/Cyrus');
-clearos_load_library('users/User_Utilities');
 clearos_load_library('mail_notification/Mail_Notification');
 clearos_load_library('mode/Mode_Factory');
 clearos_load_library('network/Hostname');
 clearos_load_library('network/Iface_Manager');
-clearos_load_library('network/Network');
 clearos_load_library('network/Network_Utils');
-clearos_load_library('openldap_directory/Group_Driver');
-clearos_load_library('openldap_directory/User_Driver');
 clearos_load_library('samba/Samba');
 clearos_load_library('samba/Smbd');
 clearos_load_library('smtp/Postfix');
+clearos_load_library('users/User_Factory');
+clearos_load_library('users/User_Utilities');
 clearos_load_library('web/Httpd');
 
 // Exceptions
 //-----------
 
-//use \clearos\apps\\Duplicate_Exception as Duplicate_Exception;
-//use \clearos\apps\\Ssl_Excecution_Exception as Ssl_Excecution_Exception;
 use \Exception as Exception;
 use \clearos\apps\base\Engine_Exception as Engine_Exception;
 use \clearos\apps\base\File_No_Match_Exception as File_No_Match_Exception;
@@ -130,8 +116,6 @@ use \clearos\apps\flexshare\Flexshare_Not_Found_Exception as Flexshare_Not_Found
 use \clearos\apps\flexshare\Flexshare_Parameter_Not_Found_Exception as Flexshare_Parameter_Not_Found_Exception;
 use \clearos\apps\users\User_Not_Found_Exception as User_Not_Found_Exception;
 
-//clearos_load_library('/Duplicate_Exception');
-//clearos_load_library('/Ssl_Excecution_Exception');
 clearos_load_library('base/Engine_Exception');
 clearos_load_library('base/File_No_Match_Exception');
 clearos_load_library('base/File_Not_Found_Exception');
@@ -264,16 +248,12 @@ class Flexshare extends Engine
         $share = array('WebEnabled' => 0, 'FtpEnabled' => 0, 'FileEnabled' => 0, 'EmailEnabled' => 0);
         $shares = array();
 
-        try {
-            $file = new File(self::FILE_CONFIG);
+        $file = new File(self::FILE_CONFIG);
 
-            if (! $file->exists())
-                return $shares;
+        if (! $file->exists())
+            return $shares;
 
-            $lines = $file->get_contents_as_array();
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
+        $lines = $file->get_contents_as_array();
 
         $match = array();
 
@@ -344,76 +324,60 @@ class Flexshare extends Engine
         // --------
 
         Validation_Exception::is_valid($this->validate_name($name));
-
         Validation_Exception::is_valid($this->validate_description($description));
-
         Validation_Exception::is_valid($this->validate_group($group));
-
         Validation_Exception::is_valid($this->validate_directory($directory));
 
         // Samba limitations
         //------------------
 
-        $groupobj = new Group_Driver($name);
+        $groupobj = Group_Factory::create($name);
 
         if ($groupobj->exists())
             throw new Validation_Exception(lang('flexshare_name_overlaps_with_group'));
 
-        $userobj = new User_Driver($name);
+        $userobj = User_Factory::create($name);
 
         if ($userobj->exists())
             throw new Validation_Exception(lang('flexshare_name_overlaps_with_username'));
 
-        try {
-            $file = new File(self::FILE_CONFIG);
+        $file = new File(self::FILE_CONFIG);
 
-            if (! $file->exists()) {
-                $file->create("root", "root", 600);
-                $file->add_lines("# Flexshare Configuration");
-            }
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
+        if (! $file->exists()) {
+            $file->create("root", "root", 600);
+            $file->add_lines("# Flexshare Configuration");
         }
 
         // Check for non-uniques
+        if (count($file->get_search_results("<Share $name>")) > 0)
+            throw new Engine_Exception(lang('share_already_exists'));
 
-        try {
-            if (count($file->get_search_results("<Share $name>")) > 0)
-                throw new Engine_Exception(FLEXSHARE_LANG_ERRMSG_SHARE_EXISTS, CLEAROS_ERROR);
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
+        // Create folder (if necessary) and add skeleton
+        $folder = new Folder(self::SHARE_PATH . "/$name");
+
+        if (! $folder->exists()) {
+            $groupobj = Group_Factory::create($group);
+
+            if ($groupobj->exists())
+                $folder->create(self::CONSTANT_USERNAME, $group, "0775");
+            else
+                $folder->create($group, "nobody", "0775");
         }
 
-        try {
-            // Create folder (if necessary) and add skeleton
-            $folder = new Folder(self::SHARE_PATH . "/$name");
+        $newshare = "<Share $name>\n" .
+                    "  ShareDescription=$description\n" .
+                    "  ShareGroup=$group\n" .
+                    "  ShareCreated=" . time() . "\n" .
+                    "  ShareModified=" . time() . "\n" .
+                    "  ShareEnabled=0\n" .
+                    "  ShareDir=" . self::SHARE_PATH . "/$name\n" .
+                    "  ShareInternal=$internal\n" .
+                    "</Share>\n"
+                    ;
+        $file->add_lines($newshare);
 
-            if (! $folder->exists()) {
-                $groupobj = Group_Factory::create($group);
-
-                if ($groupobj->exists())
-                    $folder->create(self::CONSTANT_USERNAME, $group, "0775");
-                else
-                    $folder->create($group, "nobody", "0775");
-            }
-
-            $newshare = "<Share $name>\n" .
-                        "  ShareDescription=$description\n" .
-                        "  ShareGroup=$group\n" .
-                        "  ShareCreated=" . time() . "\n" .
-                        "  ShareModified=" . time() . "\n" .
-                        "  ShareEnabled=0\n" .
-                        "  ShareDir=" . self::SHARE_PATH . "/$name\n" .
-                        "  ShareInternal=$internal\n" .
-                        "</Share>\n"
-                        ;
-            $file->add_lines($newshare);
-
-            // Now set directory
-            $this->set_directory($name, $directory);
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
+        // Now set directory
+        $this->set_directory($name, $directory);
     }
 
     /**
@@ -436,60 +400,44 @@ class Flexshare extends Engine
         // Set directory back to default
         // This will remove any mount points
 
-        try {
-            $defaultdir = self::SHARE_PATH . '/' . $name;
-            $this->set_directory($name, $defaultdir);
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
+        $defaultdir = self::SHARE_PATH . '/' . $name;
+        $this->set_directory($name, $defaultdir);
 
-        try {
-            $file = new File(self::FILE_CONFIG);
+        $file = new File(self::FILE_CONFIG);
 
-            if (! $file->exists())
-                throw new File_Not_Found_Exception(self::FILE_CONFIG);
+        if (! $file->exists())
+            throw new File_Not_Found_Exception(self::FILE_CONFIG);
 
-            // Backup in case we need to go back to original
-            $file->move_to(CLEAROS_TEMP_DIR . "/flexshare.conf.orig");
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
+        // Backup in case we need to go back to original
+        $file->move_to(CLEAROS_TEMP_DIR . "/flexshare.conf.orig");
 
         // Create new file in parallel
-        try {
-            $newfile = new File(self::FILE_CONFIG . ".cctmp", TRUE);
+        $newfile = new File(self::FILE_CONFIG . ".cctmp", TRUE);
 
-            if ($newfile->exists())
-                $newfile->delete();
+        if ($newfile->exists())
+            $newfile->delete();
 
-            $newfile->create("root", "root", '0600');
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
+        $newfile->create("root", "root", '0600');
 
-        try {
-            $lines = $file->get_contents_as_array();
-            $found = FALSE;
-            $match = array();
+        $lines = $file->get_contents_as_array();
+        $found = FALSE;
+        $match = array();
 
-            foreach ($lines as $line) {
-                if (preg_match(self::REGEX_OPEN, $line, $match) && $match[1] == $name) {
-                    $found = TRUE;
-                } elseif (preg_match(self::REGEX_CLOSE, $line) && $found) {
-                    $found = FALSE;
-                    continue;
-                }
-
-                if ($found)
-                    continue;
-
-                $newfile->add_lines($line);
+        foreach ($lines as $line) {
+            if (preg_match(self::REGEX_OPEN, $line, $match) && $match[1] == $name) {
+                $found = TRUE;
+            } elseif (preg_match(self::REGEX_CLOSE, $line) && $found) {
+                $found = FALSE;
+                continue;
             }
 
-            $newfile->move_to(self::FILE_CONFIG);
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
+            if ($found)
+                continue;
+
+            $newfile->add_lines($line);
         }
+
+        $newfile->move_to(self::FILE_CONFIG);
 
         try {
             $this->generate_web_flexshares();
@@ -505,11 +453,7 @@ class Flexshare extends Engine
         } catch (Exception $e) {
             // Any exception here, toggle...well, toggle.
             $file->move_to(self::FILE_CONFIG);
-            // We want to throw Ssl_Excecution_Exception to help users on UI
-            if (get_class($e) == Ssl_Excecution_Exception)
-                throw new Ssl_Excecution_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-            else
-                throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
+            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
         }
 
         // If you get here, it's OK to delete (as required)
@@ -539,16 +483,12 @@ class Flexshare extends Engine
 
         $share = array();
 
-        try {
-            $file = new File(self::FILE_CONFIG);
+        $file = new File(self::FILE_CONFIG);
 
-            if (! $file->exists())
-                throw new File_Not_Found_Exception(self::FILE_CONFIG, CLEAROS_ERROR);
+        if (! $file->exists())
+            throw new File_Not_Found_Exception(self::FILE_CONFIG, CLEAROS_ERROR);
 
-            $lines = $file->get_contents_as_array();
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
+        $lines = $file->get_contents_as_array();
 
         $found = FALSE;
         $match = array();
@@ -590,15 +530,11 @@ class Flexshare extends Engine
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        try {
-            $file = new File(self::FILE_CONFIG);
-            if (! $file->exists())
-                throw new Engine_Exception(FILE_LANG_ERRMSG_NOTEXIST . " " . self::FILE_CONFIG, CLEAROS_ERROR);
-            else
-                $share = $this->get_share($name);
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
+        $file = new File(self::FILE_CONFIG);
+        if (! $file->exists())
+            throw new Engine_Exception(FILE_LANG_ERRMSG_NOTEXIST . " " . self::FILE_CONFIG, CLEAROS_ERROR);
+        else
+            $share = $this->get_share($name);
 
         if ($toggle) {
             if (!$share['WebEnabled'] && !$share['FtpEnabled'] && !$share['FileEnabled'] && !$share['EmailEnabled'])
@@ -623,20 +559,12 @@ class Flexshare extends Engine
                 else
                     $this->set_parameter($name, 'ShareEnabled', 1);
 
-                // We want to throw Ssl_Excecution_Exception to help users on UI
-                if (get_class($e) == Ssl_Excecution_Exception)
-                    throw new Ssl_Excecution_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-                else
-                    throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
+                throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
             }
         }
 
-        try {
-            $this->_Update_folder_links($name, $this->get_parameter($name, 'ShareDir'));
-            $this->_Update_folder_attributes($share['ShareDir'], $share['ShareGroup']);
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
+        $this->_Update_folder_links($name, $this->get_parameter($name, 'ShareDir'));
+        $this->_Update_folder_attributes($share['ShareDir'], $share['ShareGroup']);
     }
 
     /**
@@ -852,7 +780,7 @@ class Flexshare extends Engine
      * Create the Apache configuration files for the specificed flexshare.
      *
      * @return void
-     * @throws Ssl_Excecution_Exception, Engine_Exception
+     * @throws Engine_Exception
      */
 
     function generate_web_flexshares()
@@ -870,23 +798,19 @@ class Flexshare extends Engine
         $backup_key = time();
 
         // Get file listing in Apache vhost dir
-        try {
-            $folder = new Folder(self::WEB_VIRTUAL_HOST_PATH);
-            $vhosts = $folder->get_listing();
-            $index = 0;
-            foreach ($vhosts as $vhost) {
-                // Flexshares are prefixed with 'flex-'.  Find these files
-                if (preg_match("/flex-443.ssl|^" . self::PREFIX . ".*vhost$|^" . self::PREFIX . ".*conf$/i", $vhost)) {
-                    $vhost_file = new File(self::WEB_VIRTUAL_HOST_PATH . "/" . $vhost);
-                    // Backup existing file
-                    $vhost_file->move_to(CLEAROS_TEMP_DIR . "/" . "$vhost.$backup_key.bak");
-                } else {
-                    unset($vhosts[$index]);
-                }
-                $index++;
+        $folder = new Folder(self::WEB_VIRTUAL_HOST_PATH);
+        $vhosts = $folder->get_listing();
+        $index = 0;
+        foreach ($vhosts as $vhost) {
+            // Flexshares are prefixed with 'flex-'.  Find these files
+            if (preg_match("/flex-443.ssl|^" . self::PREFIX . ".*vhost$|^" . self::PREFIX . ".*conf$/i", $vhost)) {
+                $vhost_file = new File(self::WEB_VIRTUAL_HOST_PATH . "/" . $vhost);
+                // Backup existing file
+                $vhost_file->move_to(CLEAROS_TEMP_DIR . "/" . "$vhost.$backup_key.bak");
+            } else {
+                unset($vhosts[$index]);
             }
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
+            $index++;
         }
 
         // We'll add this back later if there is an SSL configured
@@ -943,25 +867,18 @@ class Flexshare extends Engine
             $lans = array();
 
             if ($share['WebAccess'] == self::ACCESS_LAN) {
-                try {
-                    $ifacemanager = new Iface_Manager();
-                    $lans = $ifacemanager->get_lan_networks();
-                } catch (Exception $e) {
-                    throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-                }
+                $ifacemanager = new Iface_Manager();
+                $lans = $ifacemanager->get_lan_networks();
             }
 
             $case = $this->determine_case($port, $share['WebReqSsl']);
 
             // Create new file in parallel
-            try {
-                $filename = self::PREFIX . $port . $ssl . $ext;
-                $file = new File(self::WEB_VIRTUAL_HOST_PATH . "/" . $filename);
-                if (! $file->exists())
-                    $vhosts[] = $filename;
-            } catch (Exception $e) {
-                throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-            }
+            $filename = self::PREFIX . $port . $ssl . $ext;
+            $file = new File(self::WEB_VIRTUAL_HOST_PATH . "/" . $filename);
+
+            if (! $file->exists())
+                $vhosts[] = $filename;
 
             $newlines = array();
 
@@ -1020,32 +937,26 @@ class Flexshare extends Engine
                                   trim($share['WebServerName']) . "_error_log";
                     $newlines[] = "\tCustomLog " . self::HTTPD_LOG_PATH . "/" .
                                   trim($share['WebServerName']) . "_access_log common";
-                    try {
-                        $ssl = new Ssl();
-                        $certs = $ssl->get_certificates(Ssl::TYPE_CRT);
-                        $ssl_found = FALSE;
-                        foreach ($certs as $certfile => $cert) {
-                            if ($cert['common_name'] == trim($share['WebServerName'])) {
-                                // Don't use CA
-                                if ($certfile == Ssl::FILE_CA_CRT)
-                                    continue;
-                                $ssl_found = TRUE;
-                                $cert_filename = $certfile;
-                                break;
-                            }
+                    $ssl = new Ssl();
+                    $certs = $ssl->get_certificates(Ssl::TYPE_CRT);
+                    $ssl_found = FALSE;
+                    foreach ($certs as $certfile => $cert) {
+                        if ($cert['common_name'] == trim($share['WebServerName'])) {
+                            // Don't use CA
+                            if ($certfile == Ssl::FILE_CA_CRT)
+                                continue;
+                            $ssl_found = TRUE;
+                            $cert_filename = $certfile;
+                            break;
                         }
-                        if (! $ssl_found) {
-                            $ssl->set_rsa_key_size(Ssl::DEFAULT_KEY_SIZE);
-                            $ssl->set_term(Ssl::TERM_1YEAR);
-                            $ssl->set_purpose(Ssl::PURPOSE_SERVER_CUSTOM);
-                            $csr_filename = $ssl->create_certificate_request(trim($share['WebServerName']));
-                            // Self-sign be default
-                            $cert_filename = $ssl->sign_certificate_request($csr_filename);
-                        }
-                    } catch (Ssl_Excecution_Exception $e) {
-                        throw new Ssl_Excecution_Exception(FLEXSHARE_LANG_ERRMSG_SSL_CA_MISSING, CLEAROS_ERROR);
-                    } catch (Exception $e) {
-                        throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
+                    }
+                    if (! $ssl_found) {
+                        $ssl->set_rsa_key_size(Ssl::DEFAULT_KEY_SIZE);
+                        $ssl->set_term(Ssl::TERM_1YEAR);
+                        $ssl->set_purpose(Ssl::PURPOSE_SERVER_CUSTOM);
+                        $csr_filename = $ssl->create_certificate_request(trim($share['WebServerName']));
+                        // Self-sign be default
+                        $cert_filename = $ssl->sign_certificate_request($csr_filename);
                     }
 
                     $key = preg_replace("/-cert\\.pem/", "-key.pem", $cert_filename);
@@ -1243,7 +1154,7 @@ class Flexshare extends Engine
      * Create the ProFtp configuration files for the specificed flexshare.
      *
      * @return void
-     * @throws Ssl_Excecution_Exception Engine_Exception
+     * @throws Engine_Exception
      */
 
     function generate_ftp_flexshares()
@@ -1260,22 +1171,18 @@ class Flexshare extends Engine
         $backup_key = time();
 
         // Get file listing in FTP confs dir
-        try {
-            $folder = new Folder(self::FTP_VIRTUAL_HOST_PATH);
-            $confs = $folder->get_listing();
-            $index = 0;
-            foreach ($confs as $conf) {
-                if (preg_match("/^" . self::PREFIX . ".*conf$/i", $conf)) {
-                    $conf_file = new File(self::FTP_VIRTUAL_HOST_PATH . "/" . $conf);
-                    // Backup existing file
-                    $conf_file->move_to(CLEAROS_TEMP_DIR . "/$conf.$backup_key.bak");
-                } else {
-                    unset($confs[$index]);
-                }
-                $index++;
+        $folder = new Folder(self::FTP_VIRTUAL_HOST_PATH);
+        $confs = $folder->get_listing();
+        $index = 0;
+        foreach ($confs as $conf) {
+            if (preg_match("/^" . self::PREFIX . ".*conf$/i", $conf)) {
+                $conf_file = new File(self::FTP_VIRTUAL_HOST_PATH . "/" . $conf);
+                // Backup existing file
+                $conf_file->move_to(CLEAROS_TEMP_DIR . "/$conf.$backup_key.bak");
+            } else {
+                unset($confs[$index]);
             }
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
+            $index++;
         }
 
         $shares = $this->get_share_summary();
@@ -1361,19 +1268,15 @@ class Flexshare extends Engine
                 $anonymous_write = 'off';
 
             // Create new file in parallel
-            try {
-                $filename = self::PREFIX . $port . '.conf';
-                // Add to confs array in case of failure
-                if (!in_array($filename, $confs))
-                    $confs[] = $filename;
-                $file = new File(self::FTP_VIRTUAL_HOST_PATH . "/" . $filename);
-                $tempfile = new File(self::FTP_VIRTUAL_HOST_PATH . "/" . $filename . '.cctmp');
-                if ($tempfile->exists())
-                    $tempfile->delete();
-                $tempfile->create("root", "root", '0640');
-            } catch (Exception $e) {
-                throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-            }
+            $filename = self::PREFIX . $port . '.conf';
+            // Add to confs array in case of failure
+            if (!in_array($filename, $confs))
+                $confs[] = $filename;
+            $file = new File(self::FTP_VIRTUAL_HOST_PATH . "/" . $filename);
+            $tempfile = new File(self::FTP_VIRTUAL_HOST_PATH . "/" . $filename . '.cctmp');
+            if ($tempfile->exists())
+                $tempfile->delete();
+            $tempfile->create("root", "root", '0640');
 
             if ($file->exists()) {
                 $oldlines = $file->get_contents_as_array();
@@ -1465,8 +1368,6 @@ class Flexshare extends Engine
                             // Self-sign be default
                             $cert_filename = $ssl->sign_certificate_request($csr_filename);
                         }
-                    } catch (Ssl_Excecution_Exception $e) {
-                        throw new Ssl_Excecution_Exception(FLEXSHARE_LANG_ERRMSG_SSL_CA_MISSING, CLEAROS_ERROR);
                     } catch (Exception $e) {
                         throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
                     }
@@ -1494,7 +1395,7 @@ class Flexshare extends Engine
             }
 
             // Determine if this is a group or a user
-            $group = new Group_Driver($share['ShareGroup']);
+            $group = Group_Factory::create($share['ShareGroup']);
 
             if ($group->exists())
                 $isgroup = TRUE;
@@ -1571,18 +1472,10 @@ class Flexshare extends Engine
             $anon[] = "\t</Anonymous>";
 
             if ($append) {
-                try {
-                    $tempfile->delete_lines("/<\/VirtualHost>/");
-                    $tempfile->add_lines(implode("\n", $newlines) . "\n" . implode("\n", $anon) . "\n</VirtualHost>\n");
-                } catch (Exception $e) {
-                    throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-                }
+                $tempfile->delete_lines("/<\/VirtualHost>/");
+                $tempfile->add_lines(implode("\n", $newlines) . "\n" . implode("\n", $anon) . "\n</VirtualHost>\n");
             } else {
-                try {
-                    $tempfile->add_lines(implode("\n", $newlines) . "\n" . implode("\n", $anon) . "\n</VirtualHost>\n");
-                } catch (Exception $e) {
-                    throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-                }
+                $tempfile->add_lines(implode("\n", $newlines) . "\n" . implode("\n", $anon) . "\n</VirtualHost>\n");
             }
 
             $tempfile->move_to(self::FTP_VIRTUAL_HOST_PATH . "/" . $filename);
@@ -1656,30 +1549,22 @@ class Flexshare extends Engine
         // Create a unique file identifier
         $backup_key = time();
 
-        try {
-            // Backup original file
-            $backup = new File(self::SMB_VIRTUAL_HOST_PATH . "/" . self::FILE_SMB_VIRTUAL);
-            if ($backup->exists())
-                $backup->move_to(CLEAROS_TEMP_DIR . "/$backup_key.bak");
+        // Backup original file
+        $backup = new File(self::SMB_VIRTUAL_HOST_PATH . "/" . self::FILE_SMB_VIRTUAL);
+        if ($backup->exists())
+            $backup->move_to(CLEAROS_TEMP_DIR . "/$backup_key.bak");
 
-            // Samba is slightly different.  We dump all flexshare-related 'stuff' in one file
-            $file = new File(self::SMB_VIRTUAL_HOST_PATH . "/" . self::FILE_SMB_VIRTUAL);
-            if ($file->exists())
-                $file->delete();
+        // Samba is slightly different.  We dump all flexshare-related 'stuff' in one file
+        $file = new File(self::SMB_VIRTUAL_HOST_PATH . "/" . self::FILE_SMB_VIRTUAL);
+        if ($file->exists())
+            $file->delete();
 
-            $file->create("root", "root", '0644');
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
+        $file->create("root", "root", '0644');
 
-        try {
-            $samba_conf = new File(Samba::FILE_CONFIG);
+        $samba_conf = new File(Samba::FILE_CONFIG);
 
-            if (! $samba_conf->exists())
-                throw new Engine_Exception(lang('base_exception_file_not_found') . ' (' . Samba::FILE_CONFIG . ')');
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
+        if (! $samba_conf->exists())
+            throw new Engine_Exception(lang('base_exception_file_not_found') . ' (' . Samba::FILE_CONFIG . ')');
 
         $shares = $this->get_share_summary();
         $linestoadd = "";
@@ -1813,33 +1698,23 @@ class Flexshare extends Engine
 
         $aliases = new Aliases();
 
-        try {
-            $shares = $this->get_share_summary();
-            for ($index = 0; $index < count($shares); $index++) {
-                $name = $shares[$index]['Name'];
-                $share = $this->get_share($name);
+        $shares = $this->get_share_summary();
+        for ($index = 0; $index < count($shares); $index++) {
+            $name = $shares[$index]['Name'];
+            $share = $this->get_share($name);
 
-                if (!isset($share['ShareEnabled'])
-                    || !isset($share['EmailEnabled'])
-                    || !$share['ShareEnabled']
-                    || !$share['EmailEnabled']
-                ) {
-                    try {
-                        $aliases->delete_alias(self::PREFIX . $name);
-                    } catch (Exception $e) {
-                    }
-                } else {
-                    try {
-                        $aliases->add_alias(self::PREFIX . $name, array(self::CONSTANT_USERNAME));
-                    } catch (Duplicate_Exception $e) {
-                        // Do nothing
-                    } catch (Exception $e) {
-                        throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-                    }
+            if (!isset($share['ShareEnabled'])
+                || !isset($share['EmailEnabled'])
+                || !$share['ShareEnabled']
+                || !$share['EmailEnabled']
+            ) {
+                try {
+                    $aliases->delete_alias(self::PREFIX . $name);
+                } catch (Exception $e) {
                 }
+            } else {
+                $aliases->add_alias(self::PREFIX . $name, array(self::CONSTANT_USERNAME));
             }
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
         }
     }
 
@@ -1969,14 +1844,10 @@ class Flexshare extends Engine
         }
 
         // If tag does not exist, add it
-        try {
-            if (! $match && $name == NULL)
-                $file->add_lines_after("$key=$value\n", "/#*./");
-            elseif (! $match)
-                $file->add_lines_after("  $key=$value\n", "/<Share $name>/");
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
+        if (! $match && $name == NULL)
+            $file->add_lines_after("$key=$value\n", "/#*./");
+        elseif (! $match)
+            $file->add_lines_after("  $key=$value\n", "/<Share $name>/");
 
         // Update last modified
         if ($name != NULL) {
@@ -2021,15 +1892,11 @@ class Flexshare extends Engine
 
         Validation_Exception::is_valid($this->validate_password($password));
 
-        try {
-            $file = new File(self::FILE_CONFIG);
+        $file = new File(self::FILE_CONFIG);
 
-            if (! $file->exists()) {
-                $file->create("root", "root", '0600');
-                $file->add_lines("# Flexshare Configuration\n");
-            }
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
+        if (! $file->exists()) {
+            $file->create("root", "root", '0600');
+            $file->add_lines("# Flexshare Configuration\n");
         }
 
         $this->set_parameter(NULL, 'FlexsharePW', $password);
@@ -2165,11 +2032,7 @@ class Flexshare extends Engine
             else
                 $this->set_parameter($name, 'WebEnabled', 1);
 
-            // We want to throw Ssl_Excecution_Exception to help users on UI
-            if (get_class($e) == Ssl_Excecution_Exception)
-                throw new Ssl_Excecution_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-            else
-                throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
+            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
         }
     }
 
@@ -2539,11 +2402,8 @@ class Flexshare extends Engine
                 $this->set_parameter($name, 'FtpEnabled', 0);
             else
                 $this->set_parameter($name, 'FtpEnabled', 1);
-            // We want to throw Ssl_Excecution_Exception to help users on UI
-            if (get_class($e) == Ssl_Excecution_Exception)
-                throw new Ssl_Excecution_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-            else
-                throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
+
+            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
         }
     }
 
@@ -3097,11 +2957,8 @@ class Flexshare extends Engine
                 $this->set_parameter($name, 'EmailEnabled', 0);
             else
                 $this->set_parameter($name, 'EmailEnabled', 1);
-            // We want to throw Ssl_Excecution_Exception to help users on UI
-            if (get_class($e) == Ssl_Excecution_Exception)
-                throw new Ssl_Excecution_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-            else
-                throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
+
+            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
         }
 
     }
@@ -3368,15 +3225,12 @@ class Flexshare extends Engine
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        try {
-            if (!clearos_library_installed('smtp/Postfix'))
-                return;
+        if (!clearos_library_installed('smtp/Postfix'))
+            return;
 
-            $postfix = new Postfix();
-            $email = self::PREFIX . $name . "@" . $postfix->get_domain();
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
+        $postfix = new Postfix();
+        $email = self::PREFIX . $name . "@" . $postfix->get_domain();
+
         return $email;
     }
 
@@ -3761,9 +3615,6 @@ echo 'shit';
                                   "Files" => FLEXSHARE_LANG_ATTACHMENTS);
                     foreach ($fields as $field => $display) {
                         if ($field == "Date") {
-                            $time = new Time();
-                            date_default_timezone_set($time->get_time_zone());
-
                             $body .= str_pad("$display:", 20, " ", STR_PAD_RIGHT) .
                                         date("F d, Y H:i", $email[$field])."\n";
                         } else if ($field == "Files") {
@@ -3784,15 +3635,12 @@ echo 'shit';
                             $body .= "\n";
                     }
                 }
-                try {
-                    $mail_notification->add_recipient($address);
-                    $mail_notification->set_subject(FLEXSHARE_LANG_EMAIL_NOTIFICATION_SUBJECT . " - " . $hostname->Get());
-                    $mail_notification->set_body($body);
-                    $mail_notification->set_sender("flex@" . $hostname->Get());
-                    $mail_notification->send();
-                } catch (Exception $e) {
-                    throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-                }
+
+                $mail_notification->add_recipient($address);
+                $mail_notification->set_subject(FLEXSHARE_LANG_EMAIL_NOTIFICATION_SUBJECT . " - " . $hostname->Get());
+                $mail_notification->set_body($body);
+                $mail_notification->set_sender("flex@" . $hostname->Get());
+                $mail_notification->send();
             }
         }
 
@@ -3869,42 +3717,34 @@ echo 'shit';
         $defaultdir = self::SHARE_PATH . '/' . $name;
 
         // Load fstab config
-        try {
-            $file = new Configuration_File(self::FILE_FSTAB_CONFIG, "split", "\s", 6);
-            $config = $file->load();
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
+        $file = new Configuration_File(self::FILE_FSTAB_CONFIG, "split", "\s", 6);
+        $config = $file->load();
 
-        try {
-            // Umount any existing
-            if ($this->get_parameter($name, 'ShareDir') != $defaultdir) {
-                $param = $defaultdir;
-                $options['env'] = "LANG=en_US";
-                try {
-                    $retval = $shell->execute(self::CMD_UMOUNT, $param, TRUE, $options);
-                } catch (Validation_Exception $e) {
-                    if (!preg_match('/.*not mounted.*/', $e->get_message()))
-                        throw new Engine_Exception(lang('flexshare_device_busy'), CLEAROS_ERROR);
-                }
+        // Umount any existing
+        if ($this->get_parameter($name, 'ShareDir') != $defaultdir) {
+            $param = $defaultdir;
+            $options['env'] = "LANG=en_US";
+            try {
+                $retval = $shell->execute(self::CMD_UMOUNT, $param, TRUE, $options);
+            } catch (Validation_Exception $e) {
+                if (!preg_match('/.*not mounted.*/', $e->get_message()))
+                    throw new Engine_Exception(lang('flexshare_device_busy'), CLEAROS_ERROR);
             }
-            // Mount new share
-            if ($directory != $defaultdir && $this->get_parameter($name, 'ShareEnabled')) {
-                $param = "--bind '$directory' '$defaultdir'";
-                $retval = $shell->execute(self::CMD_MOUNT, $param, TRUE);
-                if ($retval != 0) {
-                    $output = $shell->get_output();
-                    throw new Engine_Exception($shell->get_last_output_line(), CLEAROS_ERROR);
-                }
-            }
-            // Check for entry in fstab
-            if (isset($config[$this->get_parameter($name, 'ShareDir')]))
-                $file->delete_lines("/^" . preg_quote($this->get_parameter($name, 'ShareDir'), "/") . ".*$/");
-            if ($directory != $defaultdir && $this->get_parameter($name, 'ShareEnabled'))
-                $file->add_lines($directory . "\t" . $defaultdir . "\tnone\tdefaults,bind\t0 0\n");
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
         }
+        // Mount new share
+        if ($directory != $defaultdir && $this->get_parameter($name, 'ShareEnabled')) {
+            $param = "--bind '$directory' '$defaultdir'";
+            $retval = $shell->execute(self::CMD_MOUNT, $param, TRUE);
+            if ($retval != 0) {
+                $output = $shell->get_output();
+                throw new Engine_Exception($shell->get_last_output_line(), CLEAROS_ERROR);
+            }
+        }
+        // Check for entry in fstab
+        if (isset($config[$this->get_parameter($name, 'ShareDir')]))
+            $file->delete_lines("/^" . preg_quote($this->get_parameter($name, 'ShareDir'), "/") . ".*$/");
+        if ($directory != $defaultdir && $this->get_parameter($name, 'ShareEnabled'))
+            $file->add_lines($directory . "\t" . $defaultdir . "\tnone\tdefaults,bind\t0 0\n");
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -3940,14 +3780,11 @@ echo 'shit';
 
         $group = Group_Factory::create($group);
 
-        try {
-            if (! $group->exists()) {
-                $user = User_Factory::create($group);
-                if (! $user->exists())
-                    return lang('flexshare_invalid_group');
-            }
-        } catch (Exception $e) {
-            return clearos_exception_message($e);
+        if (! $group->exists()) {
+            $user = User_Factory::create($group);
+
+            if (! $user->exists())
+                return lang('flexshare_invalid_group');
         }
     }
 
