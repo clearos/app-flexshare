@@ -56,15 +56,11 @@ if ($form_type === 'edit') {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Form open
+// Form
 ///////////////////////////////////////////////////////////////////////////////
 
 echo form_open($form_path . '/' . $share);
 echo form_header(lang('flexshare_general_settings'));
-
-///////////////////////////////////////////////////////////////////////////////
-// Form fields
-///////////////////////////////////////////////////////////////////////////////
 
 echo field_input('name', $name, lang('flexshare_share_name'), $read_only);
 echo field_input('description', $description, lang('base_description'), FALSE);
@@ -73,23 +69,21 @@ echo field_dropdown('directory', $directories, $directory, lang('flexshare_direc
 
 echo field_button_set($buttons);
 
-///////////////////////////////////////////////////////////////////////////////
-// Form close
-///////////////////////////////////////////////////////////////////////////////
-
 echo form_footer();
 echo form_close();
 
+///////////////////////////////////////////////////////////////////////////////
 // Add links to protocols
+///////////////////////////////////////////////////////////////////////////////
+
 if ($form_type === 'edit') {
-echo '<div style=\'text-align: center\'>';
-echo button_set(
-    array(
-        anchor_custom('/app/flexshare/file/configure/' . $name, lang('flexshare_file')),
-        anchor_custom('/app/flexshare/ftp/configure/' . $name, lang('flexshare_ftp')),
-        anchor_custom('/app/flexshare/web/configure/' . $name, lang('flexshare_web')),
-        anchor_custom('/app/flexshare/email/configure/' . $name, lang('flexshare_email'))
-    )
-);
-echo '</div>';
+    echo '<div style=\'text-align: center\'>';
+    echo button_set(
+        array(
+            anchor_custom('/app/flexshare/file/configure/' . $name, lang('flexshare_file')),
+            anchor_custom('/app/flexshare/ftp/configure/' . $name, lang('flexshare_ftp')),
+            anchor_custom('/app/flexshare/web/configure/' . $name, lang('flexshare_web')),
+        )
+    );
+    echo '</div>';
 }

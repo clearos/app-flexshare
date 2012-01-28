@@ -251,6 +251,7 @@ class Flexshare extends ClearOS_Controller
                         $this->input->post('directory')
                     );
                 }
+
                 redirect('/flexshare');
             } catch (Exception $e) {
                 $this->page->set_message(clearos_exception_message($e));
@@ -275,11 +276,14 @@ class Flexshare extends ClearOS_Controller
 
         // Create owner list
         //------------------
+
         try {
             $groups = $this->group_manager->get_details();
             $group_options[-1] = lang('base_select');
+
             foreach ($groups as $name => $group)
                 $group_options[$name] = $name;
+
             $data['group_options'] = $group_options;
         } catch (Exception $e) {
             $this->page->view_exception($e);
@@ -297,6 +301,7 @@ class Flexshare extends ClearOS_Controller
             $this->page->view_exception($e);
             return;
         }
+
         $this->page->view_form('flexshare/add_edit', $data, lang('flexshare_flexshares'));
     }
 }

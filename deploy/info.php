@@ -29,8 +29,6 @@ $app['subcategory'] = lang('base_subcategory_file');
 $app['core_requires'] = array(
     'app-mode-core', 
     'app-tasks-core', 
-    'webconfig-php-imap',
-    'ntpdate >= 4.2.4p8'
 );
 
 $app['core_directory_manifest'] = array(

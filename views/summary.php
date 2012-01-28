@@ -36,16 +36,6 @@
 $this->lang->load('flexshare');
 
 ///////////////////////////////////////////////////////////////////////////////
-// View modes
-///////////////////////////////////////////////////////////////////////////////
-
-if ($mode === 'view') {
-    $read_only = TRUE;
-} else {
-    $read_only = FALSE;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // Headers
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -68,32 +58,28 @@ $anchors = array(anchor_add('/app/flexshare/add'));
 
 foreach ($flexshares as $share) {
 
-    if ($read_only) {
-        $buttons = array(
-            anchor_view('/app/flexshare/view/' . $share['Name']),
-        );
-    } else {
-        $state = ($share['Enabled']) ? 'disable' : 'enable';
-        $state_anchor = 'anchor_' . $state;
-        $buttons = array(
-            $state_anchor('/app/flexshare/toggle/' . $share['Name']),
-            anchor_edit('/app/flexshare/edit/' . $share['Name']),
-            anchor_delete('/app/flexshare/delete/' . $share['Name'])
-        );
-    }
+    $state = ($share['Enabled']) ? 'disable' : 'enable';
+    $state_anchor = 'anchor_' . $state;
+    $buttons = array(
+        $state_anchor('/app/flexshare/toggle/' . $share['Name']),
+        anchor_edit('/app/flexshare/edit/' . $share['Name']),
+        anchor_delete('/app/flexshare/delete/' . $share['Name'])
+    );
 
 	$item['title'] = $share['Name'];
 	$item['action'] = '/app/flexshare/edit/' . $share['Name'];
 	$item['anchors'] = button_set($buttons);
     $images = '';
+
     if ($share['WebEnabled'])
         $images .= "<img src='" . clearos_app_htdocs('flexshare') . "/icon_web.png'>";
+
     if ($share['FtpEnabled'])
         $images .= "<img src='" . clearos_app_htdocs('flexshare') . "/icon_ftp.png'>";
+
     if ($share['FileEnabled'])
         $images .= "<img src='" . clearos_app_htdocs('flexshare') . "/icon_samba.png'>";
-    if ($share['EmailEnabled'])
-        $images .= "<img src='" . clearos_app_htdocs('flexshare') . "/icon_email.png'>";
+
 	$item['details'] = array(
 		$share['Name'],
 		$share['Description'],

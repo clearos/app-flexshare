@@ -23,8 +23,6 @@ License: LGPLv3
 Requires: app-base-core
 Requires: app-mode-core
 Requires: app-tasks-core
-Requires: webconfig-php-imap
-Requires: ntpdate >= 4.2.4p8
 
 %description core
 Flexshares are flexible share resources that allow an administrator to quickly and easily define data sharing, collaboration and access areas via web, file, FTP and/or e-mail (as attachments).

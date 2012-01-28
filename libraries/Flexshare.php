@@ -164,8 +164,8 @@ class Flexshare extends Engine
     const CMD_UMOUNT = "/bin/umount";
     const CMD_PHP = "/usr/clearos/sandbox/usr/bin/php";
     const CMD_UPDATE_PERMS = "/usr/sbin/updateflexperms";
-    const DIR_MAIL_UPLOAD = "email-upload";
-    const CONSTANT_USERNAME = 'flexshare';
+    const CONSTANT_ACCOUNT_USERNAME = 'flexshare';
+    const CONSTANT_FILES_USERNAME = 'flexshares';
     const MBOX_HOSTNAME = 'localhost';
     const DEFAULT_PORT_WEB = 80;
     const DEFAULT_PORT_FTP = 2121;
@@ -192,9 +192,6 @@ class Flexshare extends Engine
     const PERMISSION_READ_WRITE = 4;
     const PERMISSION_READ_WRITE_PLUS = 5;
     const DIR_INDEX_LIST = 'index.htm index.html index.php index.php3 default.html index.cgi';
-    const EMAIL_SAVE_PATH_ROOT = 0;
-    const EMAIL_SAVE_PATH_MAIL = 1;
-    const EMAIL_SAVE_PATH_PARSE_SUBJECT = 2;
     const CASE_HTTP = 1;
     const CASE_HTTPS = 2;
     const CASE_CUSTOM_HTTP = 3;
@@ -359,7 +356,7 @@ class Flexshare extends Engine
             $groupobj = Group_Factory::create($group);
 
             if ($groupobj->exists())
-                $folder->create(self::CONSTANT_USERNAME, $group, "0775");
+                $folder->create(self::CONSTANT_FILES_USERNAME, $group, "0775");
             else
                 $folder->create($group, "nobody", "0775");
         }
@@ -443,7 +440,6 @@ class Flexshare extends Engine
             $this->generate_web_flexshares();
             $this->generate_ftp_flexshares();
             $this->generate_file_flexshares();
-            $this->generate_email_flexshares();
 
             try {
                 $file->delete();
@@ -551,7 +547,6 @@ class Flexshare extends Engine
                 $this->generate_web_flexshares();
                 $this->generate_ftp_flexshares();
                 $this->generate_file_flexshares();
-                $this->generate_email_flexshares();
             } catch (Exception $e) {
                 // Any exception here, toggle...well, toggle.
                 if ($toggle)
@@ -707,76 +702,6 @@ class Flexshare extends Engine
     }
 
     /**
-     * Returns a list of valid email policy options for a flexshare.
-     *
-     * @return array
-     */
-
-    function get_email_policy_options()
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $options = array(
-            self::POLICY_DONOT_WRITE => lang('flexshare_do_not_write'),
-            self::POLICY_OVERWRITE => lang('flexshare_overwrite'),
-            self::POLICY_BACKUP => lang('flexshare_backup')
-        );
-
-        return $options;
-    }
-
-    /**
-     * Returns a list of valid email policy options for a flexshare.
-     *
-     * @return array
-     */
-
-    function get_email_save_options()
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $options = array(
-           self::SAVE_REQ_CONFIRM => lang('flexshare_save_req_confirm'),
-           self::SAVE_AUTO => lang('flexshare_save_auto')
-        );
-
-        return $options;
-    }
-
-    /**
-     * Returns a list of valid email directory options for a flexshare.
-     *
-     * @param string $name the flex share name
-     *
-     * @return array
-     */
-
-    function get_email_dir_options($name)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $options = array(
-           self::EMAIL_SAVE_PATH_ROOT => lang('flexshare_root_dir'),
-           self::EMAIL_SAVE_PATH_MAIL => lang('flexshare_mail_sub_dir'),
-           self::EMAIL_SAVE_PATH_PARSE_SUBJECT => lang('flexshare_parse_subject')
-        );
-        return $options;
-    }
-
-    /**
-     * Returns a list of valid save mask options for a flexshare.
-     *
-     * @return array
-     */
-
-    function get_email_save_mask_options()
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        return $this->get_file_create_mask_options();
-    }
-
-    /**
      * Create the Apache configuration files for the specificed flexshare.
      *
      * @return void
@@ -895,7 +820,7 @@ class Flexshare extends Engine
             if ($share['WebCgi']) {
                 $cgifolder = new Folder(self::SHARE_PATH . "/$name/cgi-bin/");
                 if (!$cgifolder->exists())
-                    $cgifolder->create(self::CONSTANT_USERNAME, self::CONSTANT_USERNAME, "0777");
+                    $cgifolder->create(self::CONSTANT_FILES_USERNAME, self::CONSTANT_FILES_USERNAME, "0777");
                 $newlines[] = "ScriptAlias /flexshare/$name/cgi-bin/ " . self::SHARE_PATH . "/$name/cgi-bin/";
             }
 
@@ -1225,7 +1150,7 @@ class Flexshare extends Engine
                     $file->delete();
 
                 if ($share['FtpAnonymousGreeting']) {
-                    $file->create(self::CONSTANT_USERNAME, self::CONSTANT_USERNAME, 644);
+                    $file->create(self::CONSTANT_FILES_USERNAME, self::CONSTANT_FILES_USERNAME, 644);
                     $file->add_lines($share['FtpAnonymousGreeting']);
                 }
             } catch (Exception $e) {
@@ -1683,42 +1608,6 @@ class Flexshare extends Engine
     }
 
     /**
-     * Create the Postfix aliases configuration file for the specificed flexshare.
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function generate_email_flexshares()
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        if (!clearos_library_installed('aliases/Aliases'))
-            return;
-
-        $aliases = new Aliases();
-
-        $shares = $this->get_share_summary();
-        for ($index = 0; $index < count($shares); $index++) {
-            $name = $shares[$index]['Name'];
-            $share = $this->get_share($name);
-
-            if (!isset($share['ShareEnabled'])
-                || !isset($share['EmailEnabled'])
-                || !$share['ShareEnabled']
-                || !$share['EmailEnabled']
-            ) {
-                try {
-                    $aliases->delete_alias(self::PREFIX . $name);
-                } catch (Exception $e) {
-                }
-            } else {
-                $aliases->add_alias(self::PREFIX . $name, array(self::CONSTANT_USERNAME));
-            }
-        }
-    }
-
-    /**
      * Initializes flexshare environment.
      *
      * @return void
@@ -1752,7 +1641,7 @@ class Flexshare extends Engine
         $adduser = FALSE;
 
         try {
-            $user = User_Factory::create(self::CONSTANT_USERNAME);
+            $user = User_Factory::create(self::CONSTANT_ACCOUNT_USERNAME);
             $currentinfo = $user->get_info();
         } catch (User_Not_Found_Exception $e) {
             $adduser = TRUE;
@@ -1874,7 +1763,7 @@ class Flexshare extends Engine
     }
 
     /**
-     * Sets email-based access.
+     * Sets account access.
      *
      * @param string $password password
      * @param string $verify   verify
@@ -1888,7 +1777,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if ($password != $verify)
-            throw new Validation_Exception(FLEXSHARE_LANG_ERRMSG_PASSWORD_MISMATCH);
+            throw new Validation_Exception(lang('flexshare_password_and_verify_do_not_match'));
 
         Validation_Exception::is_valid($this->validate_password($password));
 
@@ -2904,259 +2793,6 @@ class Flexshare extends Engine
         $this->set_parameter($name, 'FileRecycleBin', $state);
     }
 
-    ////////////////////
-    //    E M A I L   //
-    ////////////////////
-
-    /**
-     * Sets email-based access.
-     *
-     * @param string $name    flexshare name
-     * @param bool   $enabled email enabled
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_email_enabled($name, $enabled)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'EmailEnabled', $enabled);
-        $share = $this->get_share($name);
-        // If web access is ALL, check e-mail restricts access
-        $prevent = TRUE;
-        if ($enabled) {
-            if (isset($share['EmailRestrictAccess']) && $share['EmailRestrictAccess'])
-                $prevent = FALSE;
-            if (!isset($share['WebEnabled']) || !$share['WebEnabled'])
-                $prevent = FALSE;
-            if (isset($share['WebReqAuth']) && $share['WebReqAuth'])
-                $prevent = FALSE;
-            if ((!isset($share['WebPhp']) || !$share['WebPhp']) && (!isset($share['WebCgi']) || !$share['WebCgi']))
-                $prevent = FALSE;
-            if (isset($share['WebAccess']) && (int)$share['WebAccess'] == self::ACCESS_LAN)
-                $prevent = FALSE;
-        } else {
-            $prevent = FALSE;
-        }
-
-        if ($prevent)
-            throw new Engine_Exception(FLEXSHARE_LANG_WARNING_CONFIG, COMMON_WARNING);
-
-        // Disable entire share if all elements are disabled
-        if (! $share['WebEnabled'] && ! $share['FtpEnabled'] && ! $share['FileEnabled'] && ! $share['EmailEnabled']) {
-            $this->set_parameter($name, 'ShareEnabled', 0);
-        }
-
-        try {
-            $this->generate_email_flexshares();
-        } catch (Exception $e) {
-            // Any exception here, go back to initial state
-            if ($enabled)
-                $this->set_parameter($name, 'EmailEnabled', 0);
-            else
-                $this->set_parameter($name, 'EmailEnabled', 1);
-
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
-
-    }
-
-    /**
-     * Sets email access status for the flexshare.
-     *
-     * @param string $name   flexshare name
-     * @param bool   $policy policy flag
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_email_policy($name, $policy)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'EmailPolicy', $policy);
-    }
-
-    /**
-     * Sets the save policy for the flexshare.
-     *
-     * @param string $name flexshare name
-     * @param int    $save save policy
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_email_save($name, $save)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'EmailSave', $save);
-    }
-
-    /**
-     * Sets the require signature flag for the flexshare.
-     *
-     * @param string $name          flexshare name
-     * @param bool   $req_signature boolean flag
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_email_req_signature($name, $req_signature)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'EmailReqSignature', $req_signature);
-    }
-
-    /**
-     * Sets the groups ownership for this flexshare.
-     *
-     * @param string $name  flexshare name
-     * @param array  $owner group owner
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_email_group_owner($name, $owner)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'EmailGroupOwner', $owner);
-    }
-
-    /**
-     * Sets the groups allowed to access this flexshare.
-     *
-     * @param string $name   flexshare name
-     * @param array  $access group access array
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_email_group_access($name, $access)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'EmailGroupAccess', implode(' ', $access));
-    }
-
-    /**
-     * Sets the groups allowed to access this flexshare.
-     *
-     * @param string $name flexshare name
-     * @param array  $acl  access control list
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_email_acl($name, $acl)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        // Validation
-
-        foreach ($acl as $email)
-            Validation_Exception::is_valid($this->validate_email_address($email));
-
-        $this->set_parameter($name, 'EmailAcl', implode(' ', $acl));
-    }
-
-    /**
-     * Sets the restrict access flag for the flexshare.
-     *
-     * @param string $name     flexshare name
-     * @param bool   $restrict boolean flag
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_email_restrict_access($name, $restrict)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        // If no restrictions, check that user is not running a wide open web server with PHP/cgi
-        $prevent = TRUE;
-        if (!$restrict) {
-            $share = $this->get_share($name);
-            if (!isset($share['WebEnabled']) || !$share['WebEnabled'])
-                $prevent = FALSE;
-            if ((!isset($share['WebPhp']) || !$share['WebPhp']) && (!isset($share['WebCgi']) || !$share['WebCgi']))
-                $prevent = FALSE;
-            if (isset($share['WebReqAuth']) && $share['WebReqAuth'])
-                $prevent = FALSE;
-            if (isset($share['WebAccess']) && (int)$share['WebAccess'] == self::ACCESS_LAN)
-                $prevent = FALSE;
-        } else {
-            $prevent = FALSE;
-        }
-
-        if ($prevent)
-            throw new Engine_Exception(FLEXSHARE_LANG_WARNING_CONFIG, COMMON_WARNING);
-        $this->set_parameter($name, 'EmailRestrictAccess', $restrict);
-    }
-
-    /**
-     * Sets email-based default directory.
-     *
-     * @param string $name flexshare name
-     * @param string $dir  root directory path
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_email_dir($name, $dir)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'EmailDir', $dir);
-    }
-
-    /**
-     * Sets email notification service.
-     *
-     * @param string $name   flexshare name
-     * @param string $notify notify email
-     *
-     * @return  void
-     * @throws Engine_Exception
-     */
-
-    function set_email_notify($name, $notify)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'EmailNotify', $notify);
-    }
-
-    /**
-     * Sets the save mask for this flexshare.
-     *
-     * @param string $name flexshare name
-     * @param string $mask mask
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_email_save_mask($name, $mask)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $value = "0" . (int)$mask['owner'] . "" . (int)$mask['group'] . "" . (int)$mask['world'];
-        $this->set_parameter($name, 'EmailSaveMask', $value);
-    }
-
     /////////////////////////////////
     //    G E T   M E T H O D S    //
     /////////////////////////////////
@@ -3209,442 +2845,6 @@ class Flexshare extends Engine
         $passwd = $this->get_parameter(NULL, 'FlexsharePW');
 
         return $passwd;
-    }
-
-    /**
-     * Gets email address for this share for email based access.
-     *
-     * @param string $name flexshare name
-     *
-     * @return string
-     *
-     * @throws Engine_Exception
-     */
-
-    function get_email_address($name)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        if (!clearos_library_installed('smtp/Postfix'))
-            return;
-
-        $postfix = new Postfix();
-        $email = self::PREFIX . $name . "@" . $postfix->get_domain();
-
-        return $email;
-    }
-
-    /**
-     * Check mail POP accounts for flexshares.
-     *
-     * @param boolean $view   a boolean flag indicating access to this method via webconfig (ie. user)
-     * @param array   $action array containing message IDs and actions to do on them (delete, save etc.)
-     *
-     * @return array containing limited information on emails in queue
-     *
-     * @throws Engine_Exception
-     */
-
-    function check_messages($view = FALSE, $action = NULL)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        if (!clearos_library_installed('smtp/Postfix'))
-            return;
-        if (!clearos_library_installed('imap/Cyrus'))
-            return;
-
-        $req_check = FALSE;
-
-        $msg = array();
-        // Set an empty array if NULL
-        if ($action == NULL || ! $action)
-            $action = array();
-        $shares = $this->get_share_summary();
-        // For convenience, we setup array containing required info for "FetchEmail" function
-        for ($index = 0; $index < count($shares); $index++) {
-            $share = $this->get_share($shares[$index]['Name']);
-            $share['EmailGroupOwner'] = $share['ShareGroup'];
-            $share['EmailGroupAccess'] = $share['ShareGroup'];
-            if (!isset($share['EmailDir'])) $share['EmailDir'] = 0;
-            if (!isset($share['EmailRestrictAccess'])) $share['EmailRestrictAccess'] = 0;
-            if (!isset($share['EmailReqSignature'])) $share['EmailReqSignature'] = 0;
-            if (!isset($share['EmailAcl'])) $share['EmailAcl'] = 0;
-            if (!isset($share['EmailPolicy'])) $share['EmailPolicy'] = 0;
-            if (!isset($share['EmailSave'])) $share['EmailSave'] = 0;
-            if (!isset($share['EmailSaveMask'])) $share['EmailSaveMask'] = 0;
-            if (!isset($share['EmailNotify'])) $share['EmailNotify'] = 0;
-            $newarray[$shares[$index]['Name']]['dir'] = $share['EmailDir'];
-            $newarray[$shares[$index]['Name']]['restrict_access'] = $share['EmailRestrictAccess'];
-            $newarray[$shares[$index]['Name']]['req_signature'] = $share['EmailReqSignature'];
-            $newarray[$shares[$index]['Name']]['group_owner'] = $share['EmailGroupOwner'];
-            $newarray[$shares[$index]['Name']]['group_access'] = $share['EmailGroupAccess'];
-            $newarray[$shares[$index]['Name']]['acl'] = $share['EmailAcl'];
-            $newarray[$shares[$index]['Name']]['policy'] = $share['EmailPolicy'];
-            $newarray[$shares[$index]['Name']]['save'] = $share['EmailSave'];
-            $newarray[$shares[$index]['Name']]['mask'] = $share['EmailSaveMask'];
-            $newarray[$shares[$index]['Name']]['notify'] = $share['EmailNotify'];
-
-            // Enabled?
-            if (isset($share['ShareEnabled'])
-                && $share['ShareEnabled']
-                && isset($share['EmailEnabled'])
-                && $share['EmailEnabled']
-            )
-                $req_check = TRUE;
-        }
-echo 'fuck' . "\n";
-
-echo 'fuck';
-        // May not need to fetch mail
-        if (! $req_check)
-            return $msg;
-
-        // This may take a while...don't timeout.
-        set_time_limit(0);
-        $msg = $this->fetch_email($view, $action, $newarray);
-        set_time_limit(30);
-        return $msg;
-    }
-
-    /**
-     * Check mail POP accounts for flexshares.
-     *
-     * @param bool  $view   a boolean flag indicating access to this method via webconfig (ie. user)
-     * @param array $action array containing message IDs and actions to do on them (delete, save etc.)
-     * @param array $shares flexshares
-     *
-     * @return array containing message information
-     *
-     * @throw Engine_Exception
-     */
-
-    function fetch_email($view, $action, $shares)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $input = '';
-        $mymessage = array();
-        $files = array();
-        $mailing_list = array();
-        if (!clearos_library_installed('smtp/Postfix'))
-            return;
-        if (!clearos_library_installed('imap/Cyrus'))
-            return;
-
-echo 'shit';
-        // Get password for mailserver authentication
-        $passwd = $this->get_parameter(NULL, 'FlexsharePW');
-
-        $cyrus = new Cyrus();
-        $mbox = @imap_open("{" . self::MBOX_HOSTNAME . ":143/notls}INBOX", self::CONSTANT_USERNAME, $passwd);
-        $ignore = imap_errors();
-
-        if (! $mbox)
-            return;
-
-        for ($index = 1; $index <= imap_num_msg($mbox); $index++) {
-            $encrypted = FALSE;
-            $headers = imap_headerinfo($mbox, $index);
-            unset($files);
-            $flex_address = NULL;
-            $addresses = array();
-            if (is_array($headers->to))
-                $addresses = $headers->to;
-            if (is_array($headers->cc))
-                $addresses = array_merge($addresses, $headers->cc);
-            foreach ($addresses as $address) {
-                if (preg_match("/^" . self::PREFIX . "(.*)$/", $address->mailbox, $match)) {
-                    $flex_address = $match[1];
-                    break;
-                }
-            }
-
-            // See if we have a matching flexshare defined
-            if ($flex_address == NULL || ! isset($shares[$flex_address])) {
-                log_message(self::LOG_TAG, "Flexshare does not exist...Subject: " . $headers->subject);
-                imap_delete($mbox, $index);
-                unset($mymessage[$index]);
-                continue;
-            }
-            $mymessage[$index]['Share'] = $flex_address;
-            $mymessage[$index]['From'] = $headers->fromaddress;
-            $mymessage[$index]['Reply-To'] = $headers->reply_toaddress;
-            $mymessage[$index]['Date'] = $headers->udate;
-            $mymessage[$index]['Subject'] = $headers->subject;
-            $mymessage[$index]['Size'] = $headers->Size;
-            // Set username for file permissions
-            $username = $headers->from[0]->mailbox;
-
-            $rawheader = explode("\n", imap_fetchheader($mbox, $index));
-
-            if (is_array($rawheader) && count($rawheader)) {
-                $head = array();
-                $arg = array();
-                foreach ($rawheader as $line) {
-                    preg_match("/^([^:]*): (.*)/", $line, $arg);
-                    $head[$arg[1]] = $arg[2];
-                }
-            }
-            if (isset($head['Content-Type']) && preg_match('/x-pkcs7-mime/', $head['Content-Type']))
-                $encrypted = TRUE;
-            // Set encrypted flag for message summary
-            $mymessage[$index]['Ssl'] = $encrypted;
-
-            // User deleted...no use continuing
-            if (isset($action[$index]) && $action[$index] == 'delete') {
-                log_message(self::LOG_TAG, "User initiated deletion...Subject: " . $headers->subject);
-                imap_delete($mbox, $index);
-                unset($mymessage[$index]);
-                continue;
-            }
-
-            // See if restricted access is enabled
-            if ($shares[$flex_address]['restrict_access']) {
-                $msg = tempnam("/tmp", self::PREFIX);
-                $file = new File($msg);
-                if ($file->exists())
-                    $file->delete();
-                $file->create('webconfig', 'webconfig', "0600");
-                $file->dump_contents_from_array($rawheader);
-                $file->add_lines(imap_body($mbox, $index));
-                $ssl = new Ssl();
-                if ($shares[$flex_address]['req_signature']) {
-                    // Verify signature
-                    if (! $ssl->verify_smime($file->get_filename())) {
-                        $file->delete();
-                        imap_delete($mbox, $index);
-                        unset($mymessage[$index]);
-                        continue;
-                    }
-                }
-                $file->delete();
-                // Check ACL
-                $acl = array();
-                $postfix = new Postfix();
-                $hostname = $postfix->get_hostname();
-                // Get users in groups
-                $groups = explode(" ", $shares[$flex_address]['group_access']);
-                $additional = explode(" ", $shares[$flex_address]['acl']);
-                $acl = array();
-                foreach ($groups as $group_name) {
-                    $group = new Group($group_name);
-                    $members = $group->get_members();
-                    foreach ($members as $user) {
-                        $acl[] = "$user@$hostname";
-                    }
-                    $acl = array_merge($acl, $additional);
-                }
-                if (! in_array($headers->from[0]->mailbox . "@" . $headers->from[0]->host, $acl)) {
-                    log_message(self::LOG_TAG, "ACL restricts attachments...Subject: " . $headers->subject);
-                    imap_delete($mbox, $index);
-                    unset($mymessage[$index]);
-                    continue;
-                }
-            }
-
-            $mask = 664;
-
-            // Determine directory to save files to - Use /flex-upload as default
-            $dir = self::SHARE_PATH . "/$flex_address/" . self::DIR_MAIL_UPLOAD . '/';
-            $match = array();
-
-            if ((int)$shares[$flex_address]['dir'] == self::EMAIL_SAVE_PATH_ROOT) {
-                $dir = self::SHARE_PATH . "/" . $flex_address;
-            } else if ((int)$shares[$flex_address]['dir'] == self::EMAIL_SAVE_PATH_PARSE_SUBJECT) {
-                $regex = "/^Dir\s*=\s*([A-Za-z0-9\-\_\/\. ]+$)/i";
-                if (preg_match($regex, $mymessage[$index]['Subject'], $match)) {
-                    $dir = self::SHARE_PATH . "/" . $flex_address . "/" . $match[1];
-                }
-            }
-
-            $folder = new Folder($dir, TRUE);
-            // Make sure directory exists
-            if (! $folder->exists())
-                $folder->create(self::CONSTANT_USERNAME, self::CONSTANT_USERNAME, "0775");
-            // Last check...make sure we are at least in /var/flexshare/shares/<name>
-            $regex = "/" . preg_replace("/\//", "\\/", self::SHARE_PATH . "/" . $flex_address) . "/";
-            if (! preg_match($regex, $folder->get_foldername())) {
-                // We're no longer in share directory filesystem...override with mail dir
-                $folder = new Folder(self::SHARE_PATH . "/" . $flex_address . "/" . self::DIR_MAIL_UPLOAD . "/", TRUE);
-            }
-
-
-            $structure = imap_fetchstructure($mbox, $index);
-            $mime = new Mime();
-            $parts = $mime->get_parts($structure);
-
-            if (! $view && ! $shares[$flex_address]['save']) {
-                // CRON is calling us
-                // Ignore files called by cron and received longer than 5 minutes ago
-                // Can't use flags, since POP does not support \\SEEN.
-                if (((int)$mymessage[$index]['Date'] + 5*60) > time()) {
-                    $summary = array(
-                       'Share' => $mymessage[$index]['Share'],
-                       'Subject' => $mymessage[$index]['Subject'],
-                       'From' => $mymessage[$index]['From'],
-                       'Reply-To' => $mymessage[$index]['Reply-To'],
-                       'Date' => $mymessage[$index]['Date'],
-                       'Size' => $this->get_formatted_bytes((int)$mymessage[$index]['Size'], 1)
-                    );
-                    foreach ($parts as $pid => $part) {
-                        $regex = "/^attachment$|^inline$/";
-                        if (isset($part['disposition']) && preg_match($regex, $part['disposition'])) {
-                            // Ignore signatures
-                            if ($part['type'] == "application/x-pkcs7-signature")
-                                continue;
-                            $summary['Files'][] = $part['name'] .
-                                " (" . $this->get_formatted_bytes((int)$part['size'], 1) . ")";
-                        }
-                    }
-                    $mailing_list[$shares[$flex_address]['notify']][] = $summary;
-                }
-                continue;
-            } else if (isset($action[$index]) && $action[$index] != "save") {
-                // User has not click save
-                continue;
-            }
-
-            // Delete any messages without attachments
-            if (count($parts) == 0) {
-                $log_from = $mymessage[$index]['Reply-To'];
-                unset($mymessage[$index]);
-                imap_delete($mbox, $index);
-                continue;
-            }
-
-            // Check to see if share dir is users' home dir
-            if (preg_match("/^\\/home\\/\\(\\.\\*\\$\\)/", $this->get_parameter($flex_address, 'ShareDir'), $match)) {
-                $user = User_Factory::create($match[1]);
-                if ($user->exists()) {
-                    $username = $match[1];
-                } else {
-                    $user = User_Factory::create($username);
-                    if (!$user->exists())
-                        $username = self::CONSTANT_USERNAME;
-                }
-            } else {
-                // Check to see if $username is on the filesystem
-                $user = User_Factory::create($username);
-                // If user does not exist, default to 'flexshare.flexshare' for file permission
-                if (!$user->exists())
-                    $username = self::CONSTANT_USERNAME;
-            }
-
-            // Set group owner
-            $groupname = $shares[$flex_address]['group_owner'];
-            $group = new Group($groupname);
-
-            foreach ($parts as $pid => $part) {
-                // Only save if an attachment
-                try {
-                    if (isset($part['disposition']) && preg_match("/^attachment$|^inline$/", $part['disposition'])) {
-                        // Ignore signatures
-                        if ($part['type'] == "application/x-pkcs7-signature")
-                            continue;
-                        // Check filename exists in attachment
-                        if (!isset($part['name']) || $part['name'] == '')
-                            continue;
-                        $path_and_filename = $dir . "/" . $part['name'];
-                        if ($shares[$flex_address]['save'] || (isset($action[$index]) && $action[$index] == "save")) {
-                            $file = new File($path_and_filename, TRUE);
-                            if (! $file->exists()) {
-                                $file->create($username, $groupname, $mask);
-                                if ($part['encoding'] == 'base64')
-                                    $file->add_lines(base64_decode(imap_fetchbody($mbox, $index, $pid)));
-                                else
-                                    $file->add_lines(imap_fetchbody($mbox, $index, $pid));
-                                $files[] = $part['name'];
-                            } else {
-                                $policy = (int)$shares[$flex_address]['policy'];
-                                switch ($policy) {
-                                    case self::POLICY_DONOT_WRITE:
-                                        break;
-                                    case self::POLICY_OVERWRITE:
-                                        $file->delete();
-                                        $file->create($username, $groupname, $mask);
-                                        if ($part['encoding'] == 'base64')
-                                            $file->add_lines(base64_decode(imap_fetchbody($mbox, $index, $pid)));
-                                        else
-                                            $file->add_lines(imap_fetchbody($mbox, $index, $pid));
-                                        $files[] = $part['name'];
-                                        break;
-                                    case self::POLICY_BACKUP:
-                                        $file->move_to($path_and_filename . date(".mdy.His", time()) . ".bak");
-                                        $file = new File($path_and_filename, TRUE);
-                                        $file->create($username, $groupname, $mask);
-                                        if ($part['encoding'] == 'base64')
-                                            $file->add_lines(base64_decode(imap_fetchbody($mbox, $index, $pid)));
-                                        else
-                                            $file->add_lines(imap_fetchbody($mbox, $index, $pid));
-                                        $files[] = $part['name'];
-                                        break;
-                                }
-                            }
-                            $file->Chmod("0664");
-                            log_message(self::LOG_TAG, "Attachment saved as " . $path_and_filename);
-                        }
-                    }
-                } catch (Exception $e) {
-                    // TODO log this:
-                    //"Error - " . $e->getMessage() . " Subject: " . $headers->subject;
-                    continue;
-                }
-            }
-            // Delete messages
-            if ($shares[$flex_address]['save'] || (isset($action[$index]) && $action[$index] == "save")) {
-                $log_from = $mymessage[$index]['Reply-To'];
-                imap_delete($mbox, $index);
-                $mymessage[$index]['SavedFiles'] = $files;
-            }
-        }
-        imap_close($mbox, CL_EXPUNGE);
-        // Check if notification requires sending
-        if (count($mailing_list) > 0) {
-            $hostname = new Hostname();
-            $mail_notification = new Mail_Notification();
-            foreach ($mailing_list as $address=>$emails) {
-                $mail_notification->clear();
-                $body = FLEXSHARE_LANG_EMAIL_NOTIFICATION_PENDING_APPROVAL . ":\n\n";
-                foreach ($emails as $email) {
-                    $fields = array(
-                                  "Share" => FLEXSHARE_LANG_SHARE,
-                                  "Subject" => FLEXSHARE_LANG_SUBJECT,
-                                  "From" => LOCALE_LANG_FROM,
-                                  "Date" => LOCALE_LANG_DATE,
-                                  "Files" => FLEXSHARE_LANG_ATTACHMENTS);
-                    foreach ($fields as $field => $display) {
-                        if ($field == "Date") {
-                            $body .= str_pad("$display:", 20, " ", STR_PAD_RIGHT) .
-                                        date("F d, Y H:i", $email[$field])."\n";
-                        } else if ($field == "Files") {
-                            $counter = 1;
-                            if (isset($email['Files']) && is_array($email['Files'])) {
-                                foreach ($email['Files'] as $filedetails) {
-                                    if ($counter == 1)
-                                        $body .= str_pad("$display:", 20, " ", STR_PAD_RIGHT) . $filedetails . "\n";
-                                    else
-                                        $body .= str_pad(" ", 21, " ", STR_PAD_RIGHT) . $filedetails . "\n";
-                                    $counter++;
-                                }
-                            }
-                        } else {
-                            $body .= str_pad("$display:", 20, " ", STR_PAD_RIGHT) . $email[$field] . "\n";
-                        }
-                        if ($field == "Files")
-                            $body .= "\n";
-                    }
-                }
-
-                $mail_notification->add_recipient($address);
-                $mail_notification->set_subject(FLEXSHARE_LANG_EMAIL_NOTIFICATION_SUBJECT . " - " . $hostname->Get());
-                $mail_notification->set_body($body);
-                $mail_notification->set_sender("flex@" . $hostname->Get());
-                $mail_notification->send();
-            }
-        }
-
-        return $mymessage;
     }
 
     /**
@@ -4038,47 +3238,5 @@ echo 'shit';
         clearos_profile(__METHOD__, __LINE__);
         if (FALSE)
             return lang('flexshare_invalid_file_comment');
-    }
-
-    /**
-     * Validation routine for flexshare email.
-     *
-     * @param boolean $status Email dropbox flexshare status
-     *
-     * @return mixed void if status is valid, errmsg otherwise
-     */
-
-    function validate_email_enabled($status)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-    }
-
-    /**
-     * Validation routine for flexshare email address.
-     *
-     * @param string $address Email address
-     *
-     * @return mixed void if address is valid, errmsg otherwise
-     */
-
-    function validate_email_address($address)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-        if (! preg_match("/^([a-z0-9_\-\.\$]+)@/", $address))
-            return lang('flexshare_email_acl_address_is_invalid');
-    }
-
-    /**
-     * Validation routine for flexshare notify email address.
-     *
-     * @param string $address Email address
-     *
-     * @return mixed void if address is valid, errmsg otherwise
-     */
-
-    function validate_email_notify($address)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-        return $this->validate_email_address($address);
     }
 }
