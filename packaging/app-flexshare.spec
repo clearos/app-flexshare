@@ -37,6 +37,7 @@ This package provides the core API and libraries.
 mkdir -p -m 755 %{buildroot}/usr/clearos/apps/flexshare
 cp -r * %{buildroot}/usr/clearos/apps/flexshare/
 
+install -d -m 0755 %{buildroot}/var/clearos/flexshare
 install -d -m 0755 %{buildroot}/var/flexshare
 install -d -m 0755 %{buildroot}/var/flexshare/shares
 install -D -m 0644 packaging/app-flexshare.cron %{buildroot}/etc/cron.d/app-flexshare
@@ -82,6 +83,7 @@ exit 0
 %exclude /usr/clearos/apps/flexshare/packaging
 %exclude /usr/clearos/apps/flexshare/tests
 %dir /usr/clearos/apps/flexshare
+%dir /var/clearos/flexshare
 %dir /var/flexshare
 %dir /var/flexshare/shares
 /usr/clearos/apps/flexshare/deploy
