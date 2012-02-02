@@ -38,8 +38,10 @@ $app['core_directory_manifest'] = array(
 );
 
 $app['core_file_manifest'] = array( 
-   'flexshare.conf' => array(
-        'target' => '/etc/flexshare.conf',
+    'filewatch-flexshare-network.conf'=> array('target' => '/etc/clearsync.d/filewatch-flexshare-network.conf'),
+
+    'flexshare.conf' => array(
+        'target' => '/etc/clearos/flexshare.conf',
         'mode' => '0600',
         'owner' => 'root',
         'group' => 'root',
@@ -47,21 +49,21 @@ $app['core_file_manifest'] = array(
         'config_params' => 'noreplace',
     ),
 
-   'updateflexperms' => array(
+    'updateflexperms' => array(
         'target' => '/usr/sbin/updateflexperms',
         'mode' => '0755',
         'owner' => 'root',
         'group' => 'root',
     ),
 
-   'importflexemail' => array(
+    'importflexemail' => array(
         'target' => '/usr/sbin/importflexemail',
         'mode' => '0755',
         'owner' => 'root',
         'group' => 'root',
     ),
 
-   'app-flexshare.cron' => array(
+    'app-flexshare.cron' => array(
         'target' => '/etc/cron.d/app-flexshare',
         'mode' => '0644',
         'owner' => 'root',

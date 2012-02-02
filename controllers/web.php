@@ -29,15 +29,13 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-// Classes
-//--------
+///////////////////////////////////////////////////////////////////////////////
+// D E P E N D E N C I E S
+///////////////////////////////////////////////////////////////////////////////
+
+use \Exception as Exception;
 
 use \clearos\apps\flexshare\Flexshare as Flexshare;
-
-// TODO for Pete:  Why does enabling line below give:
-// Fatal error: Call to a member function load() on a non-object i
-// Is it needed?
-//clearos_load_library('flexshare/Flexshare');
 
 ///////////////////////////////////////////////////////////////////////////////
 // C L A S S
@@ -59,6 +57,10 @@ class Web extends ClearOS_Controller
 {
     /**
      * Flexshare Web default controller.
+     *
+     * @param string $share share
+     *
+     * @return view
      */
 
     function index($share)

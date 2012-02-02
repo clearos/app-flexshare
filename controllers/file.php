@@ -29,15 +29,13 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-// Classes
-//--------
+///////////////////////////////////////////////////////////////////////////////
+// D E P E N D E N C I E S
+///////////////////////////////////////////////////////////////////////////////
+
+use \Exception as Exception;
 
 use \clearos\apps\flexshare\Flexshare as Flexshare;
-
-// TODO for Pete:  Why does enabling line below give:
-// Fatal error: Call to a member function load() on a non-object i
-// Is it needed?
-//clearos_load_library('flexshare/Flexshare');
 
 ///////////////////////////////////////////////////////////////////////////////
 // C L A S S
@@ -59,6 +57,10 @@ class File extends ClearOS_Controller
 {
     /**
      * Flexshare File default controller.
+     *
+     * @param string $share share
+     *
+     * @return view
      */
 
     function index($share)
@@ -96,6 +98,8 @@ class File extends ClearOS_Controller
                 $this->flexshare->set_file_audit_log($share, $this->input->post('audit_log'));
                 $this->flexshare->set_file_comment($share, $this->input->post('comment'));
                 $this->flexshare->set_file_enabled($share, $this->input->post('enabled'));
+
+                redirect('/flexshare/edit/' . $share);
             } catch (Exception $e) {
                 $this->page->set_message(clearos_exception_message($e));
             }

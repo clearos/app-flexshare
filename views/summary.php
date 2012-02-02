@@ -40,10 +40,10 @@ $this->lang->load('flexshare');
 ///////////////////////////////////////////////////////////////////////////////
 
 $headers = array(
-	lang('flexshare_name'),
-	lang('base_description'),
-	lang('flexshare_group'),
-	lang('flexshare_access_options')
+    lang('flexshare_name'),
+    lang('base_description'),
+    lang('flexshare_group'),
+    lang('flexshare_access_options')
 );
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -66,9 +66,9 @@ foreach ($flexshares as $share) {
         anchor_delete('/app/flexshare/delete/' . $share['Name'])
     );
 
-	$item['title'] = $share['Name'];
-	$item['action'] = '/app/flexshare/edit/' . $share['Name'];
-	$item['anchors'] = button_set($buttons);
+    $item['title'] = $share['Name'];
+    $item['action'] = '/app/flexshare/edit/' . $share['Name'];
+    $item['anchors'] = button_set($buttons);
     $images = '';
 
     if ($share['WebEnabled'])
@@ -80,14 +80,14 @@ foreach ($flexshares as $share) {
     if ($share['FileEnabled'])
         $images .= "<img src='" . clearos_app_htdocs('flexshare') . "/icon_samba.png'>";
 
-	$item['details'] = array(
-		$share['Name'],
-		$share['Description'],
-		$share['Group'],
-		$images
-	);
+    $item['details'] = array(
+        $share['Name'],
+        $share['Description'],
+        $share['Group'],
+        $images
+    );
 
-	$items[] = $item;
+    $items[] = $item;
 }
 
 sort($items);
@@ -97,8 +97,8 @@ sort($items);
 ///////////////////////////////////////////////////////////////////////////////
 
 echo summary_table(
-	lang('flexshare_flexshares'),
+    lang('flexshare_flexshares'),
     $anchors,
-	$headers,
-	$items
+    $headers,
+    $items
 );

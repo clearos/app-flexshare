@@ -527,6 +527,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         $file = new File(self::FILE_CONFIG);
+
         if (! $file->exists())
             throw new Engine_Exception(FILE_LANG_ERRMSG_NOTEXIST . " " . self::FILE_CONFIG, CLEAROS_ERROR);
         else
@@ -558,8 +559,8 @@ class Flexshare extends Engine
             }
         }
 
-        $this->_Update_folder_links($name, $this->get_parameter($name, 'ShareDir'));
-        $this->_Update_folder_attributes($share['ShareDir'], $share['ShareGroup']);
+        $this->_update_folder_links($name, $this->get_parameter($name, 'ShareDir'));
+        $this->_update_folder_attributes($share['ShareDir'], $share['ShareGroup']);
     }
 
     /**
@@ -1041,10 +1042,10 @@ class Flexshare extends Engine
         if ($exitcode != 0) {
             $config_ok = FALSE;
             $output = $shell->get_output();
-            log_message(self::LOG_TAG, "Invalid httpd configuration!");
+            clearos_log(self::LOG_TAG, "Invalid httpd configuration!");
             // Oops...we generated an invalid conf file
             foreach ($output as $line)
-                log_message(self::LOG_TAG, $line);
+                clearos_log(self::LOG_TAG, $line);
         }
 
         foreach ($vhosts as $vhost) {
@@ -1253,7 +1254,8 @@ class Flexshare extends Engine
                 $newlines[] = "\tPort $port";
                 $newlines[] = "\tDefaultRoot " . self::SHARE_PATH . "/";
                 $newlines[] = "\tRequireValidShell off";
-                $newlines[] = "\tPassivePorts " . $share["FtpPassivePortMin"]  . " " . $share["FtpPassivePortMax"];
+                if ($share["FtpPassivePortMin"] && $share["FtpPassivePortMax"])
+                    $newlines[] = "\tPassivePorts " . $share["FtpPassivePortMin"]  . " " . $share["FtpPassivePortMax"];
                 // $newlines[] = "\tCapabilitiesEngine on";
                 // $newlines[] = "\tCapabilitiesSet +CAP_CHOWN";
                 $newlines[] = "";
@@ -1410,8 +1412,9 @@ class Flexshare extends Engine
         $config_ok = TRUE;
 
         try {
+            $options['validate_exit_code'] = FALSE;
             $shell = new Shell();
-            $exitcode = $shell->execute(self::CMD_VALIDATE_PROFTPD, '-t', TRUE);
+            $exitcode = $shell->execute(self::CMD_VALIDATE_PROFTPD, '-t', TRUE, $options);
         } catch (Exception $e) {
             $config_ok = FALSE;
         }
@@ -1419,9 +1422,10 @@ class Flexshare extends Engine
         if ($exitcode != 0) {
             $config_ok = FALSE;
             $output = $shell->get_output();
-            log_message(self::LOG_TAG, "Invalid ProFTP configuration!");
+            clearos_log(self::LOG_TAG, "Invalid ProFTP configuration!");
+
             foreach ($output as $line)
-                log_message(self::LOG_TAG, $line);
+                clearos_log(self::LOG_TAG, $line);
         }
 
         foreach ($confs as $conf) {
@@ -1574,9 +1578,9 @@ class Flexshare extends Engine
         try {
             $shell = new Shell();
             $exitcode = $shell->execute(self::CMD_VALIDATE_SMBD, '-s', FALSE);
-        } catch (Validation_Exception $e) {
+        } catch (Exception $e) {
             $config_ok = FALSE;
-            log_message(self::LOG_TAG, "Invalid Samba config: " . clearos_exception_message($e));
+            clearos_log(self::LOG_TAG, "Invalid Samba config: " . clearos_exception_message($e));
         }
 
         if ($config_ok) {
@@ -1718,12 +1722,14 @@ class Flexshare extends Engine
 
         // Update tag if it exists
         try {
+            $match = FALSE;
             $file = new File(self::FILE_CONFIG);
+
             if ($name == NULL) {
-                $needle = "/^\s*$key\s*=\s*.+/i";
+                $needle = "/^\s*$key\s*=\s*/i";
                 $match = $file->replace_lines($needle, "$key=$value\n");
             } else {
-                $needle = "/^\s*$key\s*=\s*.+/i";
+                $needle = "/^\s*$key\s*=\s*/i";
                 $match = $file->replace_lines_between($needle, "  $key=$value\n", "/<Share $name>/", "/<\/Share>/");
             }
         } catch (File_No_Match_Exception $e) {
@@ -2030,7 +2036,8 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if ($override_port && ($port == 80 || $port == 443))
-            throw new Engine_Exception(lang('flexshare_non_custom_port'), CLEAROS_ERROR);
+            throw new Engine_Exception(lang('flexshare_non_custom_port_warning'), CLEAROS_ERROR);
+
         $inuse_ports = array();
         $info = $this->get_share($name);
         $ssl = $info['WebReqSsl'];
@@ -2334,7 +2341,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if ($override_port && ($port == self::DEFAULT_PORT_FTP || $port == self::DEFAULT_PORT_FTPS))
-            throw new Engine_Exception(lang('flexshare_non_custom_port'), CLEAROS_ERROR);
+            throw new Engine_Exception(lang('flexshare_non_custom_port_warning'), CLEAROS_ERROR);
 
         if ($override_port && ($port == 21 || $port == 990))
             throw new Engine_Exception(lang('flexshare_ftp_cannot_use_default_ports'), CLEAROS_ERROR);
@@ -3097,7 +3104,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if (! Network_Utils::is_valid_port_range($port_min, $port_max))
-            return lang('network_lang_port_range_invalid');
+            return lang('flexshare_port_range_invalid');
 
         if ($port_min < 1023 || $port_max < 1023)
             return lang('flexshare_passive_port_below_min');
@@ -3178,6 +3185,21 @@ class Flexshare extends Engine
     }
 
     /**
+     * Validation routine for allow passive state.
+     *
+     * @param boolean $state state
+     *
+     * @return string error message if state is invalid
+     */
+
+    function validate_ftp_allow_passive_state($state)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+    }
+
+    /**
+     * Validation routine for flexshare web access on Web.
+    /**
      * Validation routine for flexshare anonymous permission on FTP.
      *
      * @param boolean $permission FTP flexshare anonymous permission
@@ -3207,6 +3229,53 @@ class Flexshare extends Engine
         // Invalid characters in greeting?
         //if (preg_match("//" $greeting))
         //    return lang('flexshare_invalid_greeting');
+    }
+
+    /**
+     * Validation routine for ports.
+     *
+     * @param integer $port port number
+     *
+     * @return string error message if port is invalid
+     */
+
+    function validate_port($port)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        if (! Network_Utils::is_valid_port($port))
+            return lang('flexshare_port_invalid');
+    }
+
+    /**
+     * Validation routine for FTP override port.
+     *
+     * @param integer $port port number
+     *
+     * @return string error message if port is invalid
+     */
+
+    function validate_ftp_override_port($port)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        if (! Network_Utils::is_valid_port($port))
+            return lang('flexshare_port_invalid');
+        if (($port == self::DEFAULT_PORT_FTP) || ($port == self::DEFAULT_PORT_FTPS))
+            return lang('flexshare_non_custom_port_warning');
+    }
+
+    /**
+     * Validation routine for FTP override port state.
+     *
+     * @param boolean $state state
+     *
+     * @return string error message if state is invalid
+     */
+
+    function validate_ftp_override_port_state($state)
+    {
+        clearos_profile(__METHOD__, __LINE__);
     }
 
     /**

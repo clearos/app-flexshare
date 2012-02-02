@@ -58,7 +58,7 @@ clearos_load_library('base/Engine_Exception');
  * Flexshare parameter not found exception class.
  *
  * @category   Apps
- * @package    flexshare
+ * @package    Flexshare
  * @subpackage Exceptions
  * @author     ClearFoundation <developer@clearfoundation.com>
  * @copyright  2006-2011 ClearFoundation

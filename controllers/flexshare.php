@@ -60,15 +60,27 @@ class Flexshare extends ClearOS_Controller
 {
     /**
      * Flexshare server overview.
+     *
+     * @return view
      */
 
     function index()
     {
+        // Show account status widget if we're not in a happy state
+        //---------------------------------------------------------
+
+        $this->load->module('accounts/status');
+
+        if ($this->status->unhappy('openldap_directory')) {
+            $this->status->widget('password_policies', 'openldap_directory');
+            return;
+        }
+
         // Load libraries
         //---------------
 
-        $this->load->library('flexshare/Flexshare');
         $this->lang->load('flexshare');
+        $this->load->library('flexshare/Flexshare');
 
         // Initialize
         //-----------
@@ -169,7 +181,7 @@ class Flexshare extends ClearOS_Controller
     /**
      * Toggle share state enable/disable.
      *
-     * @param string $name
+     * @param string $name name
      *
      * @return view
      */
@@ -203,7 +215,7 @@ class Flexshare extends ClearOS_Controller
     /**
      * Flexshare common add/edit/view form handler.
      *
-     * @param string $share  share
+     * @param string $share     share
      * @param string $form_type form type (add or edit)
      *
      * @return view
@@ -269,22 +281,19 @@ class Flexshare extends ClearOS_Controller
                 $data['group'] = $info['ShareGroup'];
                 $data['directory'] = $info['ShareDirectory'];
             }
-        } catch (Exception $e) {
-            $this->page->view_exception($e);
-            return;
-        }
 
-        // Create owner list
-        //------------------
-
-        try {
-            $groups = $this->group_manager->get_details();
+            $groups = $this->group_manager->get_details('all'); //FIXME
             $group_options[-1] = lang('base_select');
 
             foreach ($groups as $name => $group)
                 $group_options[$name] = $name;
 
             $data['group_options'] = $group_options;
+
+            // TODO: use API call instead of file_exists
+            $data['file_installed'] = (file_exists('/var/clearos/samba/initialized_local')) ? TRUE : FALSE;
+            $data['web_installed'] = (clearos_library_installed('web/Httpd')) ? TRUE : FALSE;
+            $data['ftp_installed'] = (clearos_library_installed('ftp/ProFTPd')) ? TRUE : FALSE;
         } catch (Exception $e) {
             $this->page->view_exception($e);
             return;

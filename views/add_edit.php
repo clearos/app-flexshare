@@ -77,13 +77,18 @@ echo form_close();
 ///////////////////////////////////////////////////////////////////////////////
 
 if ($form_type === 'edit') {
+    $buttons = array();
+
+    if ($file_installed)
+        $buttons[] = anchor_custom('/app/flexshare/file/configure/' . $name, lang('flexshare_file'));
+
+    if ($ftp_installed)
+        $buttons[] = anchor_custom('/app/flexshare/ftp/configure/' . $name, lang('flexshare_ftp'));
+
+    if ($web_installed)
+        $buttons[] = anchor_custom('/app/flexshare/web/configure/' . $name, lang('flexshare_web'));
+
     echo '<div style=\'text-align: center\'>';
-    echo button_set(
-        array(
-            anchor_custom('/app/flexshare/file/configure/' . $name, lang('flexshare_file')),
-            anchor_custom('/app/flexshare/ftp/configure/' . $name, lang('flexshare_ftp')),
-            anchor_custom('/app/flexshare/web/configure/' . $name, lang('flexshare_web')),
-        )
-    );
+    echo button_set($buttons);
     echo '</div>';
 }

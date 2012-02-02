@@ -61,7 +61,7 @@ echo field_view(lang('flexshare_share_name'), $share['Name']);
 echo field_toggle_enable_disable('enabled', $share['FileEnabled'], lang('base_status'), $read_only);
 echo field_view(lang('flexshare_file_server_url'), $server_url);
 echo field_input('comment', $share['FileComment'], lang('flexshare_file_comment'), $read_only);
-echo field_dropdown('file_permission', $permission_options, $share['FilePermission'], lang('flexshare_file_permissions'), $read_only);
+echo field_dropdown('file_permission', $permission_options, $share['FilePermission'], lang('flexshare_permissions'), $read_only);
 echo field_toggle_enable_disable('recycle_bin', $share['FileRecycleBin'], lang('flexshare_file_recyle_bin'), $read_only);
 echo field_toggle_enable_disable('audit_log', $share['FileAuditLog'], lang('flexshare_file_audit_log'), $read_only);
 
