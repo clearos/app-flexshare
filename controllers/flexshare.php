@@ -33,12 +33,7 @@
 // D E P E N D E N C I E S
 ///////////////////////////////////////////////////////////////////////////////
 
-// Exceptions
-//-----------
-
-use \clearos\apps\flexshare\Flexshare_Parameter_Not_Found_Exception as Flexshare_Parameter_Not_Found_Exception;
-
-clearos_load_library('flexshare/Flexshare_Parameter_Not_Found_Exception');
+use \Exception as Exception;
 
 ///////////////////////////////////////////////////////////////////////////////
 // C L A S S
@@ -107,210 +102,41 @@ class Flexshare extends ClearOS_Controller
     }
 
     /**
-     * Flexshare add view.
+     * Flexshare summary view.
      *
      * @return view
      */
 
-    function add()
-    {
-        $this->_add_edit_view(NULL, 'add');
-    }
-
-    /**
-     * Flexshare delete view.
-     *
-     * @param string $share share
-     *
-     * @return view
-     */
-
-    function delete($share)
-    {
-        $confirm_uri = '/app/flexshare/destroy/' . $share;
-        $cancel_uri = '/app/flexshare';
-        $items = array($share);
-
-        $this->page->view_confirm_delete($confirm_uri, $cancel_uri, $items);
-    }
-
-    /**
-     * Destroys Flexshare share.
-     *
-     * @param string $share share
-     *
-     * @return view
-     */
-
-    function destroy($share)
+    function summary($share)
     {
         // Load libraries
         //---------------
 
-        $this->load->library('flexshare/Flexshare');
-
-        // Handle form submit
-        //-------------------
-
-        try {
-            // Second parameter is option to delete folder
-            // Default delete wizard doesn't allow options
-            // Set to false (do not delete) for now
-            $this->flexshare->delete_share($share, FALSE);
-            $this->page->set_status_deleted();
-            redirect('/flexshare');
-        } catch (Exception $e) {
-            $this->page->view_exception($e);
-            return;
-        }
-    }
-
-    /**
-     * Flexshare edit view.
-     *
-     * @param string $share share
-     *
-     * @return view
-     */
-
-    function edit($share)
-    {
-        $this->_add_edit_view($share, 'edit');
-    }
-
-    /**
-     * Toggle share state enable/disable.
-     *
-     * @param string $name name
-     *
-     * @return view
-     */
-
-    function toggle($name)
-    {
-        // Load libraries
-        //---------------
-
-        $this->load->library('flexshare/Flexshare');
         $this->lang->load('flexshare');
-        $this->lang->load('base');
 
-        // Handle form submit
-        //-------------------
+        // Load views
+        //-----------
 
-        try {
-            $info = $this->flexshare->get_share($name);
-            $this->flexshare->toggle_share($name, !$info['ShareEnabled']);
-        } catch (Exception $e) {
-            $this->page->set_message(clearos_exception_message($e));
-        }
 
-        redirect('/flexshare');
-    }
+        // TODO: view_controllers does not support passing parameters.
+        // It should!  In the meantime, we use a session variable as a dirty workaround
 
-    ///////////////////////////////////////////////////////////////////////////////
-    // P R I V A T E
-    ///////////////////////////////////////////////////////////////////////////////
+        $this->session->set_userdata('flexshare', $share);
 
-    /**
-     * Flexshare common add/edit/view form handler.
-     *
-     * @param string $share     share
-     * @param string $form_type form type (add or edit)
-     *
-     * @return view
-     */
+        $views = array();
 
-    function _add_edit_view($share, $form_type)
-    {
-        // Load libraries
-        //---------------
+        $views[] = 'flexshare/share';
 
-        $this->load->library('flexshare/Flexshare');
-        $this->load->library('groups/Group_Engine');
-        $this->load->factory('groups/Group_Manager_Factory');
-        $this->load->factory('users/User_Manager_Factory');
-        $this->lang->load('flexshare');
-        $this->lang->load('groups');
-        $this->lang->load('users');
+        // TODO: use API call instead of file_exists
+        if (file_exists('/var/clearos/samba/initialized_local'))
+            $views[] = 'flexshare/file';
 
-        $data['form_type'] = $form_type;
+        if (clearos_library_installed('ftp/ProFTPd'))
+            $views[] = 'flexshare/ftp';
 
-        // Set validation rules
-        //---------------------
-         
-        // Name cannot be set once added.
-        $this->form_validation->set_policy('name', 'flexshare/Flexshare', 'validate_name', TRUE);
-        $this->form_validation->set_policy('description', 'flexshare/Flexshare', 'validate_description', TRUE);
-        $this->form_validation->set_policy('group', 'flexshare/Flexshare', 'validate_group', TRUE);
-        $this->form_validation->set_policy('directory', 'flexshare/Flexshare', 'validate_directory', TRUE);
-        $form_ok = $this->form_validation->run();
+        if (clearos_library_installed('web/Httpd'))
+            $views[] = 'flexshare/web';
 
-        // Handle form submit
-        //-------------------
-
-        if (($this->input->post('submit') && $form_ok)) {
-            try {
-                if ($form_type == 'edit') {
-                    $this->flexshare->set_description($share, $this->input->post('description'));
-                    $this->flexshare->set_group($share, $this->input->post('group'));
-                    $this->flexshare->set_directory($share, $this->input->post('directory'));
-                } else {
-                    $this->flexshare->add_share(
-                        $this->input->post('name'),
-                        $this->input->post('description'),
-                        $this->input->post('group'),
-                        $this->input->post('directory')
-                    );
-                }
-
-                redirect('/flexshare');
-            } catch (Exception $e) {
-                $this->page->set_message(clearos_exception_message($e));
-            }
-        }
-
-        // Load view data
-        //---------------
-
-        try {
-            if ($form_type == 'edit') {
-                $info = $this->flexshare->get_share($share);
-                $data['name'] = $info['Name'];
-                $data['description'] = $info['ShareDescription'];
-                $data['group'] = $info['ShareGroup'];
-                $data['directory'] = $info['ShareDirectory'];
-            }
-
-            $groups = $this->group_manager->get_details('all'); //FIXME
-            $group_options[-1] = lang('base_select');
-
-            foreach ($groups as $name => $group)
-                $group_options[$name] = $name;
-
-            $data['group_options'] = $group_options;
-
-            // TODO: use API call instead of file_exists
-            $data['file_installed'] = (file_exists('/var/clearos/samba/initialized_local')) ? TRUE : FALSE;
-            $data['web_installed'] = (clearos_library_installed('web/Httpd')) ? TRUE : FALSE;
-            $data['ftp_installed'] = (clearos_library_installed('ftp/ProFTPd')) ? TRUE : FALSE;
-        } catch (Exception $e) {
-            $this->page->view_exception($e);
-            return;
-        }
-
-        // Load the views
-        //---------------
-
-        try {
-            $data['directories'] = $this->flexshare->get_dir_options($share);
-        } catch (Flexshare_Parameter_Not_Found_Exception $e) {
-            // This is OK
-        } catch (Exception $e) {
-            $this->page->view_exception($e);
-            return;
-        }
-
-        $this->page->view_form('flexshare/add_edit', $data, lang('flexshare_flexshares'));
+        $this->page->view_controllers($views, lang('flexshare_flexshare_summary'));
     }
 }

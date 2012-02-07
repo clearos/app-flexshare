@@ -41,7 +41,6 @@ install -d -m 0755 %{buildroot}/var/flexshare/shares
 install -D -m 0644 packaging/app-flexshare.cron %{buildroot}/etc/cron.d/app-flexshare
 install -D -m 0644 packaging/filewatch-flexshare-network.conf %{buildroot}/etc/clearsync.d/filewatch-flexshare-network.conf
 install -D -m 0600 packaging/flexshare.conf %{buildroot}/etc/clearos/flexshare.conf
-install -D -m 0755 packaging/importflexemail %{buildroot}/usr/sbin/importflexemail
 install -D -m 0755 packaging/updateflexperms %{buildroot}/usr/sbin/updateflexperms
 
 %post
@@ -91,5 +90,4 @@ exit 0
 /etc/cron.d/app-flexshare
 /etc/clearsync.d/filewatch-flexshare-network.conf
 %config(noreplace) /etc/clearos/flexshare.conf
-/usr/sbin/importflexemail
 /usr/sbin/updateflexperms

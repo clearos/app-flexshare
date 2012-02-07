@@ -30,7 +30,7 @@ if [ -n "$ISUSER" ]; then
 	TOPGROUP="nobody"
 	DIRPERMS="755"
 else
-	USER="flexshare"
+	USER="flexshares"
 	GROUP=$2
 	TOPGROUP=$2
 	DIRPERMS="775"

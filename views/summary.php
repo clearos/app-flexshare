@@ -33,6 +33,7 @@
 // Load dependencies
 ///////////////////////////////////////////////////////////////////////////////
 
+$this->lang->load('base');
 $this->lang->load('flexshare');
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -41,16 +42,15 @@ $this->lang->load('flexshare');
 
 $headers = array(
     lang('flexshare_name'),
-    lang('base_description'),
     lang('flexshare_group'),
-    lang('flexshare_access_options')
+    lang('flexshare_options')
 );
 
 ///////////////////////////////////////////////////////////////////////////////
 // Anchors 
 ///////////////////////////////////////////////////////////////////////////////
 
-$anchors = array(anchor_add('/app/flexshare/add'));
+$anchors = array(anchor_add('/app/flexshare/share/add'));
 
 ///////////////////////////////////////////////////////////////////////////////
 // Items
@@ -59,15 +59,13 @@ $anchors = array(anchor_add('/app/flexshare/add'));
 foreach ($flexshares as $share) {
 
     $state = ($share['Enabled']) ? 'disable' : 'enable';
-    $state_anchor = 'anchor_' . $state;
     $buttons = array(
-        $state_anchor('/app/flexshare/toggle/' . $share['Name']),
-        anchor_edit('/app/flexshare/edit/' . $share['Name']),
-        anchor_delete('/app/flexshare/delete/' . $share['Name'])
+        anchor_edit('/app/flexshare/summary/' . $share['Name']),
+        anchor_delete('/app/flexshare/share/delete/' . $share['Name'])
     );
 
     $item['title'] = $share['Name'];
-    $item['action'] = '/app/flexshare/edit/' . $share['Name'];
+    $item['action'] = '/app/flexshare/summary/' . $share['Name'];
     $item['anchors'] = button_set($buttons);
     $images = '';
 
@@ -82,7 +80,6 @@ foreach ($flexshares as $share) {
 
     $item['details'] = array(
         $share['Name'],
-        $share['Description'],
         $share['Group'],
         $images
     );

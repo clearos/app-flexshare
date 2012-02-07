@@ -56,7 +56,7 @@ use \clearos\apps\flexshare\Flexshare as Flexshare;
 class File extends ClearOS_Controller
 {
     /**
-     * Flexshare File default controller.
+     * Flexshare file default controller.
      *
      * @param string $share share
      *
@@ -65,7 +65,33 @@ class File extends ClearOS_Controller
 
     function index($share)
     {
-        $this->configure($share);
+        // See comment in share.php
+        if (empty($share))
+            $share = $this->session->userdata('flexshare');
+
+        $this->view($share, 'view');
+    }
+
+    /**
+     * Edit view.
+     *
+     * @return view
+     */
+
+    function edit($share)
+    {
+        $this->_form($share, 'edit');
+    }
+
+    /**
+     * View view.
+     *
+     * @return view
+     */
+
+    function view($share)
+    {
+        $this->_form($share, 'view');
     }
 
     /**
@@ -76,30 +102,30 @@ class File extends ClearOS_Controller
      * @return view
      */
 
-    function configure($share)
+    function _form($share, $form_type)
     {
         // Load libraries
         //---------------
 
+        $this->lang->load('flexshare');
         $this->load->library('samba/Samba');
         $this->load->library('flexshare/Flexshare');
-        $this->lang->load('flexshare');
-
-        $this->form_validation->set_policy('comment', 'flexshare/Flexshare', 'validate_file_comment', TRUE);
-        $form_ok = $this->form_validation->run();
 
         // Handle form submit
         //-------------------
 
-        if (($this->input->post('submit') && $form_ok)) {
+        if ($this->input->post('submit')) {
             try {
+                // Set comment to the one defined by Flexshare
+                $info = $this->flexshare->get_share($share);
+                $this->flexshare->set_file_comment($share, $info['ShareDescription']);
+
                 $this->flexshare->set_file_permission($share, $this->input->post('file_permission'));
                 $this->flexshare->set_file_recycle_bin($share, $this->input->post('recycle_bin'));
                 $this->flexshare->set_file_audit_log($share, $this->input->post('audit_log'));
-                $this->flexshare->set_file_comment($share, $this->input->post('comment'));
                 $this->flexshare->set_file_enabled($share, $this->input->post('enabled'));
 
-                redirect('/flexshare/edit/' . $share);
+                redirect('/flexshare/summary/' . $share);
             } catch (Exception $e) {
                 $this->page->set_message(clearos_exception_message($e));
             }
@@ -109,9 +135,23 @@ class File extends ClearOS_Controller
         //--------------- 
 
         try {
+            $data['form_type'] = $form_type;
             $data['share'] = $this->flexshare->get_share($share);
             $data['server_url'] = "\\\\" . $this->samba->get_netbios_name() . "\\" . $share;
             $data['permission_options'] = $this->flexshare->get_file_permission_options();
+
+            // Defaults
+            if (empty($data['share']['FileEnabled']))
+                $data['share']['FileEnabled'] = FALSE;
+
+            if (empty($data['share']['FilePermission']))
+                $data['share']['FilePermission'] = Flexshare::PERMISSION_READ_WRITE;
+
+            if (empty($data['share']['FileRecycleBin']))
+                $data['share']['FileRecycleBin'] = FALSE;
+
+            if (empty($data['share']['FileAuditLog']))
+                $data['share']['FileAuditLog'] = FALSE;
 
         } catch (Exception $e) {
             $this->page->view_exception($e);
@@ -121,6 +161,6 @@ class File extends ClearOS_Controller
         // Load the views
         //---------------
 
-        $this->page->view_form('flexshare/file', $data, lang('flexshare_file'));
+        $this->page->view_form('flexshare/file', $data, lang('flexshare_windows_file_share'));
     }
 }

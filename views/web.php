@@ -36,29 +36,36 @@
 $this->load->language('flexshare');
 
 ///////////////////////////////////////////////////////////////////////////////
-// Form modes
+// Form handler
 ///////////////////////////////////////////////////////////////////////////////
 
-$read_only = FALSE;
-$form_path = '/flexshare/web/configure/' . $share['Name'];
-$buttons = array(
-    form_submit_update('submit'),
-    anchor_cancel('/app/flexshare/edit/' . $share['Name']),
-);
+if ($form_type === 'edit') {
+    $read_only = FALSE;
+    $buttons = array(
+        form_submit_update('submit'),
+        anchor_cancel('/app/flexshare/summary/' . $share['Name']),
+    );
+} else {
+    $read_only = TRUE;
+    $buttons = array(
+        anchor_edit('/app/flexshare/web/edit/' . $share['Name']),
+    );
+}
 
 ///////////////////////////////////////////////////////////////////////////////
-// Form open
+// Form
 ///////////////////////////////////////////////////////////////////////////////
 
-echo form_open($form_path);
+echo form_open('/flexshare/web/edit/' . $share['Name']);
 echo form_header(lang('flexshare_web'));
 
-///////////////////////////////////////////////////////////////////////////////
-// Form fields
-///////////////////////////////////////////////////////////////////////////////
 
-echo field_input('name', $share['Name'], lang('flexshare_share_name'), TRUE);
+echo fieldset_header(lang('base_settings'));
 echo field_toggle_enable_disable('enabled', $share['WebEnabled'], lang('base_status'), $read_only);
+echo field_view(lang('flexshare_permissions'), lang('flexshare_read_only'));
+echo fieldset_footer();
+
+echo fieldset_header(lang('flexshare_options'));
 echo field_input('server_name', $server_name, lang('flexshare_web_server_name'), TRUE);
 echo field_view(lang('flexshare_web_server_url'), $server_url[0]);
 echo field_view(lang('flexshare_web_server_url_alt'), $server_url[1]);
@@ -74,12 +81,9 @@ echo field_toggle_enable_disable('req_auth', $share['WebReqAuth'], lang('flexsha
 echo field_input('realm', $share['WebRealm'], lang('flexshare_web_realm'), $read_only);
 echo field_toggle_enable_disable('php', $share['WebPhp'], lang('flexshare_web_enable_php'), $read_only);
 echo field_toggle_enable_disable('cgi', $share['WebCgi'], lang('flexshare_web_enable_cgi'), $read_only);
+echo fieldset_footer();
 
 echo field_button_set($buttons);
-
-///////////////////////////////////////////////////////////////////////////////
-// Form close
-///////////////////////////////////////////////////////////////////////////////
 
 echo form_footer();
 echo form_close();

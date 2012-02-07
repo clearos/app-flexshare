@@ -1,5 +1,12 @@
 #!/bin/sh
 
+# Add flexshares user
+#--------------------
+
+getent group flexshares >/dev/null || groupadd -r flexshares
+getent passwd flexshares >/dev/null || \
+    useradd -r -g flexshares -d /var/flexshares -s /sbin/nologin -c "Flexshares" flexshares
+
 # Make sure directory ownership is correct on upgrade
 #----------------------------------------------------
 
@@ -16,3 +23,4 @@ if [ "$CHECKOWNERSHIP" != "root.root" ]; then
     logger -p local6.notice -t installer "app-flexshare-core - updating file ownership on $DIR"
     chown root.root $DIR
 fi
+

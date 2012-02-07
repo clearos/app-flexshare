@@ -65,18 +65,44 @@ class FTP extends ClearOS_Controller
 
     function index($share)
     {
-        $this->configure($share);
+        if (empty($share))
+            $share = $this->session->userdata('flexshare');
+
+        $this->_form($share, 'view');
     }
 
     /**
-     * Flexshare edit view.
-     *
-     * @param string $share share
+     * FTP edit view.
      *
      * @return view
      */
 
-    function configure($share)
+    function edit($share)
+    {
+        $this->_form($share, 'edit');
+    }
+
+    /**
+     * FTP view view.
+     *
+     * @return view
+     */
+
+    function view($share)
+    {
+        $this->_form($share, 'view');
+    }
+
+    /**
+     * Common form.
+     *
+     * @param string $share     share
+     * @param string $form_type form type
+     *
+     * @return view
+     */
+
+    function _form($share, $form_type)
     {
         // Load libraries
         //---------------
@@ -102,11 +128,14 @@ class FTP extends ClearOS_Controller
 
         $this->form_validation->set_policy('group_permission', 'flexshare/Flexshare', 'validate_ftp_group_permission', TRUE);
         $this->form_validation->set_policy('group_greeting', 'flexshare/Flexshare', 'validate_ftp_group_greeting', FALSE);
+
+        /* TODO: disable anonymous, see if anyone uses it
         $this->form_validation->set_policy('allow_anonymous', 'flexshare/Flexshare', 'validate_ftp_allow_anonymous', TRUE);
         $this->form_validation->set_policy('anonymous_greeting', 'flexshare/Flexshare', 'validate_ftp_anonymous_greeting', FALSE);
 
         if ($this->input->post('allow_anonymous'))
             $this->form_validation->set_policy('anonymous_permission', 'flexshare/Flexshare', 'validate_ftp_anonymous_permission', TRUE);
+        */
 
         $form_ok = $this->form_validation->run();
 
@@ -140,20 +169,23 @@ class FTP extends ClearOS_Controller
                     $this->input->post('passive_min_port'),
                     $this->input->post('passive_max_port')
                 );
+
                 $this->flexshare->set_ftp_group_permission($share, $this->input->post('group_permission'));
                 $this->flexshare->set_ftp_group_greeting($share, $this->input->post('group_greeting'));
+
+                /*  TODO: disable anonymous for now.
                 $this->flexshare->set_ftp_allow_anonymous($share, $this->input->post('allow_anonymous'));
                 $this->flexshare->set_ftp_anonymous_greeting($share, $this->input->post('anonymous_greeting'));
 
                 if ($this->input->post('anonymous_permission'))
                     $this->flexshare->set_ftp_anonymous_permission($share, $this->input->post('anonymous_permission'));
-
+                */
 
                 // Set enabled after all parameters have been set
                 $this->flexshare->set_ftp_enabled($share, $this->input->post('enabled'));
 
                 $this->page->set_status_updated();
-// FIXME                redirect('/flexshare/edit/'. $share);
+                redirect('/flexshare/summary/'. $share);
             } catch (Exception $e) {
                 // TODO: using non-standard exception handling
                 $this->page->set_message(clearos_exception_message($e));
@@ -165,25 +197,30 @@ class FTP extends ClearOS_Controller
         //--------------- 
 
         try {
+            $data['form_type'] = $form_type;
             $data['share'] = $this->flexshare->get_share($share);
-
-            // Default Port
-            if ((int)$data['share']['FtpPort'] == 0)
-                $data['share']['FtpPort'] = Flexshare::DEFAULT_PORT_FTP;
-
-            // Passive port range
-            if ((int)$data['share']['FtpPassivePortMin'] == 0)
-                $data['share']['FtpPassivePortMin'] = Flexshare::FTP_PASV_MIN;
-
-            if ((int)$data['share']['FtpPassivePortMax'] == 0)
-                $data['share']['FtpPassivePortMax'] = Flexshare::FTP_PASV_MAX;
-
             $data['group_permission_options'] = $this->flexshare->get_ftp_permission_options();
             $data['anonymous_permission_options'] = $this->flexshare->get_ftp_permission_options();
         } catch (Exception $e) {
             $this->page->view_exception($e);
             return;
         }
+
+        // Defaults
+        if ((int)$data['share']['FtpPort'] == 0)
+            $data['share']['FtpPort'] = Flexshare::DEFAULT_PORT_FTP;
+
+        if ((int)$data['share']['FtpPassivePortMin'] == 0)
+            $data['share']['FtpPassivePortMin'] = Flexshare::FTP_PASV_MIN;
+
+        if ((int)$data['share']['FtpPassivePortMax'] == 0)
+            $data['share']['FtpPassivePortMax'] = Flexshare::FTP_PASV_MAX;
+
+        if (empty($data['share']['FtpGroupPermission']))
+            $data['share']['FtpGroupPermission'] = Flexshare::PERMISSION_READ_WRITE_PLUS;
+
+        if (empty($data['share']['FtpEnabled']))
+            $data['share']['FtpEnabled'] = FALSE;
 
         // Load the views
         //---------------

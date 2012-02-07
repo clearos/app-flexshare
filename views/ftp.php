@@ -38,25 +38,53 @@ $this->load->language('network');
 $this->load->language('flexshare');
 
 ///////////////////////////////////////////////////////////////////////////////
-// Form modes
+// Form handler
 ///////////////////////////////////////////////////////////////////////////////
 
-$read_only = FALSE;
-$form_path = '/flexshare/ftp/configure/' . $share['Name'];
-$buttons = array(
-    form_submit_update('submit'),
-    anchor_cancel('/app/flexshare/edit/' . $share['Name']),
-);
+if ($form_type === 'edit') {
+    $read_only = FALSE;
+    $buttons = array(
+        form_submit_update('submit'),
+        anchor_cancel('/app/flexshare/summary/' . $share['Name']),
+    );
+} else { 
+    $read_only = TRUE;
+    $buttons = array(
+        anchor_edit('/app/flexshare/ftp/edit/' . $share['Name']),
+    );
+}
 
 ///////////////////////////////////////////////////////////////////////////////
-// Form open
+// Simple view-only form
 ///////////////////////////////////////////////////////////////////////////////
 
-echo form_open($form_path);
+if ($read_only && !$share['FtpEnabled']) {
+    echo form_open('/flexshare/ftp/edit/' . $share['Name']);
+    echo form_header(lang('flexshare_ftp'));
+
+    echo field_toggle_enable_disable('enabled', $share['FtpEnabled'], lang('base_status'), $read_only);
+
+    echo field_button_set($buttons);
+
+    echo form_footer();
+    echo form_close();
+
+    return;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Form
+///////////////////////////////////////////////////////////////////////////////
+
+echo form_open('/flexshare/ftp/edit/' . $share['Name']);
 echo form_header(lang('flexshare_ftp'));
 
-echo field_input('name', $share['Name'], lang('flexshare_share_name'), TRUE);
+echo fieldset_header(lang('base_settings'));
 echo field_toggle_enable_disable('enabled', $share['FtpEnabled'], lang('base_status'), $read_only);
+echo field_dropdown('group_permission', $group_permission_options, $share['FtpGroupPermission'], lang('flexshare_permissions'), $read_only);
+echo fieldset_footer();
+
+echo fieldset_header(lang('flexshare_options'));
 echo field_input('server_url', $share['FtpServerUrl'], lang('network_hostname'), $read_only);
 // FIXME: wait for cert manager
 //echo field_toggle_enable_disable('req_ssl', $share['FtpReqSsl'], lang('flexshare_require_ssl'), $read_only);
@@ -65,11 +93,16 @@ echo field_input('port', $share['FtpPort'], lang('network_port'), $read_only);
 echo field_toggle_enable_disable('allow_passive', $share['FtpAllowPassive'], lang('flexshare_allow_passive'), $read_only);
 echo field_input('passive_min_port', $share['FtpPassivePortMin'], lang('flexshare_from_port'), $read_only);
 echo field_input('passive_max_port', $share['FtpPassivePortMax'], lang('flexshare_to_port'), $read_only);
-echo field_dropdown('group_permission', $group_permission_options, $share['FtpGroupPermission'], lang('flexshare_permissions'), $read_only);
 echo field_textarea('group_greeting', $share['FtpGroupGreeting'], lang('flexshare_greeting'), $read_only);
+
+/* TODO: see if anyone really needs this */
+/* 
 echo field_toggle_enable_disable('allow_anonymous', $share['FtpAllowAnonymous'], lang('flexshare_allow_anonymous'), $read_only);
 echo field_dropdown('anonymous_permission', $anonymous_permission_options, $share['FtpAnonymousPermission'], lang('flexshare_anonymous_permissions'), $read_only);
 echo field_textarea('anonymous_greeting', $share['FtpAnonymousGreeting'], lang('flexshare_anonymous_greeting'), $read_only);
+*/
+
+echo fieldset_footer();
 
 echo field_button_set($buttons);
 

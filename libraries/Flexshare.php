@@ -149,8 +149,10 @@ class Flexshare extends Engine
     const LOG_TAG = 'flexshare';
     const FILE_CONFIG = '/etc/clearos/flexshare.conf';
     const FILE_SMB_VIRTUAL = 'flexshare.conf';
+    const FILE_SMB_CONF = '/etc/samba/smb.conf';
     const FILE_FSTAB_CONFIG = '/etc/fstab';
     const PATH_ROOT = '/var/flexshare';
+    const PATH_TEMP = '/var/tmp';
     const FILE_INITIALIZED = '/var/clearos/flexshare/initialized';
     const SHARE_PATH = '/var/flexshare/shares';
     const HTTPD_LOG_PATH = '/var/log/httpd';
@@ -313,7 +315,7 @@ class Flexshare extends Engine
 
         $name = strtolower($name);
 
-        // if directory = root share path...tack on name
+        // if directory = root share path... tack on name
         if ($directory == self::SHARE_PATH)
             $directory .= '/' . $name;
 
@@ -406,7 +408,7 @@ class Flexshare extends Engine
             throw new File_Not_Found_Exception(self::FILE_CONFIG);
 
         // Backup in case we need to go back to original
-        $file->move_to(CLEAROS_TEMP_DIR . "/flexshare.conf.orig");
+        $file->move_to(self::PATH_TEMP . "/flexshare.conf.orig");
 
         // Create new file in parallel
         $newfile = new File(self::FILE_CONFIG . ".cctmp", TRUE);
@@ -515,48 +517,29 @@ class Flexshare extends Engine
      * Toggles the status of a flexshare.
      *
      * @param string $name   flexshare name
-     * @param string $toggle toggle (enable or disable)
+     * @param string $state  state
      * @param string $force  force re-creation of config files
      *
      * @return void
      * @throws Engine_Exception
      */
 
-    function toggle_share($name, $toggle, $force = FALSE)
+    function set_share_state($name, $state, $force = FALSE)
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $file = new File(self::FILE_CONFIG);
-
-        if (! $file->exists())
-            throw new Engine_Exception(FILE_LANG_ERRMSG_NOTEXIST . " " . self::FILE_CONFIG, CLEAROS_ERROR);
-        else
-            $share = $this->get_share($name);
-
-        if ($toggle) {
-            if (!$share['WebEnabled'] && !$share['FtpEnabled'] && !$share['FileEnabled'] && !$share['EmailEnabled'])
-                throw new Engine_Exception(lang('flexshare_no_access'));
-        }
+        $share = $this->get_share($name);
+        $state_value = ($state) ? 1 : 0;
 
         // Do we need to generates configs again?
-        if ($force || $this->get_parameter($name, 'ShareEnabled') != $toggle) {
+        if ($force || $this->get_parameter($name, 'ShareEnabled') != $state_value) {
 
             // Set flag
-            $this->set_parameter($name, 'ShareEnabled', ($toggle ? 1: 0));
+            $this->set_parameter($name, 'ShareEnabled', $state_value);
 
-            try {
-                $this->generate_web_flexshares();
-                $this->generate_ftp_flexshares();
-                $this->generate_file_flexshares();
-            } catch (Exception $e) {
-                // Any exception here, toggle...well, toggle.
-                if ($toggle)
-                    $this->set_parameter($name, 'ShareEnabled', 0);
-                else
-                    $this->set_parameter($name, 'ShareEnabled', 1);
-
-                throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-            }
+            $this->generate_web_flexshares();
+            $this->generate_ftp_flexshares();
+            $this->generate_file_flexshares();
         }
 
         $this->_update_folder_links($name, $this->get_parameter($name, 'ShareDir'));
@@ -579,10 +562,13 @@ class Flexshare extends Engine
 
         // Custom
         try {
-            $list = preg_split("/\\|/", $this->get_parameter(NULL, 'FlexshareDirCustom'));
-            foreach ($list as $custom) {
-                list ($desc, $path) = preg_split("/:/", $custom);
-                $options[$path] = $desc . ' (' . $path . ")\n";
+            $custom_data = $this->get_parameter(NULL, 'FlexshareDirCustom');
+            if (! empty($custom_data)) {
+                $list = preg_split("/\\|/", $this->get_parameter(NULL, 'FlexshareDirCustom'));
+                foreach ($list as $custom) {
+                    list ($desc, $path) = preg_split("/:/", $custom);
+                    $options[$path] = $desc . ' (' . $path . ")\n";
+                }
             }
         } catch (Flexshare_Parameter_Not_Found_Exception $e) {
             // Ignore
@@ -595,7 +581,8 @@ class Flexshare extends Engine
             $name = preg_replace('/ /', '_', strtoupper(lang('flexshare_share_name'))); 
 
         // Default
-        $options[self::SHARE_PATH . ($name == NULL ? '' : '/' . $name)] = lang('base_default') . ' (' . self::SHARE_PATH . '/' . $name . ")\n";
+        $options[self::SHARE_PATH] = lang('base_default') . ' (' . self::SHARE_PATH . '/' . $name . ")\n";
+
         return $options;
     }
 
@@ -628,10 +615,10 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         $options = array(
-           self::PERMISSION_READ => lang('flexshare_read'),
-           self::PERMISSION_READ_WRITE => lang('flexshare_read_write'),
-           self::PERMISSION_READ_WRITE_PLUS => lang('flexshare_read_write_plus')
+           self::PERMISSION_READ => lang('flexshare_read_only'),
+           self::PERMISSION_READ_WRITE_PLUS => lang('flexshare_read_write')
         );
+
         return $options;
     }
 
@@ -671,7 +658,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         $options = array(
-            self::PERMISSION_READ => lang('flexshare_read'),
+            self::PERMISSION_READ => lang('flexshare_read_only'),
             self::PERMISSION_READ_WRITE => lang('flexshare_read_write')
         );
 
@@ -732,7 +719,7 @@ class Flexshare extends Engine
             if (preg_match("/flex-443.ssl|^" . self::PREFIX . ".*vhost$|^" . self::PREFIX . ".*conf$/i", $vhost)) {
                 $vhost_file = new File(self::WEB_VIRTUAL_HOST_PATH . "/" . $vhost);
                 // Backup existing file
-                $vhost_file->move_to(CLEAROS_TEMP_DIR . "/" . "$vhost.$backup_key.bak");
+                $vhost_file->move_to(self::PATH_TEMP . "/" . "$vhost.$backup_key.bak");
             } else {
                 unset($vhosts[$index]);
             }
@@ -1033,7 +1020,8 @@ class Flexshare extends Engine
 
         try {
             $shell = new Shell();
-            $exitcode = $shell->execute(self::CMD_VALIDATE_HTTPD, '-t', TRUE);
+            $options['validate_exit_code'] = FALSE;
+            $exitcode = $shell->execute(self::CMD_VALIDATE_HTTPD, '-t', TRUE, $options);
         } catch (Exception $e) {
             // Backup out of commits
             $config_ok = FALSE;
@@ -1052,7 +1040,7 @@ class Flexshare extends Engine
             // Not a flexshare vhost file
             if (!isset($vhost))
                 continue;
-            $file = new File(CLEAROS_TEMP_DIR . "/$vhost.$backup_key.bak");
+            $file = new File(self::PATH_TEMP . "/$vhost.$backup_key.bak");
             if (! $file->exists()) {
                 // Conf was newly created
                 $file = new File(self::WEB_VIRTUAL_HOST_PATH . "/$vhost");
@@ -1069,6 +1057,7 @@ class Flexshare extends Engine
                 $file->move_to(self::WEB_VIRTUAL_HOST_PATH . "/$vhost");
             }
         }
+
         if (! $config_ok)
             throw new Engine_Exception(lang('flexshare_config_validation_failed'), CLEAROS_ERROR);
 
@@ -1100,14 +1089,16 @@ class Flexshare extends Engine
         $folder = new Folder(self::FTP_VIRTUAL_HOST_PATH);
         $confs = $folder->get_listing();
         $index = 0;
+
         foreach ($confs as $conf) {
             if (preg_match("/^" . self::PREFIX . ".*conf$/i", $conf)) {
                 $conf_file = new File(self::FTP_VIRTUAL_HOST_PATH . "/" . $conf);
                 // Backup existing file
-                $conf_file->move_to(CLEAROS_TEMP_DIR . "/$conf.$backup_key.bak");
+                $conf_file->move_to(self::PATH_TEMP . "/$conf.$backup_key.bak");
             } else {
                 unset($confs[$index]);
             }
+
             $index++;
         }
 
@@ -1125,6 +1116,7 @@ class Flexshare extends Engine
             // If not enabled, continue through loop - we're re-creating lines here
             if (!isset($share['ShareEnabled']) || !$share['ShareEnabled'])
                 continue;
+
             if (!isset($share['FtpEnabled']) || !$share['FtpEnabled'])
                 continue;
 
@@ -1144,6 +1136,7 @@ class Flexshare extends Engine
             }
 
             // Add anonymous greeting file
+            /*
             try {
                 // This isn't fatal.  Log and continue on exception
                 $file = new File(self::SHARE_PATH . "/$name/.flexshare-anonymous.txt");
@@ -1157,6 +1150,7 @@ class Flexshare extends Engine
             } catch (Exception $e) {
                 //
             }
+            */
 
             // Need to know which file we'll be writing to.
             // We determine this by port
@@ -1195,13 +1189,17 @@ class Flexshare extends Engine
 
             // Create new file in parallel
             $filename = self::PREFIX . $port . '.conf';
+
             // Add to confs array in case of failure
             if (!in_array($filename, $confs))
                 $confs[] = $filename;
+
             $file = new File(self::FTP_VIRTUAL_HOST_PATH . "/" . $filename);
             $tempfile = new File(self::FTP_VIRTUAL_HOST_PATH . "/" . $filename . '.cctmp');
+
             if ($tempfile->exists())
                 $tempfile->delete();
+
             $tempfile->create("root", "root", '0640');
 
             if ($file->exists()) {
@@ -1212,16 +1210,19 @@ class Flexshare extends Engine
                 foreach ($oldlines as $line) {
                     if (preg_match("/^\s*# DNR:Webconfig start - $name$/", $line))
                         $found_start = TRUE;
+
                     if ($found_start && preg_match("/^\s*# DNR:Webconfig end - $name$/", $line)) {
                         $found_start = FALSE;
                         continue;
                     }
+
                     if ($found_start)
                         continue;
 
                     // Look for anonymous
                     if (preg_match("/^\s*<Anonymous " . self::SHARE_PATH . "/>$/", $line))
                         $found_anon = TRUE;
+
                     if ($found_anon && preg_match("/^\s*</Anonymous>$/", $line)) {
                         $found_anon = FALSE;
                         continue;
@@ -1231,9 +1232,11 @@ class Flexshare extends Engine
                         $anon[] = $line;
                     else
                         $linestoadd .= $line . "\n";
+
                     // We need to know if we are working on top of another define or not
                     $append = TRUE;
                 }
+
                 $tempfile->add_lines($linestoadd);
             }
 
@@ -1254,6 +1257,8 @@ class Flexshare extends Engine
                 $newlines[] = "\tPort $port";
                 $newlines[] = "\tDefaultRoot " . self::SHARE_PATH . "/";
                 $newlines[] = "\tRequireValidShell off";
+                $newlines[] = "\tAuthPam on";
+                $newlines[] = "\tAuthPAMConfig proftpd";
                 if ($share["FtpPassivePortMin"] && $share["FtpPassivePortMax"])
                     $newlines[] = "\tPassivePorts " . $share["FtpPassivePortMin"]  . " " . $share["FtpPassivePortMax"];
                 // $newlines[] = "\tCapabilitiesEngine on";
@@ -1321,14 +1326,6 @@ class Flexshare extends Engine
                 }
             }
 
-            // Determine if this is a group or a user
-            $group = Group_Factory::create($share['ShareGroup']);
-
-            if ($group->exists())
-                $isgroup = TRUE;
-            else
-                $isgroup = FALSE;
-
             // Add flexshare specific directory directives
             $newlines[] = "\t# DNR:Webconfig start - $name";
             $newlines[] = "\t<Directory " . self::SHARE_PATH . "/$name>";
@@ -1338,34 +1335,21 @@ class Flexshare extends Engine
             $newlines[] = "\t\tDisplayChdir .flexshare-group.txt TRUE";
             $newlines[] = "\t\tHideNoAccess on";
             $newlines[] = "\t\tHideFiles (.flexshare)";
-
-            if ($isgroup)
-                $newlines[] = "\t\tGroupOwner " . $share["ShareGroup"];
-
-            if (isset($share["FtpReqAuth"]) && $share["FtpReqAuth"]) {
-                $newlines[] = "\t\tUmask 0113 0002";
-
-                if (isset($this->access[$share['FtpGroupPermission']]))
-                    $newlines[] = "\t\t<Limit " . $this->access[$share['FtpGroupPermission']] . "$pasv>";
-                else
-                    $newlines[] = "\t\t<Limit " . $this->access[self::PERMISSION_NONE] . "$pasv>";
-
-                if ($isgroup)
-                    $newlines[] = "\t\t  AllowGroup " . $share['ShareGroup'];
-                else
-                    $newlines[] = "\t\t  AllowUser " . $share['ShareGroup'];
-
-                $newlines[] = "\t\t  IgnoreHidden on";
-                $newlines[] = "\t\t</Limit>";
-                $newlines[] = "\t\t<Limit ALL>";
-                $newlines[] = "\t\t  DenyAll";
-                $newlines[] = "\t\t</Limit>";
-            }
+            $newlines[] = "\t\tGroupOwner " . $share["ShareGroup"];
+            $newlines[] = "\t\tUmask 0113 0002";
+            $newlines[] = "\t\t<Limit " . $this->access[$share['FtpGroupPermission']] . "$pasv>";
+            $newlines[] = "\t\t  AllowGroup " . $share['ShareGroup'];
+            $newlines[] = "\t\t  IgnoreHidden on";
+            $newlines[] = "\t\t</Limit>";
+            $newlines[] = "\t\t<Limit ALL>";
+            $newlines[] = "\t\t  DenyAll";
+            $newlines[] = "\t\t</Limit>";
 
             $newlines[] = "\t</Directory>";
             $newlines[] = "\t# DNR:Webconfig end - $name";
             $newlines[] = "";
 
+            /*
             if (!$append)
                 $anon[] = "\n\t<Anonymous " . self::SHARE_PATH . "/>";
 
@@ -1397,6 +1381,7 @@ class Flexshare extends Engine
             }
 
             $anon[] = "\t</Anonymous>";
+            */
 
             if ($append) {
                 $tempfile->delete_lines("/<\/VirtualHost>/");
@@ -1419,7 +1404,7 @@ class Flexshare extends Engine
             $config_ok = FALSE;
         }
 
-        if ($exitcode != 0) {
+        if ($exitcode !== 0) {
             $config_ok = FALSE;
             $output = $shell->get_output();
             clearos_log(self::LOG_TAG, "Invalid ProFTP configuration!");
@@ -1433,7 +1418,7 @@ class Flexshare extends Engine
             if (!isset($conf))
                 continue;
 
-            $file = new File(CLEAROS_TEMP_DIR . "/$conf.$backup_key.bak");
+            $file = new File(self::PATH_TEMP . "/$conf.$backup_key.bak");
 
             if (! $file->exists()) {
                 // Conf was newly created
@@ -1455,7 +1440,7 @@ class Flexshare extends Engine
         }
 
         if (! $config_ok)
-            throw new Engine_Exception(lang('flexshare_config_validation_failed'), CLEAROS_ERROR);
+            throw new Engine_Exception(lang('flexshare_config_validation_failed'));
 
         // Reload FTP server
         $proftpd->reset();
@@ -1479,16 +1464,20 @@ class Flexshare extends Engine
         $backup_key = time();
 
         // Backup original file
-        $backup = new File(self::SMB_VIRTUAL_HOST_PATH . "/" . self::FILE_SMB_VIRTUAL);
-        if ($backup->exists())
-            $backup->move_to(CLEAROS_TEMP_DIR . "/$backup_key.bak");
+        $backup = new File(self::SMB_VIRTUAL_HOST_PATH . '/' . self::FILE_SMB_VIRTUAL);
+        if ($backup->exists()) {
+            $backup->move_to(self::PATH_TEMP . "/$backup_key.bak");
+            $backup_exists = TRUE;
+        } else {
+            $backup_exists = FALSE;
+        }
 
         // Samba is slightly different.  We dump all flexshare-related 'stuff' in one file
-        $file = new File(self::SMB_VIRTUAL_HOST_PATH . "/" . self::FILE_SMB_VIRTUAL);
+        $file = new File(self::SMB_VIRTUAL_HOST_PATH . '/' . self::FILE_SMB_VIRTUAL);
         if ($file->exists())
             $file->delete();
 
-        $file->create("root", "root", '0644');
+        $file->create('root', 'root', '0644');
 
         $samba_conf = new File(Samba::FILE_CONFIG);
 
@@ -1496,7 +1485,7 @@ class Flexshare extends Engine
             throw new Engine_Exception(lang('base_exception_file_not_found') . ' (' . Samba::FILE_CONFIG . ')');
 
         $shares = $this->get_share_summary();
-        $linestoadd = "";
+        $linestoadd = '';
 
         // Recreate samba flexshare.conf
 
@@ -1514,11 +1503,7 @@ class Flexshare extends Engine
             $linestoadd .= "[" . $name . "]\n";
             $linestoadd .= "\tpath = " . $share["ShareDir"] . "\n";
             $linestoadd .= "\tcomment = " . $share["FileComment"] . "\n";
-
-            if ($share["FileBrowseable"])
-                $linestoadd .= "\tbrowseable = Yes\n";
-            else
-                $linestoadd .= "\tbrowseable = No\n";
+            $linestoadd .= "\tbrowseable = Yes\n";
 
             if ((int)$share["FilePermission"] == self::PERMISSION_READ_WRITE)
                 $linestoadd .= "\tread only = No\n";
@@ -1529,16 +1514,8 @@ class Flexshare extends Engine
                 $linestoadd .= "\tguest ok = No\n";
                 $linestoadd .= "\tdirectory mask = 775\n";
                 $linestoadd .= "\tcreate mask = 664\n";
-                // Determine if this is a group or a user
-                $group = Group_Factory::create($share['ShareGroup']);
-
-                if ($group->exists()) {
-                    $linestoadd .= "\tvalid users = @\"%D" . '\\' . trim($share["ShareGroup"]) . "\"\n";
-                } else {
-                    $user = User_Factory::create($share['ShareGroup']);
-                    if ($user->exists())
-                        $linestoadd .= "\tvalid users = \"%D" . '\\' . trim($share["ShareGroup"]) . "\"\n";
-                }
+                $linestoadd .= "\tvalid users = @\"%D" . '\\' . trim($share["ShareGroup"]) . "\", @" .
+                    trim($share["ShareGroup"]) . "\n";
             }
 
             $linestoadd .= "\tveto files = /.flexshare*/\n";
@@ -1572,12 +1549,26 @@ class Flexshare extends Engine
 
         $file->add_lines($linestoadd);
 
-        // Validate smbd configuration before restarting server
+        // Make sure Samba has flexshare include
+        //--------------------------------------
+
+        $smb_conf = new File(self::FILE_SMB_CONF);
+
+        try {
+            $smb_conf->replace_lines('/#.*include.*flexshare.conf/', "include = /etc/samba/flexshare.conf\n");
+        } catch (File_No_Match_Exception $e) {
+            // Not fatal
+        }
+
+        // Validate smbd configuration
+        //----------------------------
+
         $config_ok = TRUE;
 
         try {
             $shell = new Shell();
-            $exitcode = $shell->execute(self::CMD_VALIDATE_SMBD, '-s', FALSE);
+            $options['validate_exit_code'] = FALSE;
+            $exitcode = $shell->execute(self::CMD_VALIDATE_SMBD, '-s', FALSE, $options);
         } catch (Exception $e) {
             $config_ok = FALSE;
             clearos_log(self::LOG_TAG, "Invalid Samba config: " . clearos_exception_message($e));
@@ -1585,29 +1576,19 @@ class Flexshare extends Engine
 
         if ($config_ok) {
             // Delete backups
-            if ($backup->exists())
+            if ($backup_exists)
                 $backup->delete();
         } else {
             // Recover backups
-            if ($backup->exists()) {
+            if ($backup_exists) {
                 try {
                     $backup->move_to(self::SMB_VIRTUAL_HOST_PATH . "/" . self::FILE_SMB_VIRTUAL);
                 } catch (Exception $e) {
                     // Supresss error here...could be same file
                 }
-
             }
-            throw new Engine_Exception(lang('flexshare_config_validation_failed'), CLEAROS_ERROR);
-        }
 
-        // A full restart is required to catch file permission changes
-        try {
-            $smbd = new Smbd();
-            $isrunning = $smbd->get_running_state();
-            if ($isrunning)
-                $smbd->restart();
-        } catch (Exception $e) {
-            // Not fatal
+            throw new Engine_Exception(lang('flexshare_config_validation_failed'));
         }
     }
 
@@ -1837,10 +1818,12 @@ class Flexshare extends Engine
             return;
 
         $this->set_parameter($name, 'ShareGroup', $group);
-        $enabled = 0;
+        $state = 0;
+
         if ($this->get_parameter($name, 'ShareEnabled'))
-            $enabled = (int)$this->get_parameter($name, 'ShareEnabled');
-        $this->toggle_share($name, $enabled, TRUE);
+            $state = (int)$this->get_parameter($name, 'ShareEnabled');
+
+        $this->set_share_state($name, $state, TRUE);
     }
 
     /**
@@ -1890,45 +1873,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         $this->set_parameter($name, 'WebEnabled', ($enabled ? 1: 0));
-        $share = $this->get_share($name);
-        // If enabled, check e-mail restricts access
-        $prevent = TRUE;
-        if ($enabled) {
-            if (isset($share['EmailRestrictAccess']) && $share['EmailRestrictAccess'])
-                $prevent = FALSE;
-            if (!isset($share['EmailEnabled']) || !$share['EmailEnabled'])
-                $prevent = FALSE;
-            if (isset($share['WebReqAuth']) && $share['WebReqAuth'])
-                $prevent = FALSE;
-            if ((!isset($share['WebPhp']) || !$share['WebPhp']) && (!isset($share['WebCgi']) || !$share['WebCgi']))
-                $prevent = FALSE;
-            if (isset($share['WebAccess']) && (int)$share['WebAccess'] == self::ACCESS_LAN)
-                $prevent = FALSE;
-        } else {
-            $prevent = FALSE;
-        }
-
-        if ($enabled && $prevent) {
-            $this->set_parameter($name, 'WebEnabled', 0);
-            throw new Engine_Exception(FLEXSHARE_LANG_WARNING_CONFIG, COMMON_WARNING);
-        }
-
-        // Disable entire share if all elements are disabled
-        if (! $share['WebEnabled'] && ! $share['FtpEnabled'] && ! $share['FileEnabled'] && ! $share['EmailEnabled']) {
-            $this->set_parameter($name, 'ShareEnabled', 0);
-        }
-
-        try {
-            $this->generate_web_flexshares();
-        } catch (Exception $e) {
-            // Any exception here, go back to initial state
-            if ($enabled)
-                $this->set_parameter($name, 'WebEnabled', 0);
-            else
-                $this->set_parameter($name, 'WebEnabled', 1);
-
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
+        $this->generate_web_flexshares();
     }
 
     /**
@@ -2285,22 +2230,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         $this->set_parameter($name, 'FtpEnabled', $enabled);
-        $share = $this->get_share($name);
-        // Disable entire share if all elements are disabled
-        if (! $share['WebEnabled'] && ! $share['FtpEnabled'] && ! $share['FileEnabled'] && ! $share['EmailEnabled']) {
-            $this->set_parameter($name, 'ShareEnabled', 0);
-        }
-        try {
-            $this->generate_ftp_flexshares();
-        } catch (Exception $e) {
-            // Any exception here, go back to initial state
-            if ($enabled)
-                $this->set_parameter($name, 'FtpEnabled', 0);
-            else
-                $this->set_parameter($name, 'FtpEnabled', 1);
-
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
+        $this->generate_ftp_flexshares();
     }
 
     /**
@@ -2412,23 +2342,6 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         $this->set_parameter($name, "FtpReqSsl", $req_ssl);
-    }
-
-    /**
-     * Sets the require authentication flag for the flexshare.
-     *
-     * @param string $name     flexshare name
-     * @param bool   $req_auth boolean flag
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_req_auth($name, $req_auth)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FtpReqAuth', $req_auth);
     }
 
     /**
@@ -2661,23 +2574,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         $this->set_parameter($name, 'FileEnabled', $enabled);
-        $share = $this->get_share($name);
-
-        // Disable entire share if all elements are disabled
-        if (! $share['WebEnabled'] && ! $share['FtpEnabled'] && ! $share['FileEnabled'] && ! $share['EmailEnabled'])
-            $this->set_parameter($name, 'ShareEnabled', 0);
-
-        try {
-            $this->generate_file_flexshares();
-        } catch (Exception $e) {
-            // Any exception here, go back to initial state
-            if ($enabled)
-                $this->set_parameter($name, 'FileEnabled', 0);
-            else
-                $this->set_parameter($name, 'FileEnabled', 1);
-
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
+        $this->generate_file_flexshares();
     }
 
     /**
@@ -2924,32 +2821,32 @@ class Flexshare extends Engine
         $defaultdir = self::SHARE_PATH . '/' . $name;
 
         // Load fstab config
-        $file = new Configuration_File(self::FILE_FSTAB_CONFIG, "split", "\s", 6);
+        $file = new Configuration_File(self::FILE_FSTAB_CONFIG, 'split', "\s", 6);
         $config = $file->load();
 
         // Umount any existing
         if ($this->get_parameter($name, 'ShareDir') != $defaultdir) {
             $param = $defaultdir;
-            $options['env'] = "LANG=en_US";
+            $options['env'] = 'LANG=en_US';
+
             try {
                 $retval = $shell->execute(self::CMD_UMOUNT, $param, TRUE, $options);
-            } catch (Validation_Exception $e) {
+            } catch (Exception $e) {
                 if (!preg_match('/.*not mounted.*/', $e->get_message()))
                     throw new Engine_Exception(lang('flexshare_device_busy'), CLEAROS_ERROR);
             }
         }
+
         // Mount new share
         if ($directory != $defaultdir && $this->get_parameter($name, 'ShareEnabled')) {
             $param = "--bind '$directory' '$defaultdir'";
-            $retval = $shell->execute(self::CMD_MOUNT, $param, TRUE);
-            if ($retval != 0) {
-                $output = $shell->get_output();
-                throw new Engine_Exception($shell->get_last_output_line(), CLEAROS_ERROR);
-            }
+            $shell->execute(self::CMD_MOUNT, $param, TRUE);
         }
+
         // Check for entry in fstab
         if (isset($config[$this->get_parameter($name, 'ShareDir')]))
             $file->delete_lines("/^" . preg_quote($this->get_parameter($name, 'ShareDir'), "/") . ".*$/");
+
         if ($directory != $defaultdir && $this->get_parameter($name, 'ShareEnabled'))
             $file->add_lines($directory . "\t" . $defaultdir . "\tnone\tdefaults,bind\t0 0\n");
     }

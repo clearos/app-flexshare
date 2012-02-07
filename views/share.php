@@ -38,20 +38,31 @@ $this->load->language('flexshare');
 ///////////////////////////////////////////////////////////////////////////////
 // Form modes
 ///////////////////////////////////////////////////////////////////////////////
+// FIXME: translate "Return to Summary" below
 
 if ($form_type === 'edit') {
-    $read_only = TRUE;
-    $form_path = '/flexshare/edit/'. $name;
+    $read_only = FALSE;
+    $share_name_read_only = TRUE;
+    $form_path = '/flexshare/share/edit/'. $name;
     $buttons = array(
         form_submit_update('submit'),
-        anchor_cancel('/app/flexshare/')
+        anchor_cancel('/app/flexshare/summary/' . $name)
+    );
+} else if ($form_type === 'view') {
+    $read_only = TRUE;
+    $share_name_read_only = TRUE;
+    $form_path = '/flexshare/share/edit/'. $name;
+    $buttons = array(
+        anchor_edit('/app/flexshare/share/edit/' . $name),
+        anchor_custom('/app/flexshare', 'Return to Summary')
     );
 } else {
     $read_only = FALSE;
-    $form_path = '/flexshare/add';
+    $share_name_read_only = FALSE;
+    $form_path = '/flexshare/share/add';
     $buttons = array(
         form_submit_add('submit'),
-        anchor_cancel('/app/flexshare/')
+        anchor_cancel('/app/flexshare')
     );
 }
 
@@ -60,35 +71,16 @@ if ($form_type === 'edit') {
 ///////////////////////////////////////////////////////////////////////////////
 
 echo form_open($form_path . '/' . $share);
-echo form_header(lang('flexshare_general_settings'));
+echo form_header(lang('base_settings'));
 
-echo field_input('name', $name, lang('flexshare_share_name'), $read_only);
-echo field_input('description', $description, lang('base_description'), FALSE);
-echo field_dropdown('group', $group_options, $group, lang('flexshare_group'), FALSE);
-echo field_dropdown('directory', $directories, $directory, lang('flexshare_directory'), FALSE);
+echo field_input('name', $name, lang('flexshare_share_name'), $share_name_read_only);
+echo field_toggle_enable_disable('enabled', $enabled, lang('base_status'), $read_only);
+echo field_input('description', $description, lang('base_description'), $read_only);
+echo field_dropdown('group', $group_options, $group, lang('flexshare_group'), $read_only);
+if (! $use_default)
+    echo field_dropdown('directory', $directories, $directory, lang('flexshare_directory'), $read_only);
 
 echo field_button_set($buttons);
 
 echo form_footer();
 echo form_close();
-
-///////////////////////////////////////////////////////////////////////////////
-// Add links to protocols
-///////////////////////////////////////////////////////////////////////////////
-
-if ($form_type === 'edit') {
-    $buttons = array();
-
-    if ($file_installed)
-        $buttons[] = anchor_custom('/app/flexshare/file/configure/' . $name, lang('flexshare_file'));
-
-    if ($ftp_installed)
-        $buttons[] = anchor_custom('/app/flexshare/ftp/configure/' . $name, lang('flexshare_ftp'));
-
-    if ($web_installed)
-        $buttons[] = anchor_custom('/app/flexshare/web/configure/' . $name, lang('flexshare_web'));
-
-    echo '<div style=\'text-align: center\'>';
-    echo button_set($buttons);
-    echo '</div>';
-}

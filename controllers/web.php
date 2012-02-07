@@ -65,18 +65,44 @@ class Web extends ClearOS_Controller
 
     function index($share)
     {
-        $this->configure($share);
+        if (empty($share))
+            $share = $this->session->userdata('flexshare');
+
+        $this->_form($share, 'view');
+    }
+
+    /**
+     * Edit view.
+     *
+     * @return view
+     */
+
+    function edit($share)
+    {
+        $this->_form($share, 'edit');
+    }
+
+    /**
+     * view view.
+     *
+     * @return view
+     */
+
+    function view($share)
+    {
+        $this->_form($share, 'view');
     }
 
     /**
      * Flexshare edit view.
      *
-     * @param string $share share
+     * @param string $share     share
+     * @param string $form_type form type
      *
      * @return view
      */
 
-    function configure($share)
+    function _form($share, $form_type)
     {
         // Load libraries
         //---------------
@@ -122,6 +148,7 @@ class Web extends ClearOS_Controller
         //--------------- 
 
         try {
+            $data['form_type'] = $form_type;
             $data['share'] = $this->flexshare->get_share($share);
             $data['accessibility_options'] = $this->flexshare->get_web_access_options();
             $data['server_name'] = $this->httpd->get_server_name();
