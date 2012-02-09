@@ -2,6 +2,7 @@
 
 $lang['flexshare_app_description'] = 'Flexshares are flexible share resources that allow an administrator to quickly and easily define data sharing, collaboration and access areas via web, file, FTP and/or e-mail (as attachments).';
 $lang['flexshare_app_name'] = 'Flexshare';
+$lang['flexshare_summary'] = 'Summary';
 $lang['flexshare_flexshare'] = 'Flexshare';
 $lang['flexshare_flexshares'] = 'Flexshares';
 $lang['flexshare_name'] = 'Name';

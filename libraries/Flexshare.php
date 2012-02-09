@@ -1335,10 +1335,10 @@ class Flexshare extends Engine
             $newlines[] = "\t\tDisplayChdir .flexshare-group.txt TRUE";
             $newlines[] = "\t\tHideNoAccess on";
             $newlines[] = "\t\tHideFiles (.flexshare)";
-            $newlines[] = "\t\tGroupOwner " . $share["ShareGroup"];
+            $newlines[] = "\t\tGroupOwner \"" . $share["ShareGroup"] . "\"";
             $newlines[] = "\t\tUmask 0113 0002";
             $newlines[] = "\t\t<Limit " . $this->access[$share['FtpGroupPermission']] . "$pasv>";
-            $newlines[] = "\t\t  AllowGroup " . $share['ShareGroup'];
+            $newlines[] = "\t\t  AllowGroup \"" . $share['ShareGroup'] . "\"";
             $newlines[] = "\t\t  IgnoreHidden on";
             $newlines[] = "\t\t</Limit>";
             $newlines[] = "\t\t<Limit ALL>";
@@ -1603,6 +1603,9 @@ class Flexshare extends Engine
     {
         clearos_profile(__METHOD__, __LINE__);
 
+        // TODO: deprecated?
+        return;
+
         // Bail if already initialized
 
         $file = new File(self::FILE_INITIALIZED);
@@ -1611,6 +1614,7 @@ class Flexshare extends Engine
             return;
 
         // Bail if we are a slave system
+        // TODO: bail on AD mode too
 
         $mode = Mode_Factory::create();
 

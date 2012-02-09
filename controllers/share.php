@@ -248,6 +248,9 @@ class Share extends ClearOS_Controller
                 $data['group'] = $info['ShareGroup'];
                 $data['directory'] = $info['ShareDir'];
                 $data['enabled'] = ($info['ShareEnabled'] == 0) ? FALSE: TRUE;
+            } else {
+                // Default
+                $data['enabled'] = TRUE;
             }
 
             // Directories
@@ -259,13 +262,17 @@ class Share extends ClearOS_Controller
                 $data['use_default'] = FALSE;
 
             // Groups
-            $groups = $this->group_manager->get_details();
+            $normal_groups = $this->group_manager->get_details();
+            $builtin_groups = $this->group_manager->get_details('builtin');
+            $groups = array_merge($builtin_groups, $normal_groups);
+
             // TODO: all flag in group_manager->get_details() to pull in allusers
             $group_options[-1] = lang('base_select');
-            $group_options['allusers'] = 'allusers - ' . 'All Users'; // FIXME: translate
 
-            foreach ($groups as $name => $group)
-                $group_options[$name] = $name . ' - ' . $group['description'];
+            foreach ($groups as $name => $group) {
+                $description = (empty($group['description'])) ? '' : ' - ' . $group['description'];
+                $group_options[$name] = $name . $description;
+            }
 
             $data['group_options'] = $group_options;
 
