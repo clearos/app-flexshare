@@ -66,8 +66,8 @@ class Flexshare extends ClearOS_Controller
 
         $this->load->module('accounts/status');
 
-        if ($this->status->unhappy('openldap_directory')) {
-            $this->status->widget('password_policies', 'openldap_directory');
+        if ($this->status->unhappy()) {
+            $this->status->widget('flexshare');
             return;
         }
 
@@ -137,6 +137,6 @@ class Flexshare extends ClearOS_Controller
         if (clearos_library_installed('web/Httpd'))
             $views[] = 'flexshare/web';
 
-        $this->page->view_controllers($views, lang('flexshare_flexshare_summary'));
+        $this->page->view_controllers($views, lang('flexshare_summary'));
     }
 }
