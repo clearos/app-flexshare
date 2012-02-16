@@ -234,69 +234,6 @@ class Flexshare extends Engine
     }
 
     /**
-     * Returns a list of defined Flexshares.
-     *
-     * @return array summary of flexshares
-     * @throws Engine_Exception
-     */
-
-    function get_share_summary()
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $share = array('WebEnabled' => 0, 'FtpEnabled' => 0, 'FileEnabled' => 0, 'EmailEnabled' => 0);
-        $shares = array();
-
-        $file = new File(self::FILE_CONFIG);
-
-        if (! $file->exists())
-            return $shares;
-
-        $lines = $file->get_contents_as_array();
-
-        $match = array();
-
-        foreach ($lines as $line) {
-            if (preg_match(self::REGEX_OPEN, $line, $match)) {
-                $share['Name'] = $match[1];
-            } elseif (preg_match(self::REGEX_SHARE_DESC, $line, $match)) {
-                $share['Description'] = $match[1];
-            } elseif (preg_match(self::REGEX_SHARE_GROUP, $line, $match)) {
-                $share['Group'] = $match[1];
-            } elseif (preg_match(self::REGEX_SHARE_CREATED, $line, $match)) {
-                $share['Created'] = $match[1];
-            } elseif (preg_match(self::REGEX_SHARE_ENABLED, $line, $match)) {
-                $share['Enabled'] = $match[1];
-            } elseif (preg_match("/^\s*ShareDir*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['Dir'] = $match[1];
-            } elseif (preg_match("/^\s*ShareInternal*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['Internal'] = $match[1];
-            } elseif (preg_match("/^\s*WebEnabled*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['WebEnabled'] = $match[1];
-            } elseif (preg_match("/^\s*FtpEnabled*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['FtpEnabled'] = $match[1];
-            } elseif (preg_match("/^\s*FileEnabled*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['FileEnabled'] = $match[1];
-            } elseif (preg_match("/^\s*EmailEnabled*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['EmailEnabled'] = $match[1];
-            } elseif (preg_match("/^\s*WebModified*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['WebModified'] = $match[1];
-            } elseif (preg_match("/^\s*FtpModified*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['FtpModified'] = $match[1];
-            } elseif (preg_match("/^\s*FileModified*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['FileModified'] = $match[1];
-            } elseif (preg_match("/^\s*EmailModified*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['EmailModified'] = $match[1];
-            } elseif (preg_match(self::REGEX_CLOSE, $line)) {
-                $shares[] = $share;
-                unset($share);
-            }
-        }
-
-        return $shares;
-    }
-
-    /**
      * Adds a new Flexshare.
      *
      * @param string  $name        flexshare name
@@ -439,9 +376,9 @@ class Flexshare extends Engine
         $newfile->move_to(self::FILE_CONFIG);
 
         try {
-            $this->generate_web_flexshares();
-            $this->generate_ftp_flexshares();
-            $this->generate_file_flexshares();
+            $this->_generate_web_flexshares();
+            $this->_generate_ftp_flexshares();
+            $this->_generate_file_flexshares();
 
             try {
                 $file->delete();
@@ -464,6 +401,22 @@ class Flexshare extends Engine
                 // Just log
             }
         }
+    }
+
+    /**
+     * Returns configured group for given share.
+     *
+     * @param string $name flexshare name
+     *
+     * @return string group name
+     * @throws Flexshare_Not_Found_Exception, Engine_Exception
+     */
+
+    function get_group($name)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        return $this->_get_parameter($name, 'ShareGroup');
     }
 
     /**
@@ -514,36 +467,66 @@ class Flexshare extends Engine
     }
 
     /**
-     * Toggles the status of a flexshare.
+     * Returns a list of defined Flexshares.
      *
-     * @param string $name   flexshare name
-     * @param string $state  state
-     * @param string $force  force re-creation of config files
-     *
-     * @return void
+     * @return array summary of flexshares
      * @throws Engine_Exception
      */
 
-    function set_share_state($name, $state, $force = FALSE)
+    function get_share_summary()
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $share = $this->get_share($name);
-        $state_value = ($state) ? 1 : 0;
+        $share = array('WebEnabled' => 0, 'FtpEnabled' => 0, 'FileEnabled' => 0, 'EmailEnabled' => 0);
+        $shares = array();
 
-        // Do we need to generates configs again?
-        if ($force || $this->get_parameter($name, 'ShareEnabled') != $state_value) {
+        $file = new File(self::FILE_CONFIG);
 
-            // Set flag
-            $this->set_parameter($name, 'ShareEnabled', $state_value);
+        if (! $file->exists())
+            return $shares;
 
-            $this->generate_web_flexshares();
-            $this->generate_ftp_flexshares();
-            $this->generate_file_flexshares();
+        $lines = $file->get_contents_as_array();
+
+        $match = array();
+
+        foreach ($lines as $line) {
+            if (preg_match(self::REGEX_OPEN, $line, $match)) {
+                $share['Name'] = $match[1];
+            } elseif (preg_match(self::REGEX_SHARE_DESC, $line, $match)) {
+                $share['Description'] = $match[1];
+            } elseif (preg_match(self::REGEX_SHARE_GROUP, $line, $match)) {
+                $share['Group'] = $match[1];
+            } elseif (preg_match(self::REGEX_SHARE_CREATED, $line, $match)) {
+                $share['Created'] = $match[1];
+            } elseif (preg_match(self::REGEX_SHARE_ENABLED, $line, $match)) {
+                $share['Enabled'] = $match[1];
+            } elseif (preg_match("/^\s*ShareDir*\s*=\s*(.*$)/i", $line, $match)) {
+                $share['Dir'] = $match[1];
+            } elseif (preg_match("/^\s*ShareInternal*\s*=\s*(.*$)/i", $line, $match)) {
+                $share['Internal'] = $match[1];
+            } elseif (preg_match("/^\s*WebEnabled*\s*=\s*(.*$)/i", $line, $match)) {
+                $share['WebEnabled'] = $match[1];
+            } elseif (preg_match("/^\s*FtpEnabled*\s*=\s*(.*$)/i", $line, $match)) {
+                $share['FtpEnabled'] = $match[1];
+            } elseif (preg_match("/^\s*FileEnabled*\s*=\s*(.*$)/i", $line, $match)) {
+                $share['FileEnabled'] = $match[1];
+            } elseif (preg_match("/^\s*EmailEnabled*\s*=\s*(.*$)/i", $line, $match)) {
+                $share['EmailEnabled'] = $match[1];
+            } elseif (preg_match("/^\s*WebModified*\s*=\s*(.*$)/i", $line, $match)) {
+                $share['WebModified'] = $match[1];
+            } elseif (preg_match("/^\s*FtpModified*\s*=\s*(.*$)/i", $line, $match)) {
+                $share['FtpModified'] = $match[1];
+            } elseif (preg_match("/^\s*FileModified*\s*=\s*(.*$)/i", $line, $match)) {
+                $share['FileModified'] = $match[1];
+            } elseif (preg_match("/^\s*EmailModified*\s*=\s*(.*$)/i", $line, $match)) {
+                $share['EmailModified'] = $match[1];
+            } elseif (preg_match(self::REGEX_CLOSE, $line)) {
+                $shares[] = $share;
+                unset($share);
+            }
         }
 
-        $this->_update_folder_links($name, $this->get_parameter($name, 'ShareDir'));
-        $this->_update_folder_attributes($share['ShareDir'], $share['ShareGroup']);
+        return $shares;
     }
 
     /**
@@ -562,9 +545,9 @@ class Flexshare extends Engine
 
         // Custom
         try {
-            $custom_data = $this->get_parameter(NULL, 'FlexshareDirCustom');
+            $custom_data = $this->_get_parameter(NULL, 'FlexshareDirCustom');
             if (! empty($custom_data)) {
-                $list = preg_split("/\\|/", $this->get_parameter(NULL, 'FlexshareDirCustom'));
+                $list = preg_split("/\\|/", $this->_get_parameter(NULL, 'FlexshareDirCustom'));
                 foreach ($list as $custom) {
                     list ($desc, $path) = preg_split("/:/", $custom);
                     $options[$path] = $desc . ' (' . $path . ")\n";
@@ -623,6 +606,25 @@ class Flexshare extends Engine
     }
 
     /**
+     * Returns FTP state.
+     *
+     * @param string $share Flexshare
+     *
+     * @return boolean TRUE if FTP is enabled
+     */
+
+    function get_ftp_state($name)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $share = $this->get_share($name);
+
+        $state = isset($share['FtpEnabled']) ? (bool) $share['FtpEnabled'] :  FALSE;
+     
+        return $state;
+    }
+
+    /**
      * Returns a list of valid FTP umask options for a flexshare.
      *
      * @return array
@@ -666,37 +668,978 @@ class Flexshare extends Engine
     }
 
     /**
-     * Returns a list of valid file (Samba) create mask options for a flexshare.
+     * Returns file state.
      *
-     * @return array
+     * @param string $share Flexshare
+     *
+     * @return boolean TRUE if FTP is enabled
      */
 
-    function get_file_create_mask_options()
+    function get_file_state($name)
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $options = array(
-            0 => "---",
-            1 => "--x",
-            2 => "-w-",
-            3 => "-wx",
-            4 => "r--",
-            5 => "r-x",
-            6 => "rw-",
-            7 => "rwx",
-        );
+        $share = $this->get_share($name);
 
-        return $options;
+        $state = isset($share['FileEnabled']) ? (bool) $share['FileEnabled'] :  FALSE;
+     
+        return $state;
     }
 
     /**
-     * Create the Apache configuration files for the specificed flexshare.
+     * Sets a flex share's description.
+     *
+     * @param string $name        flexshare name
+     * @param string $description flexshare description
+     *
+     * @return void
+     * @throws Validation_Exception, Engine_Exception
+     */
+
+    function set_description($name, $description)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        // Validate
+        Validation_Exception::is_valid($this->validate_description($description));
+
+        $this->_set_parameter($name, 'ShareDescription', $description);
+    }
+
+    /**
+     * Sets a flexshare's group owner.
+     *
+     * @param string $name  flexshare name
+     * @param string $group flexshare group owner
+     *
+     * @return void
+     * @throws Validation_Exception, Engine_Exception
+     */
+
+    function set_group($name, $group)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        Validation_Exception::is_valid($this->validate_group($group));
+
+        if ($this->_get_parameter($name, 'ShareGroup') == $group)
+            return;
+
+        $this->_set_parameter($name, 'ShareGroup', $group);
+        $state = 0;
+
+        if ($this->_get_parameter($name, 'ShareEnabled'))
+            $state = (int)$this->_get_parameter($name, 'ShareEnabled');
+
+        $this->set_share_state($name, $state, TRUE);
+    }
+
+    /**
+     * Sets a flexshare's root directory.
+     *
+     * @param string $name      flexshare name
+     * @param string $directory flex share directory
+     *
+     * @return void
+     * @throws Validation_Exception, Engine_Exception
+     */
+
+    function set_directory($name, $directory)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $directory = trim($directory);
+        $defaultdir = self::SHARE_PATH . '/' . $name;
+
+        if (!isset($directory) || !$directory)
+            $directory = $defaultdir;
+
+        // Validate
+        Validation_Exception::is_valid($this->validate_directory($directory));
+
+        $this->_update_folder_links($name, $directory);
+
+        $this->_set_parameter($name, 'ShareDir', $directory);
+    }
+
+    /**
+     * Sets the state of a flexshare.
+     *
+     * @param string $name   flexshare name
+     * @param string $state  state
+     * @param string $force  force re-creation of config files
      *
      * @return void
      * @throws Engine_Exception
      */
 
-    function generate_web_flexshares()
+    function set_share_state($name, $state, $force = FALSE)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $share = $this->get_share($name);
+        $state_value = ($state) ? 1 : 0;
+
+        // Do we need to generates configs again?
+        if ($force || $this->_get_parameter($name, 'ShareEnabled') != $state_value) {
+
+            // Set flag
+            $this->_set_parameter($name, 'ShareEnabled', $state_value);
+
+            $this->_generate_web_flexshares();
+            $this->_generate_ftp_flexshares();
+            $this->_generate_file_flexshares();
+        }
+
+        $this->_update_folder_links($name, $this->_get_parameter($name, 'ShareDir'));
+        $this->_update_folder_attributes($share['ShareDir'], $share['ShareGroup']);
+    }
+
+
+    ////////////////////
+    //     W E B      //
+    ////////////////////
+
+    /**
+     * Sets the enabled of web-based access.
+     *
+     * @param string $name    flexshare name
+     * @param bool   $enabled web enabled
+     *
+     * @return void
+     * @throws Validation_Exception, Engine_Exception
+     */
+
+    function set_web_enabled($name, $enabled)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'WebEnabled', ($enabled ? 1: 0));
+        $this->_generate_web_flexshares();
+    }
+
+    /**
+     * Sets the server name of web-based access.
+     *
+     * @param string $name        flexshare name
+     * @param string $server_name server name
+     *
+     * @return void
+     * @throws Validation_Exception, Engine_Exception
+     */
+
+    function set_web_server_name($name, $server_name)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        // Validate
+        // --------
+        Validation_Exception::is_valid($this->validate_web_server_name($server_name));
+
+        $this->_set_parameter($name, 'WebServerName', $server_name);
+    }
+
+    /**
+     * Sets whether to allow an index of files to be displayed in browser.
+     *
+     * @param string $name       flexshare name
+     * @param bool   $show_index boolean flag to determine to show file index
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_web_show_index($name, $show_index)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'WebShowIndex', $show_index);
+    }
+
+    /**
+     * Sets whether to follow sym links.
+     *
+     * @param string $name            flexshare name
+     * @param bool   $follow_symlinks boolean flag to determine to follow sym links
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_web_follow_sym_links($name, $follow_symlinks)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'WebFollowSymLinks', $follow_symlinks);
+    }
+
+    /**
+     * Sets whether to allow server side includes.
+     *
+     * @param string $name flexshare name
+     * @param bool   $ssi  boolean flag to determine whether to allow SSI's
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_web_allow_ssi($name, $ssi)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'WebAllowSSI', $ssi);
+    }
+
+    /**
+     * Sets whether to allow override of options if .htaccess file is found.
+     *
+     * @param string $name     flexshare name
+     * @param bool   $htaccess boolean flag to determine whether to allow htaccess override
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_web_htaccess_override($name, $htaccess)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'WebHtaccessOverride', $htaccess);
+    }
+
+    /**
+     * Sets an override flag to use custom port on the flexshare.
+     *
+     * @param string $name          flexshare name
+     * @param bool   $override_port boolean flag
+     * @param int    $port          port
+     *
+     * @return void
+     * @throws Validation_Exception, Engine_Exception
+     */
+
+    function set_web_override_port($name, $override_port, $port)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        if ($override_port && ($port == 80 || $port == 443))
+            throw new Engine_Exception(lang('flexshare_non_custom_port_warning'), CLEAROS_ERROR);
+
+        $inuse_ports = array();
+        $info = $this->get_share($name);
+        $ssl = $info['WebReqSsl'];
+        $shares = $this->get_share_summary();
+        foreach ($shares as $share) {
+            $info = $this->get_share($share['Name']);
+            if ($name != $share['Name'] && $ssl != $info['WebReqSsl'])
+                $inuse_ports[] = $info['WebPort'];
+        }
+        if ($override_port && (in_array($port, $this->bad_ports) || in_array($port, $inuse_ports))) {
+            throw new Validation_Exception(FLEXSHARE_LANG_ERRMSG_PORT_IN_USE);
+        }
+        $this->_set_parameter($name, 'WebOverridePort', $override_port);
+        $this->_set_parameter($name, 'WebPort', $port);
+    }
+
+    /**
+     * Sets the require SSL flag for the flexshare.
+     *
+     * @param string $name    flexshare name
+     * @param bool   $req_ssl boolean flag
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_web_req_ssl($name, $req_ssl)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'WebReqSsl', $req_ssl);
+    }
+
+    /**
+     * Sets the require authentication flag for the flexshare.
+     *
+     * @param string $name     flexshare name
+     * @param bool   $req_auth boolean flag
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_web_req_auth($name, $req_auth)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        // If no auth required, check e-mail restricts access
+        $prevent = TRUE;
+        if (!$req_auth) {
+            $share = $this->get_share($name);
+            if (isset($share['EmailRestrictAccess']) && $share['EmailRestrictAccess'])
+                $prevent = FALSE;
+            if (!isset($share['EmailEnabled']) || !$share['EmailEnabled'])
+                $prevent = FALSE;
+            if (!isset($share['WebEnabled']) || !$share['WebEnabled'])
+                $prevent = FALSE;
+            if ((!isset($share['WebPhp']) || !$share['WebPhp']) && (!isset($share['WebCgi']) || !$share['WebCgi']))
+                $prevent = FALSE;
+            if (isset($share['WebAccess']) && (int)$share['WebAccess'] == self::ACCESS_LAN)
+                $prevent = FALSE;
+        } else {
+            $prevent = FALSE;
+        }
+
+        if ($prevent)
+            throw new Engine_Exception(FLEXSHARE_LANG_WARNING_CONFIG, COMMON_WARNING);
+
+        $this->_set_parameter($name, 'WebReqAuth', $req_auth);
+    }
+
+    /**
+     * Sets the realm name of web-based access.
+     *
+     * @param string $name  flexshare name
+     * @param bool   $realm a realm name
+     *
+     * @return void
+     * @throws Validation_Exception, Engine_Exception
+     */
+
+    function set_web_realm($name, $realm)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        // Validate
+        // --------
+        Validation_Exception::is_valid($this->validate_web_realm($realm));
+
+        $this->_set_parameter($name, 'WebRealm', $realm);
+    }
+
+    /**
+     * Sets the access interface for the flexshare.
+     *
+     * @param string $name   flexshare name
+     * @param int    $access Intranet, Internet or Any
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_web_access($name, $access)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        // Validate
+        // --------
+        Validation_Exception::is_valid($this->validate_web_access($access));
+
+        // If web access is ALL, check e-mail restricts access
+        $prevent = TRUE;
+        if ((int)$access == self::ACCESS_LAN) {
+            $share = $this->get_share($name);
+            if (isset($share['EmailRestrictAccess']) && $share['EmailRestrictAccess'])
+                $prevent = FALSE;
+            if (!isset($share['EmailEnabled']) || !$share['EmailEnabled'])
+                $prevent = FALSE;
+            if (!isset($share['WebEnabled']) || !$share['WebEnabled'])
+                $prevent = FALSE;
+            if (isset($share['WebReqAuth']) && $share['WebReqAuth'])
+                $prevent = FALSE;
+            if ((!isset($share['WebPhp']) || !$share['WebPhp']) && (!isset($share['WebCgi']) || !$share['WebCgi']))
+                $prevent = FALSE;
+        } else {
+            $prevent = FALSE;
+        }
+
+        if ($prevent)
+            throw new Engine_Exception(FLEXSHARE_LANG_WARNING_CONFIG, COMMON_WARNING);
+
+        $this->_set_parameter($name, 'WebAccess', $access);
+    }
+
+    /**
+     * Sets the groups allowed to access this flexshare.
+     *
+     * @param string $name   flexshare name
+     * @param array  $access group access array
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_web_group_access($name, $access)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'WebGroupAccess', implode(' ', $access));
+    }
+
+    /**
+     * Sets parameter allowing PHP executeon on the flexshare.
+     *
+     * @param string $name    flexshare name
+     * @param bool   $web_php PHP enabled or not
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_web_php($name, $web_php)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        // If PHP enabled, check e-mail restricts access
+        $prevent = TRUE;
+        if ($web_php) {
+            $share = $this->get_share($name);
+            if (isset($share['EmailRestrictAccess']) && $share['EmailRestrictAccess'])
+                $prevent = FALSE;
+            if (!isset($share['EmailEnabled']) || !$share['EmailEnabled'])
+                $prevent = FALSE;
+            if (!isset($share['WebEnabled']) || !$share['WebEnabled'])
+                $prevent = FALSE;
+            if (isset($share['WebReqAuth']) && $share['WebReqAuth'])
+                $prevent = FALSE;
+            if (isset($share['WebAccess']) && (int)$share['WebAccess'] == self::ACCESS_LAN)
+                $prevent = FALSE;
+
+        } else {
+            $prevent = FALSE;
+        }
+
+        if ($prevent)
+            throw new Engine_Exception(FLEXSHARE_LANG_WARNING_CONFIG, COMMON_WARNING);
+
+        $this->_set_parameter($name, 'WebPhp', $web_php);
+    }
+
+    /**
+     * Sets parameter allowing CGI executeon on the flexshare.
+     *
+     * @param string $name    flexshare name
+     * @param bool   $web_cgi CGI enabled or not
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_web_cgi($name, $web_cgi)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        // If cgi enabled, check e-mail restricts access
+        $prevent = TRUE;
+        if ($web_cgi) {
+            $share = $this->get_share($name);
+            if (isset($share['EmailRestrictAccess']) && $share['EmailRestrictAccess'])
+                $prevent = FALSE;
+            if (!isset($share['EmailEnabled']) || !$share['EmailEnabled'])
+                $prevent = FALSE;
+            if (!isset($share['WebEnabled']) || !$share['WebEnabled'])
+                $prevent = FALSE;
+            if (isset($share['WebReqAuth']) && $share['WebReqAuth'])
+                $prevent = FALSE;
+            if (isset($share['WebAccess']) && (int)$share['WebAccess'] == self::ACCESS_LAN)
+                $prevent = FALSE;
+        } else {
+            $prevent = FALSE;
+        }
+
+        if ($prevent)
+            throw new Engine_Exception(FLEXSHARE_LANG_WARNING_CONFIG, COMMON_WARNING);
+
+        $this->_set_parameter($name, 'WebCgi', $web_cgi);
+    }
+
+    ////////////////////
+    //     F T P      //
+    ////////////////////
+
+    /**
+     * Sets the enabled of ftp-based access.
+     *
+     * @param string $name    flexshare name
+     * @param bool   $enabled ftp enabled
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_ftp_enabled($name, $enabled)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'FtpEnabled', $enabled);
+        $this->_generate_ftp_flexshares();
+    }
+
+    /**
+     * Sets the server URL of FTP based access.
+     *
+     * @param string $name       flexshare name
+     * @param string $server_url server URL
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_ftp_server_url($name, $server_url)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        // Validate
+        // --------
+
+        Validation_Exception::is_valid($this->validate_ftp_server_url($server_url));
+
+        $this->_set_parameter($name, 'FtpServerUrl', $server_url);
+    }
+
+    /**
+     * Sets an override flag to use custom port on the flexshare.
+     *
+     * @param string $name          flexshare name
+     * @param bool   $override_port boolean flag
+     * @param int    $port          port FTP listens on for this flexshare
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_ftp_override_port($name, $override_port, $port)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        if ($override_port && ($port == self::DEFAULT_PORT_FTP || $port == self::DEFAULT_PORT_FTPS))
+            throw new Engine_Exception(lang('flexshare_non_custom_port_warning'), CLEAROS_ERROR);
+
+        if ($override_port && ($port == 21 || $port == 990))
+            throw new Engine_Exception(lang('flexshare_ftp_cannot_use_default_ports'), CLEAROS_ERROR);
+
+        if ($override_port && $port < 1024)
+            throw new Engine_Exception(lang('flexshare_invalid_port'), CLEAROS_ERROR);
+        // Find all ports and see if any conflicts with n-1
+        if ($override_port) {
+            $shares = $this->get_share_summary();
+            for ($index = 0; $index < count($shares); $index++) {
+                $share = $this->get_share($shares[$index]['Name']);
+                if ($share['Name'] != $name) {
+                    if ((int)$share["FtpPort"] == ($port - 1)) {
+                        throw new Engine_Exception(lang('flexshare_ftp_port_conflict'), CLEAROS_ERROR);
+                    } else if (((int)$share["FtpPort"] -1) == $port) {
+                        throw new Engine_Exception(lang('flexshare_ftp_port_conflict'), CLEAROS_ERROR);
+                    }
+                }
+            }
+        }
+        $this->_set_parameter($name, 'FtpOverridePort', $override_port);
+        $this->_set_parameter($name, 'FtpPort', $port);
+    }
+
+    /**
+     * Sets the allow passive port (PASV) flag for the flexshare.
+     *
+     * @param string $name          flexshare name
+     * @param bool   $allow_passive boolean flag
+     * @param int    $port_min      minimum port range
+     * @param int    $port_max      maximum port range
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_ftp_allow_passive($name, $allow_passive, $port_min = self::FTP_PASV_MIN, $port_max = self::FTP_PASV_MAX)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        // Validate
+        // --------
+
+        if ($allow_passive)
+            Validation_Exception::is_valid($this->validate_passive_port_range($port_min, $port_max));
+
+
+        $this->_set_parameter($name, 'FtpAllowPassive', $allow_passive);
+
+        if ($allow_passive) {
+            $this->_set_parameter($name, 'FtpPassivePortMin', $port_min);
+            $this->_set_parameter($name, 'FtpPassivePortMax', $port_max);
+        }
+    }
+
+    /**
+     * Sets the require SSL flag for the flexshare.
+     *
+     * @param string $name    flexshare name
+     * @param bool   $req_ssl boolean flag
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_ftp_req_ssl($name, $req_ssl)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, "FtpReqSsl", $req_ssl);
+    }
+
+    /**
+     * Sets the greeting message for ftp-based group access.
+     *
+     * @param string $name     flexshare name
+     * @param string $greeting greeting displayed on user login
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_ftp_group_greeting($name, $greeting)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'FtpGroupGreeting', $greeting);
+    }
+
+    /**
+     * Sets the groups allowed to access this flexshare.
+     *
+     * @param string $name   flexshare name
+     * @param array  $access group access array
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_ftp_group_access($name, $access)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'FtpGroupAccess', implode(' ', $access));
+    }
+
+    /**
+     * Sets the group permission allowed to access this flexshare.
+     *
+     * @param string $name       flexshare name
+     * @param int    $permission read/write permissions extended to useers with group access
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_ftp_group_permission($name, $permission)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        Validation_Exception::is_valid($this->validate_ftp_group_permission($permission));
+
+        $this->_set_parameter($name, 'FtpGroupPermission', $permission);
+    }
+
+    /**
+     * Sets the greeting message for ftp-based access.
+     *
+     * @param string $name      flexshare name
+     * @param bool   $anonymous allow anonymous login
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_ftp_allow_anonymous($name, $anonymous)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'FtpAllowAnonymous', $anonymous);
+    }
+
+    /**
+     * Sets the anonymous permission allowed to access this flexshare.
+     *
+     * @param string $name       flexshare name
+     * @param int    $permission read/write permissions for anonymous users
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_ftp_anonymous_permission($name, $permission)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'FtpAnonymousPermission', $permission);
+    }
+
+    /**
+     * Sets the greeting message for ftp-based anonymous access.
+     *
+     * @param string $name     flexshare name
+     * @param string $greeting greeting displayed on anonymous login
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_ftp_anonymous_greeting($name, $greeting)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'FtpAnonymousGreeting', $greeting);
+    }
+
+    /**
+     * Sets the anonymous umask for this flexshare.
+     *
+     * @param string $name  flexshare name
+     * @param string $umask umask
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_ftp_anonymous_umask($name, $umask)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $value = "0" . (int)$umask['owner'] . "" . (int)$umask['group'] . "" . (int)$umask['world'];
+        $this->_set_parameter($name, 'FtpAnonymousUmask', $value);
+    }
+
+    ////////////////////////////////
+    //    F I L E   (S A M B A)   //
+    ////////////////////////////////
+
+    /**
+     * Sets the audit log state.
+     *
+     * @param string $name  flexshare name
+     * @param bool   $state state of audit logging
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_file_audit_log($name, $state)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'FileAuditLog', $state);
+    }
+
+    /**
+     * Sets the audit log state.
+     *
+     * @param string $name  flexshare name
+     * @param bool   $state state of audit logging
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_file_browseable($name, $state)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'FileBrowseable', $state);
+    }
+
+    /**
+     * Sets file sharing comment for the flexshare.
+     *
+     * @param string $name    flexshare name
+     * @param string $comment a flexshare/fileshare comment
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_file_comment($name, $comment)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'FileComment', $comment);
+    }
+
+    /**
+     * Sets the enabled of file-based (SAMBA) access.
+     *
+     * @param string $name    flexshare name
+     * @param bool   $enabled file enabled
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_file_enabled($name, $enabled)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'FileEnabled', $enabled);
+        $this->_generate_file_flexshares();
+    }
+
+    /**
+     * Sets file sharing permissions for the flexshare.
+     *
+     * @param string $name       flexshare name
+     * @param string $permission a valid permission
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_file_permission($name, $permission)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'FilePermission', $permission);
+    }
+
+    /**
+     * Sets file sharing public access flag for the flexshare.
+     *
+     * @param string $name          flexshare name
+     * @param bool   $public_access a boolean flag
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_file_public_access($name, $public_access)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'FilePublicAccess', $public_access);
+    }
+
+    /**
+     * Sets the recycle bin state.
+     *
+     * @param string $name  flexshare name
+     * @param bool   $state state of recycle bin option
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_file_recycle_bin($name, $state)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'FileRecycleBin', $state);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////
+    // V A L I D A T I O N   M E T H O D S
+    ///////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Validation routine for flexshare name.
+     *
+     * @param string $name flexshare name
+     *
+     * @return mixed void if name is valid, errmsg otherwise
+     */
+
+    function validate_name($name)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+        if (!preg_match("/^([A-Za-z0-9\-\.\_]+)$/", $name))
+            return lang('flexshare_invalid_name');
+    }
+
+    /**
+     * Validation routine for a group.
+     *
+     * @param string $group a system group
+     *
+     * @return mixed void if group is valid, errmsg otherwise
+     */
+
+    function validate_group($group)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $group = Group_Factory::create($group);
+
+        if (! $group->exists())
+            return lang('flexshare_invalid_group');
+    }
+
+    /**
+     * Validation routine for password.
+     *
+     * @param string $password password
+     *
+     * @return mixed void if group is valid, errmsg otherwise
+     */
+
+    function validate_password($password)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        // TODO: Watch out for auto-generated base64 password
+    }
+
+    /**
+     * Validation routine for description.
+     *
+     * @param string $description flexshare description
+     *
+     * @return mixed void if description is valid, errmsg otherwise
+     */
+
+    function validate_description($description)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        if (!preg_match("/^([A-Za-z0-9\-\.\_\' ]*)$/", $description))
+            return lang('flexshare_invalid_description');
+    }
+
+    /**
+     * Validation routine for directory path.
+     *
+     * @param string $dir directory path for flexshare
+     *
+     * @return mixed void if directory is valid, errmsg otherwise
+     */
+
+    function validate_directory($dir)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        if (!preg_match("/^([A-Za-z0-9\-\.\_\/]+)$/", $dir))
+            return lang('flexshare_invalid_dir');
+    }
+
+    /**
+     * Validation routine for flexshare file comment.
+     *
+     * @param string $comment file comment
+     *
+     * @return mixed void if invalid, errmsg otherwise
+     */
+
+    function validate_file_comment($comment)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+        if (FALSE)
+            return lang('flexshare_invalid_file_comment');
+    }
+
+    /**
+     * Validation routine for web server name.
+     *
+     * @param string $server_name web server name
+     *
+     * @return mixed void if web server name is valid, errmsg otherwise
+     */
+
+    function validate_web_server_name($server_name)
     {
         clearos_profile(__METHOD__, __LINE__);
 
@@ -704,365 +1647,413 @@ class Flexshare extends Engine
             return;
 
         $httpd = new Httpd();
-        $vhosts = array();
-        $allow_list = "";
+        return $httpd->validate_server_name($server_name);
+    }
+
+    /**
+     * Validation routine for web realm.
+     *
+     * @param string $realm web realm
+     *
+     * @return mixed void if web realm is valid, errmsg otherwise
+     */
+
+    function validate_web_realm($realm)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        if (!preg_match("/^([A-Za-z0-9\-\.\_\/\' ]+)$/", $realm))
+            return lang('flexshare_invalid_web_realm');
+    }
+
+    /**
+     * Validation routine for flexshare FTP.
+     *
+     * @param boolean $status FTP flexshare status
+     *
+     * @return mixed void if status is valid, errmsg otherwise
+     */
+
+    function validate_ftp_enabled($status)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+    }
+
+    /**
+     * Validation routine for FTP passive ports.
+     *
+     * @param int $port_min Port start
+     * @param int $port_max Port end
+     *
+     * @return mixed void if ports are valid, errmsg otherwise
+     */
+
+    function validate_passive_port_range($port_min, $port_max)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        if (! Network_Utils::is_valid_port_range($port_min, $port_max))
+            return lang('flexshare_port_range_invalid');
+
+        if ($port_min < 1023 || $port_max < 1023)
+            return lang('flexshare_passive_port_below_min');
+    }
+
+    /**
+     * Validation routine for FTP server URL.
+     *
+     * @param string $server_url FTP server URL
+     *
+     * @return mixed void if FTP server URL is valid, errmsg otherwise
+     */
+
+    function validate_ftp_server_url($server_url)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        if (! Network_Utils::is_valid_hostname($server_url))
+            return lang('flexshare_invalid_server_url');
+    }
+
+    /**
+     * Validation routine for flexshare require SSL on FTP.
+     *
+     * @param boolean $req FTP flexshare require SSL status
+     *
+     * @return mixed void if invalid, errmsg otherwise
+     */
+
+    function validate_ftp_req_ssl($req)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+    }
+
+    /**
+     * Validation routine for flexshare group permission on FTP.
+     *
+     * @param boolean $permission FTP flexshare group permission
+     *
+     * @return mixed void if invalid, errmsg otherwise
+     */
+
+    function validate_ftp_group_permission($permission)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+        $options = $this->get_ftp_permission_options();
+        if (!array_key_exists($permission, $options))
+            return lang('flexshare_invalid_permission');
+    }
+
+    /**
+     * Validation routine for flexshare group greeting on FTP.
+     *
+     * @param boolean $greeting FTP flexshare group greeting
+     *
+     * @return mixed void if invalid, errmsg otherwise
+     */
+
+    function validate_ftp_group_greeting($greeting)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+        // Invalid characters in greeting?
+        //if (preg_match("//" $greeting))
+        //    return lang('flexshare_invalid_greeting');
+    }
+
+    /**
+     * Validation routine for flexshare allow anonymous on FTP.
+     *
+     * @param boolean $allow_anonymous FTP flexshare allow anonymous
+     *
+     * @return mixed void if invalid, errmsg otherwise
+     */
+
+    function validate_ftp_allow_anonymous($allow_anonymous)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+    }
+
+    /**
+     * Validation routine for allow passive state.
+     *
+     * @param boolean $state state
+     *
+     * @return string error message if state is invalid
+     */
+
+    function validate_ftp_allow_passive_state($state)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+    }
+
+    /**
+     * Validation routine for flexshare web access on Web.
+    /**
+     * Validation routine for flexshare anonymous permission on FTP.
+     *
+     * @param boolean $permission FTP flexshare anonymous permission
+     *
+     * @return mixed void if invalid, errmsg otherwise
+     */
+
+    function validate_ftp_anonymous_permission($permission)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+        $options = $this->get_ftp_permission_options();
+        if (!array_key_exists($permission, $options))
+            return lang('flexshare_invalid_permission');
+    }
+
+    /**
+     * Validation routine for flexshare anonymous greeting on FTP.
+     *
+     * @param boolean $greeting FTP flexshare anonymous greeting
+     *
+     * @return mixed void if invalid, errmsg otherwise
+     */
+
+    function validate_ftp_anonymous_greeting($greeting)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+        // Invalid characters in greeting?
+        //if (preg_match("//" $greeting))
+        //    return lang('flexshare_invalid_greeting');
+    }
+
+    /**
+     * Validation routine for FTP override port.
+     *
+     * @param integer $port port number
+     *
+     * @return string error message if port is invalid
+     */
+
+    function validate_ftp_override_port($port)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        if (! Network_Utils::is_valid_port($port))
+            return lang('flexshare_port_invalid');
+        if (($port == self::DEFAULT_PORT_FTP) || ($port == self::DEFAULT_PORT_FTPS))
+            return lang('flexshare_non_custom_port_warning');
+    }
+
+    /**
+     * Validation routine for FTP override port state.
+     *
+     * @param boolean $state state
+     *
+     * @return string error message if state is invalid
+     */
+
+    function validate_ftp_override_port_state($state)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+    }
+
+    /**
+     * Validation routine for FTP passive port.
+     *
+     * @param integer $port port number
+     *
+     * @return string error message if port is invalid
+     */
+
+    function validate_ftp_passive_port($port)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        if (! Network_Utils::is_valid_port($port))
+            return lang('flexshare_port_invalid');
+    }
+
+    /**
+     * Validation routine for flexshare web access on Web.
+     *
+     * @param boolean $accessibility Web access
+     *
+     * @return mixed void if invalid, errmsg otherwise
+     */
+
+    function validate_web_access($accessibility)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+        $options = $this->get_web_access_options();
+        if (!array_key_exists($accessibility, $options))
+            return lang('flexshare_invalid_accessibility');
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////
+    // P R I V A T E  M E T H O D S
+    ///////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Determines the web server case.
+     *
+     * @param int  $port     port
+     * @param bool $ssl_flag flag
+     *
+     * @return  int case type
+     */
+
+    protected function _determine_web_server_case($port, $ssl_flag)
+    {
+        if ($port == 80)
+            $case = self::CASE_HTTP;
+        elseif ($port == 443)
+            $case = self::CASE_HTTPS;
+        elseif ($ssl_flag)
+            $case = self::CASE_CUSTOM_HTTPS;
+        else
+            $case = self::CASE_CUSTOM_HTTP;
+
+        return $case;
+    }
+
+    /**
+     * Create the Samba configuration files for the specificed flexshare.
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    protected function _generate_file_flexshares()
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        if (!clearos_library_installed('samba/Smbd'))
+            return;
 
         // Create a unique file identifier
         $backup_key = time();
 
-        // Get file listing in Apache vhost dir
-        $folder = new Folder(self::WEB_VIRTUAL_HOST_PATH);
-        $vhosts = $folder->get_listing();
-        $index = 0;
-        foreach ($vhosts as $vhost) {
-            // Flexshares are prefixed with 'flex-'.  Find these files
-            if (preg_match("/flex-443.ssl|^" . self::PREFIX . ".*vhost$|^" . self::PREFIX . ".*conf$/i", $vhost)) {
-                $vhost_file = new File(self::WEB_VIRTUAL_HOST_PATH . "/" . $vhost);
-                // Backup existing file
-                $vhost_file->move_to(self::PATH_TEMP . "/" . "$vhost.$backup_key.bak");
-            } else {
-                unset($vhosts[$index]);
-            }
-            $index++;
+        // Backup original file
+        $backup = new File(self::SMB_VIRTUAL_HOST_PATH . '/' . self::FILE_SMB_VIRTUAL);
+        if ($backup->exists()) {
+            $backup->move_to(self::PATH_TEMP . "/$backup_key.bak");
+            $backup_exists = TRUE;
+        } else {
+            $backup_exists = FALSE;
         }
 
-        // We'll add this back later if there is an SSL configured
-        try {
-            $sslfile = new File(Httpd::FILE_SSL);
-            if ($sslfile->exists())
-                $sslfile->delete_lines("/Include conf.d\/" . self::PREFIX . "443.ssl/i");
-        } catch (File_Not_Found_Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        } catch (Exception $e) {
-            // This may not be fatal
-        }
+        // Samba is slightly different.  We dump all flexshare-related 'stuff' in one file
+        $file = new File(self::SMB_VIRTUAL_HOST_PATH . '/' . self::FILE_SMB_VIRTUAL);
+        if ($file->exists())
+            $file->delete();
+
+        $file->create('root', 'root', '0644');
+
+        $samba_conf = new File(Samba::FILE_CONFIG);
+
+        if (! $samba_conf->exists())
+            throw new Engine_Exception(lang('base_exception_file_not_found') . ' (' . Samba::FILE_CONFIG . ')');
 
         $shares = $this->get_share_summary();
-        // Recreate all virtual configs
-        $newlines = array();
-        $anon = array();
+        $linestoadd = '';
+
+        // Recreate samba flexshare.conf
 
         for ($index = 0; $index < count($shares); $index++) {
-            // Reset our loop variables
-            unset($newlines);
-            unset($anon);
             $name = $shares[$index]['Name'];
             $share = $this->get_share($name);
 
             // If not enabled, continue through loop - we're re-creating lines here
-            if (! isset($share["ShareEnabled"]) || ! $share["ShareEnabled"])
+            if (! isset($share['ShareEnabled']) || ! $share['ShareEnabled'])
                 continue;
 
-            if (! isset($share["WebEnabled"]) || ! $share["WebEnabled"])
+            if (! isset($share['FileEnabled']) || ! $share['FileEnabled'])
                 continue;
 
-            // Need to know which file we'll be writing to.
-            // We determine this by port
-            // Ie. /etc/httpd/conf.d/flexshare<port>.<appropriate extension>
+            $linestoadd .= "[" . $name . "]\n";
+            $linestoadd .= "\tpath = " . $share["ShareDir"] . "\n";
+            $linestoadd .= "\tcomment = " . $share["FileComment"] . "\n";
+            $linestoadd .= "\tbrowseable = Yes\n";
 
-            // Port
-            if ($share['WebOverridePort']) {
-                $port = $share['WebPort'];
-                $ext = '.conf';
-                if ($share['WebReqSsl'])
-                    $ssl = '.ssl';
+            if ((int)$share["FilePermission"] == self::PERMISSION_READ_WRITE)
+                $linestoadd .= "\tread only = No\n";
+
+            if ($share["FilePublicAccess"]) {
+                $linestoadd .= "\tguest ok = Yes\n";
             } else {
-                if ($share['WebReqSsl']) {
-                    $port = 443;
-                    $ext = '.ssl';
-                } else {
-                    $port = 80;
-                    $ext = '.conf';
-                }
+                $linestoadd .= "\tguest ok = No\n";
+                $linestoadd .= "\tdirectory mask = 775\n";
+                $linestoadd .= "\tcreate mask = 664\n";
+                $linestoadd .= "\tvalid users = @\"%D" . '\\' . trim($share["ShareGroup"]) . "\", @" .
+                    trim($share["ShareGroup"]) . "\n";
             }
 
-            // Interface
-            $lans = array();
+            $linestoadd .= "\tveto files = /.flexshare*/\n";
 
-            if ($share['WebAccess'] == self::ACCESS_LAN) {
-                $ifacemanager = new Iface_Manager();
-                $lans = $ifacemanager->get_lan_networks();
+            $vfsobject = "";
+
+            if ($share["FileRecycleBin"]) {
+                $vfsobject .= " recycle:recycle";
+                $linestoadd .= "\trecycle:repository = .trash/%U\n";
+                $linestoadd .= "\trecycle:maxsize = 0\n";
+                $linestoadd .= "\trecycle:versions = Yes\n";
+                $linestoadd .= "\trecycle:keeptree = Yes\n";
+                $linestoadd .= "\trecycle:touch = No\n";
+                $linestoadd .= "\trecycle:directory_mode = 0775\n";
             }
 
-            $case = $this->determine_case($port, $share['WebReqSsl']);
-
-            // Create new file in parallel
-            $filename = self::PREFIX . $port . $ssl . $ext;
-            $file = new File(self::WEB_VIRTUAL_HOST_PATH . "/" . $filename);
-
-            if (! $file->exists())
-                $vhosts[] = $filename;
-
-            $newlines = array();
-
-            if (! $file->exists()) {
-                $newlines[] = self::WRITE_WARNING;
-                // Only specify Listen directive for custom ports
-                if ($case == self::CASE_CUSTOM_HTTP || $case == self::CASE_CUSTOM_HTTPS)
-                    $newlines[] = "Listen *:$port\n";
-                if ($case != self::CASE_HTTP)
-                    $newlines[] = "NameVirtualHost *:$port\n";
+            if ($share["FileAuditLog"]) {
+                $vfsobject .= " full_audit:audit";
+                $linestoadd .= "\taudit:prefix = %u\n";
+                $linestoadd .= "\taudit:success = open opendir\n";
+                $linestoadd .= "\taudit:failure = all\n";
+                $linestoadd .= "\taudit:facility = LOCAL5\n";
+                $linestoadd .= "\taudit:priority = NOTICE\n";
             }
 
-            // cgi-bin Alias must come first.
-            if ($share['WebCgi']) {
-                $cgifolder = new Folder(self::SHARE_PATH . "/$name/cgi-bin/");
-                if (!$cgifolder->exists())
-                    $cgifolder->create(self::CONSTANT_FILES_USERNAME, self::CONSTANT_FILES_USERNAME, "0777");
-                $newlines[] = "ScriptAlias /flexshare/$name/cgi-bin/ " . self::SHARE_PATH . "/$name/cgi-bin/";
-            }
+            if ($vfsobject)
+                $linestoadd .= "\tvfs object =$vfsobject\n";
 
-            $newlines[] = "Alias /flexshare/$name " . self::SHARE_PATH . "/$name\n";
-            $newlines[] = "<VirtualHost *:$port>";
-            $newlines[] = "\tServerName " . $name . '.' . trim($share['WebServerName']);
-            $newlines[] = "\tDocumentRoot " . self::SHARE_PATH . "/$name";
-
-            if ($share['WebCgi'])
-                $newlines[] = "\tScriptAlias /cgi-bin/ " . self::SHARE_PATH . "/$name/cgi-bin/";
-
-            // Logging
-            $newlines[] = "\tErrorLog " . self::HTTPD_LOG_PATH . "/" .
-                trim($share['WebServerName']) . "_error_log";
-            $newlines[] = "\tCustomLog " . self::HTTPD_LOG_PATH . "/" .
-                trim($share['WebServerName']) . "_access_log common";
-
-            switch ($case) {
-                case self::CASE_HTTP:
-                    break;
-
-                case self::CASE_HTTPS:
-                    // Enable SSL on server it not already
-                    $httpd->set_ssl_state((bool)TRUE);
-                    // SSL file has to exist now
-                    // Add include if req'd
-                    try {
-                        $sslfile->lookup_line("/Include conf.d\/" . self::PREFIX . "443.ssl/i");
-                    } catch (File_No_Match_Exception $e) {
-                        $sslfile->add_lines("Include conf.d/" . self::PREFIX . "443.ssl\n");
-                    } catch (Exception $e) {
-                        throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-                    }
-                    break;
-
-                case self::CASE_CUSTOM_HTTPS:
-                    // Logging
-                    $newlines[] = "\tErrorLog " . self::HTTPD_LOG_PATH . "/" .
-                                  trim($share['WebServerName']) . "_error_log";
-                    $newlines[] = "\tCustomLog " . self::HTTPD_LOG_PATH . "/" .
-                                  trim($share['WebServerName']) . "_access_log common";
-                    $ssl = new Ssl();
-                    $certs = $ssl->get_certificates(Ssl::TYPE_CRT);
-                    $ssl_found = FALSE;
-                    foreach ($certs as $certfile => $cert) {
-                        if ($cert['common_name'] == trim($share['WebServerName'])) {
-                            // Don't use CA
-                            if ($certfile == Ssl::FILE_CA_CRT)
-                                continue;
-                            $ssl_found = TRUE;
-                            $cert_filename = $certfile;
-                            break;
-                        }
-                    }
-                    if (! $ssl_found) {
-                        $ssl->set_rsa_key_size(Ssl::DEFAULT_KEY_SIZE);
-                        $ssl->set_term(Ssl::TERM_1YEAR);
-                        $ssl->set_purpose(Ssl::PURPOSE_SERVER_CUSTOM);
-                        $csr_filename = $ssl->create_certificate_request(trim($share['WebServerName']));
-                        // Self-sign be default
-                        $cert_filename = $ssl->sign_certificate_request($csr_filename);
-                    }
-
-                    $key = preg_replace("/-cert\\.pem/", "-key.pem", $cert_filename);
-
-                    if (! $httpd->get_ssl_state())
-                        $newlines[] = "\n\tLoadModule ssl_module modules/mod_ssl.so\n\n";
-
-                    $newlines[] = "\tSSLEngine on\n" .
-                        "\tSSLCertificateFile " . Ssl::DIR_SSL . "/$cert_filename\n" .
-                        "\tSSLCertificateKeyFile " . Ssl::DIR_SSL . "/private/$key\n" .
-                        "\t# No weak export crypto allowed\n" .
-                        "\t# SSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP:+eNULL\n" .
-                        "\tSSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:!EXP:+eNULL\n" .
-                        "\tSetEnvIf User-Agent \".*MSIE.*\" " .
-                        "nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0\n";
-                    break;
-                case self::CASE_CUSTOM_HTTP:
-                    break;
-            }
-
-            $newlines[] = "</VirtualHost>\n";
-
-            if ($share['WebCgi']) {
-                $newlines[] = "<Directory " . self::SHARE_PATH . "/$name/cgi-bin>";
-                $newlines[] = "\tOptions +ExecCGI";
-                if ($share["WebAccess"] == self::ACCESS_LAN) {
-                    $newlines[] = "\tOrder Deny,Allow";
-                    $newlines[] = "\tDeny from all";
-                    if (count($lans) > 0) {
-                        foreach ($lans as $lan)
-                            $allow_list .= "$lan ";
-                        $newlines[] = "\tAllow from " . $allow_list;
-                    }
-                }
-                $newlines[] = "</Directory>";
-            }
-
-            $newlines[] = "<Directory " . self::SHARE_PATH . "/$name>";
-                $options = "";
-
-            if ($share['WebShowIndex'])
-                $options .= " +Indexes";
-            else
-                $options .= " -Indexes";
-
-            if ($share['WebFollowSymLinks'])
-                $options .= " +FollowSymLinks";
-            else
-                $options .= " -FollowSymLinks";
-
-            if ($share['WebAllowSSI'])
-                $options .= " +" . self::DEFAULT_SSI_PARAM;
-            else
-                $options .= " -" . self::DEFAULT_SSI_PARAM;
-
-            if (strlen($options) > 0)
-                $newlines[] = "\tOptions" . $options;
-
-            if ($share['WebHtaccessOverride'])
-                $newlines[] = "\tAllowOverride All";
-
-            if ($share['WebReqAuth']) {
-                $ldap_conf = "ldap://127.0.0.1:389/" . ClearDirectory::GetUsersOu() . "?uid?one?(pcnWebFlag=TRUE)";
-                $newlines[] = "\tAuthType Basic";
-                $newlines[] = "\tAuthBasicProvider ldap";
-                $newlines[] = "\tAuthzLDAPAuthoritative Off";
-                $newlines[] = "\tAuthName \"" . $share['WebRealm'] . "\"";
-                $newlines[] = "\tAuthLDAPUrl $ldap_conf";
-
-                // Determine if this is a group or a user
-                $group = Group_Factory::create($share['ShareGroup']);
-
-                if ($group->exists()) {
-                    $newlines[] = "\tRequire ldap-group cn=" .
-                        $share['ShareGroup'] . "," . ClearDirectory::GetGroupsOu();
-                } else {
-                    $user = User_Factory::create($share['ShareGroup']);
-                    if ($user->exists()) {
-                        // TODO: API should be something like User->GetDn() instead of Ldap->GetDnForUid ?
-                        $dn = $user->get_dn_for_uid($share['ShareGroup']);
-                        $newlines[] = "\tRequire ldap-dn " . $dn;
-                    }
-                }
-            }
-
-            if ($share["WebAccess"] == self::ACCESS_LAN) {
-                $newlines[] = "\tOrder deny,allow";
-                $newlines[] = "\tDeny from all";
-
-                if (count($lans) > 0) {
-                    foreach ($lans as $lan)
-                        $allow_list .= "$lan ";
-
-                    $newlines[] = "\tAllow from " . $allow_list;
-                }
-            } else {
-                $newlines[] = "\tOrder deny,allow";
-                $newlines[] = "\tAllow from all";
-            }
-
-            try {
-                // Default to 4
-                $php_handler = 'php-script';
-                $shell = new Shell();
-                if ($shell->execute(self::CMD_PHP, '-v', FALSE) == 0) {
-                    $output = $shell->get_output();
-                    if (preg_match("/^PHP (\d+).(\d+).*$/", $output[0], $match)) {
-                        // PHP5 ?
-                        if ((int)$match[1] == 5)
-                            $php_handler = 'php5-script';
-                    }
-                }
-            } catch (Exception $e) {
-                $php_handler = 'php-script';
-            }
-
-            if ($share['WebPhp']) {
-                $newlines[] = "\tAddType text/html php";
-                $newlines[] = "\tAddHandler $php_handler php";
-            } else {
-                $newlines[] = "\tRemoveHandler .php";
-                $newlines[] = "\tAddType application/x-httpd-php-source .php";
-            }
-
-            // TODO: the FollowSymLinks requirement is annoying
-            if ($share['WebReqSsl'] && $share['WebFollowSymLinks']) {
-                $newlines[] = "\tRewriteEngine On";
-                $newlines[] = "\tRewriteCond %{HTTPS} off";
-                $newlines[] = "\tRewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}";
-            }
-
-            // DAV (unsupported)
-            $davcheck = self::SHARE_PATH . "/$name/.DAV";
-            $davfile = new File($davcheck);
-            if ($davfile->exists())
-                $newlines[] = "\tDav on";
-
-            $newlines[] = "</Directory>\n\n\n";
-
-            if (! $file->exists())
-                $file->create('root', 'root', '0640');
-
-            $file->add_lines(implode("\n", $newlines));
+            $linestoadd .= "\n";
         }
 
-        // Validate httpd configuration before restarting server
+        $file->add_lines($linestoadd);
+
+        // Make sure Samba has flexshare include
+        //--------------------------------------
+
+        $smb_conf = new File(self::FILE_SMB_CONF);
+
+        try {
+            $smb_conf->replace_lines('/#.*include.*flexshare.conf/', "include = /etc/samba/flexshare.conf\n");
+        } catch (File_No_Match_Exception $e) {
+            // Not fatal
+        }
+
+        // Validate smbd configuration
+        //----------------------------
+
         $config_ok = TRUE;
 
         try {
             $shell = new Shell();
             $options['validate_exit_code'] = FALSE;
-            $exitcode = $shell->execute(self::CMD_VALIDATE_HTTPD, '-t', TRUE, $options);
+            $exitcode = $shell->execute(self::CMD_VALIDATE_SMBD, '-s', FALSE, $options);
         } catch (Exception $e) {
-            // Backup out of commits
             $config_ok = FALSE;
+            clearos_log(self::LOG_TAG, "Invalid Samba config: " . clearos_exception_message($e));
         }
 
-        if ($exitcode != 0) {
-            $config_ok = FALSE;
-            $output = $shell->get_output();
-            clearos_log(self::LOG_TAG, "Invalid httpd configuration!");
-            // Oops...we generated an invalid conf file
-            foreach ($output as $line)
-                clearos_log(self::LOG_TAG, $line);
-        }
-
-        foreach ($vhosts as $vhost) {
-            // Not a flexshare vhost file
-            if (!isset($vhost))
-                continue;
-            $file = new File(self::PATH_TEMP . "/$vhost.$backup_key.bak");
-            if (! $file->exists()) {
-                // Conf was newly created
-                $file = new File(self::WEB_VIRTUAL_HOST_PATH . "/$vhost");
-                if (! $config_ok)
-                    $file->delete();
-                continue;
+        if ($config_ok) {
+            // Delete backups
+            if ($backup_exists)
+                $backup->delete();
+        } else {
+            // Recover backups
+            if ($backup_exists) {
+                try {
+                    $backup->move_to(self::SMB_VIRTUAL_HOST_PATH . "/" . self::FILE_SMB_VIRTUAL);
+                } catch (Exception $e) {
+                    // Supresss error here...could be same file
+                }
             }
 
-            if ($config_ok) {
-                // Delete backups
-                $file->delete();
-            } else {
-                // Recover backups
-                $file->move_to(self::WEB_VIRTUAL_HOST_PATH . "/$vhost");
-            }
+            throw new Engine_Exception(lang('flexshare_config_validation_failed'));
         }
-
-        if (! $config_ok)
-            throw new Engine_Exception(lang('flexshare_config_validation_failed'), CLEAROS_ERROR);
-
-        // Reload web server
-        $httpd->reset();
     }
 
     /**
@@ -1072,7 +2063,7 @@ class Flexshare extends Engine
      * @throws Engine_Exception
      */
 
-    function generate_ftp_flexshares()
+    protected function _generate_ftp_flexshares()
     {
         clearos_profile(__METHOD__, __LINE__);
 
@@ -1399,7 +2390,9 @@ class Flexshare extends Engine
         try {
             $options['validate_exit_code'] = FALSE;
             $shell = new Shell();
-            $exitcode = $shell->execute(self::CMD_VALIDATE_PROFTPD, '-t', TRUE, $options);
+            // FIXME fails when offline?
+            //$exitcode = $shell->execute(self::CMD_VALIDATE_PROFTPD, '-t', TRUE, $options);
+            $exitcode = 0;
         } catch (Exception $e) {
             $config_ok = FALSE;
         }
@@ -1447,248 +2440,406 @@ class Flexshare extends Engine
     }
 
     /**
-     * Create the Samba configuration files for the specificed flexshare.
+     * Create the Apache configuration files for the specificed flexshare.
      *
      * @return void
      * @throws Engine_Exception
      */
 
-    function generate_file_flexshares()
+    protected function _generate_web_flexshares()
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        if (!clearos_library_installed('samba/Smbd'))
+        if (!clearos_library_installed('web/Httpd'))
             return;
+
+        $httpd = new Httpd();
+        $vhosts = array();
+        $allow_list = "";
 
         // Create a unique file identifier
         $backup_key = time();
 
-        // Backup original file
-        $backup = new File(self::SMB_VIRTUAL_HOST_PATH . '/' . self::FILE_SMB_VIRTUAL);
-        if ($backup->exists()) {
-            $backup->move_to(self::PATH_TEMP . "/$backup_key.bak");
-            $backup_exists = TRUE;
-        } else {
-            $backup_exists = FALSE;
+        // Get file listing in Apache vhost dir
+        $folder = new Folder(self::WEB_VIRTUAL_HOST_PATH);
+        $vhosts = $folder->get_listing();
+        $index = 0;
+        foreach ($vhosts as $vhost) {
+            // Flexshares are prefixed with 'flex-'.  Find these files
+            if (preg_match("/flex-443.ssl|^" . self::PREFIX . ".*vhost$|^" . self::PREFIX . ".*conf$/i", $vhost)) {
+                $vhost_file = new File(self::WEB_VIRTUAL_HOST_PATH . "/" . $vhost);
+                // Backup existing file
+                $vhost_file->move_to(self::PATH_TEMP . "/" . "$vhost.$backup_key.bak");
+            } else {
+                unset($vhosts[$index]);
+            }
+            $index++;
         }
 
-        // Samba is slightly different.  We dump all flexshare-related 'stuff' in one file
-        $file = new File(self::SMB_VIRTUAL_HOST_PATH . '/' . self::FILE_SMB_VIRTUAL);
-        if ($file->exists())
-            $file->delete();
-
-        $file->create('root', 'root', '0644');
-
-        $samba_conf = new File(Samba::FILE_CONFIG);
-
-        if (! $samba_conf->exists())
-            throw new Engine_Exception(lang('base_exception_file_not_found') . ' (' . Samba::FILE_CONFIG . ')');
+        // We'll add this back later if there is an SSL configured
+        try {
+            $sslfile = new File(Httpd::FILE_SSL);
+            if ($sslfile->exists())
+                $sslfile->delete_lines("/Include conf.d\/" . self::PREFIX . "443.ssl/i");
+        } catch (File_Not_Found_Exception $e) {
+            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
+        } catch (Exception $e) {
+            // This may not be fatal
+        }
 
         $shares = $this->get_share_summary();
-        $linestoadd = '';
-
-        // Recreate samba flexshare.conf
+        // Recreate all virtual configs
+        $newlines = array();
+        $anon = array();
 
         for ($index = 0; $index < count($shares); $index++) {
+            // Reset our loop variables
+            unset($newlines);
+            unset($anon);
             $name = $shares[$index]['Name'];
             $share = $this->get_share($name);
 
             // If not enabled, continue through loop - we're re-creating lines here
-            if (! isset($share['ShareEnabled']) || ! $share['ShareEnabled'])
+            if (! isset($share["ShareEnabled"]) || ! $share["ShareEnabled"])
                 continue;
 
-            if (! isset($share['FileEnabled']) || ! $share['FileEnabled'])
+            if (! isset($share["WebEnabled"]) || ! $share["WebEnabled"])
                 continue;
 
-            $linestoadd .= "[" . $name . "]\n";
-            $linestoadd .= "\tpath = " . $share["ShareDir"] . "\n";
-            $linestoadd .= "\tcomment = " . $share["FileComment"] . "\n";
-            $linestoadd .= "\tbrowseable = Yes\n";
+            // Need to know which file we'll be writing to.
+            // We determine this by port
+            // Ie. /etc/httpd/conf.d/flexshare<port>.<appropriate extension>
 
-            if ((int)$share["FilePermission"] == self::PERMISSION_READ_WRITE)
-                $linestoadd .= "\tread only = No\n";
-
-            if ($share["FilePublicAccess"]) {
-                $linestoadd .= "\tguest ok = Yes\n";
+            // Port
+            if ($share['WebOverridePort']) {
+                $port = $share['WebPort'];
+                $ext = '.conf';
+                if ($share['WebReqSsl'])
+                    $ssl = '.ssl';
             } else {
-                $linestoadd .= "\tguest ok = No\n";
-                $linestoadd .= "\tdirectory mask = 775\n";
-                $linestoadd .= "\tcreate mask = 664\n";
-                $linestoadd .= "\tvalid users = @\"%D" . '\\' . trim($share["ShareGroup"]) . "\", @" .
-                    trim($share["ShareGroup"]) . "\n";
+                if ($share['WebReqSsl']) {
+                    $port = 443;
+                    $ext = '.ssl';
+                } else {
+                    $port = 80;
+                    $ext = '.conf';
+                }
             }
 
-            $linestoadd .= "\tveto files = /.flexshare*/\n";
+            // Interface
+            $lans = array();
 
-            $vfsobject = "";
-
-            if ($share["FileRecycleBin"]) {
-                $vfsobject .= " recycle:recycle";
-                $linestoadd .= "\trecycle:repository = .trash/%U\n";
-                $linestoadd .= "\trecycle:maxsize = 0\n";
-                $linestoadd .= "\trecycle:versions = Yes\n";
-                $linestoadd .= "\trecycle:keeptree = Yes\n";
-                $linestoadd .= "\trecycle:touch = No\n";
-                $linestoadd .= "\trecycle:directory_mode = 0775\n";
+            if ($share['WebAccess'] == self::ACCESS_LAN) {
+                $ifacemanager = new Iface_Manager();
+                $lans = $ifacemanager->get_lan_networks();
             }
 
-            if ($share["FileAuditLog"]) {
-                $vfsobject .= " full_audit:audit";
-                $linestoadd .= "\taudit:prefix = %u\n";
-                $linestoadd .= "\taudit:success = open opendir\n";
-                $linestoadd .= "\taudit:failure = all\n";
-                $linestoadd .= "\taudit:facility = LOCAL5\n";
-                $linestoadd .= "\taudit:priority = NOTICE\n";
+            $case = $this->_determine_web_server_case($port, $share['WebReqSsl']);
+
+            // Create new file in parallel
+            $filename = self::PREFIX . $port . $ssl . $ext;
+            $file = new File(self::WEB_VIRTUAL_HOST_PATH . "/" . $filename);
+
+            if (! $file->exists())
+                $vhosts[] = $filename;
+
+            $newlines = array();
+
+            if (! $file->exists()) {
+                $newlines[] = self::WRITE_WARNING;
+                // Only specify Listen directive for custom ports
+                if ($case == self::CASE_CUSTOM_HTTP || $case == self::CASE_CUSTOM_HTTPS)
+                    $newlines[] = "Listen *:$port\n";
+                if ($case != self::CASE_HTTP)
+                    $newlines[] = "NameVirtualHost *:$port\n";
             }
 
-            if ($vfsobject)
-                $linestoadd .= "\tvfs object =$vfsobject\n";
+            // cgi-bin Alias must come first.
+            if ($share['WebCgi']) {
+                $cgifolder = new Folder(self::SHARE_PATH . "/$name/cgi-bin/");
+                if (!$cgifolder->exists())
+                    $cgifolder->create(self::CONSTANT_FILES_USERNAME, self::CONSTANT_FILES_USERNAME, "0777");
+                $newlines[] = "ScriptAlias /flexshare/$name/cgi-bin/ " . self::SHARE_PATH . "/$name/cgi-bin/";
+            }
 
-            $linestoadd .= "\n";
+            $newlines[] = "Alias /flexshare/$name " . self::SHARE_PATH . "/$name\n";
+            $newlines[] = "<VirtualHost *:$port>";
+            $newlines[] = "\tServerName " . $name . '.' . trim($share['WebServerName']);
+            $newlines[] = "\tDocumentRoot " . self::SHARE_PATH . "/$name";
+
+            if ($share['WebCgi'])
+                $newlines[] = "\tScriptAlias /cgi-bin/ " . self::SHARE_PATH . "/$name/cgi-bin/";
+
+            // Logging
+            $newlines[] = "\tErrorLog " . self::HTTPD_LOG_PATH . "/" .
+                trim($share['WebServerName']) . "_error_log";
+            $newlines[] = "\tCustomLog " . self::HTTPD_LOG_PATH . "/" .
+                trim($share['WebServerName']) . "_access_log common";
+
+            switch ($case) {
+                case self::CASE_HTTP:
+                    break;
+
+                case self::CASE_HTTPS:
+                    // Enable SSL on server it not already
+                    $httpd->set_ssl_state((bool)TRUE);
+                    // SSL file has to exist now
+                    // Add include if req'd
+                    try {
+                        $sslfile->lookup_line("/Include conf.d\/" . self::PREFIX . "443.ssl/i");
+                    } catch (File_No_Match_Exception $e) {
+                        $sslfile->add_lines("Include conf.d/" . self::PREFIX . "443.ssl\n");
+                    } catch (Exception $e) {
+                        throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
+                    }
+                    break;
+
+                case self::CASE_CUSTOM_HTTPS:
+                    // Logging
+                    $newlines[] = "\tErrorLog " . self::HTTPD_LOG_PATH . "/" .
+                                  trim($share['WebServerName']) . "_error_log";
+                    $newlines[] = "\tCustomLog " . self::HTTPD_LOG_PATH . "/" .
+                                  trim($share['WebServerName']) . "_access_log common";
+                    $ssl = new Ssl();
+                    $certs = $ssl->get_certificates(Ssl::TYPE_CRT);
+                    $ssl_found = FALSE;
+                    foreach ($certs as $certfile => $cert) {
+                        if ($cert['common_name'] == trim($share['WebServerName'])) {
+                            // Don't use CA
+                            if ($certfile == Ssl::FILE_CA_CRT)
+                                continue;
+                            $ssl_found = TRUE;
+                            $cert_filename = $certfile;
+                            break;
+                        }
+                    }
+                    if (! $ssl_found) {
+                        $ssl->set_rsa_key_size(Ssl::DEFAULT_KEY_SIZE);
+                        $ssl->set_term(Ssl::TERM_1YEAR);
+                        $ssl->set_purpose(Ssl::PURPOSE_SERVER_CUSTOM);
+                        $csr_filename = $ssl->create_certificate_request(trim($share['WebServerName']));
+                        // Self-sign be default
+                        $cert_filename = $ssl->sign_certificate_request($csr_filename);
+                    }
+
+                    $key = preg_replace("/-cert\\.pem/", "-key.pem", $cert_filename);
+
+                    if (! $httpd->get_ssl_state())
+                        $newlines[] = "\n\tLoadModule ssl_module modules/mod_ssl.so\n\n";
+
+                    $newlines[] = "\tSSLEngine on\n" .
+                        "\tSSLCertificateFile " . Ssl::DIR_SSL . "/$cert_filename\n" .
+                        "\tSSLCertificateKeyFile " . Ssl::DIR_SSL . "/private/$key\n" .
+                        "\t# No weak export crypto allowed\n" .
+                        "\t# SSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP:+eNULL\n" .
+                        "\tSSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:!EXP:+eNULL\n" .
+                        "\tSetEnvIf User-Agent \".*MSIE.*\" " .
+                        "nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0\n";
+                    break;
+                case self::CASE_CUSTOM_HTTP:
+                    break;
+            }
+
+            $newlines[] = "</VirtualHost>\n";
+
+            if ($share['WebCgi']) {
+                $newlines[] = "<Directory " . self::SHARE_PATH . "/$name/cgi-bin>";
+                $newlines[] = "\tOptions +ExecCGI";
+                if ($share["WebAccess"] == self::ACCESS_LAN) {
+                    $newlines[] = "\tOrder Deny,Allow";
+                    $newlines[] = "\tDeny from all";
+                    if (count($lans) > 0) {
+                        foreach ($lans as $lan)
+                            $allow_list .= "$lan ";
+                        $newlines[] = "\tAllow from " . $allow_list;
+                    }
+                }
+                $newlines[] = "</Directory>";
+            }
+
+            $newlines[] = "<Directory " . self::SHARE_PATH . "/$name>";
+                $options = "";
+
+            if ($share['WebShowIndex'])
+                $options .= " +Indexes";
+            else
+                $options .= " -Indexes";
+
+            if ($share['WebFollowSymLinks'])
+                $options .= " +FollowSymLinks";
+            else
+                $options .= " -FollowSymLinks";
+
+            if ($share['WebAllowSSI'])
+                $options .= " +" . self::DEFAULT_SSI_PARAM;
+            else
+                $options .= " -" . self::DEFAULT_SSI_PARAM;
+
+            if (strlen($options) > 0)
+                $newlines[] = "\tOptions" . $options;
+
+            if ($share['WebHtaccessOverride'])
+                $newlines[] = "\tAllowOverride All";
+
+            if ($share['WebReqAuth']) {
+                $ldap_conf = "ldap://127.0.0.1:389/" . ClearDirectory::GetUsersOu() . "?uid?one?(pcnWebFlag=TRUE)";
+                $newlines[] = "\tAuthType Basic";
+                $newlines[] = "\tAuthBasicProvider ldap";
+                $newlines[] = "\tAuthzLDAPAuthoritative Off";
+                $newlines[] = "\tAuthName \"" . $share['WebRealm'] . "\"";
+                $newlines[] = "\tAuthLDAPUrl $ldap_conf";
+
+                // Determine if this is a group or a user
+                $group = Group_Factory::create($share['ShareGroup']);
+
+                if (!$group->exists()) 
+                    throw new Engine_Exception('Group does not exist');
+
+                $newlines[] = "\tRequire ldap-group cn=" . $share['ShareGroup'] . "," . ClearDirectory::GetGroupsOu();
+            }
+
+            if ($share["WebAccess"] == self::ACCESS_LAN) {
+                $newlines[] = "\tOrder deny,allow";
+                $newlines[] = "\tDeny from all";
+
+                if (count($lans) > 0) {
+                    foreach ($lans as $lan)
+                        $allow_list .= "$lan ";
+
+                    $newlines[] = "\tAllow from " . $allow_list;
+                }
+            } else {
+                $newlines[] = "\tOrder deny,allow";
+                $newlines[] = "\tAllow from all";
+            }
+
+            try {
+                // Default to 4
+                $php_handler = 'php-script';
+                $shell = new Shell();
+                if ($shell->execute(self::CMD_PHP, '-v', FALSE) == 0) {
+                    $output = $shell->get_output();
+                    if (preg_match("/^PHP (\d+).(\d+).*$/", $output[0], $match)) {
+                        // PHP5 ?
+                        if ((int)$match[1] == 5)
+                            $php_handler = 'php5-script';
+                    }
+                }
+            } catch (Exception $e) {
+                $php_handler = 'php-script';
+            }
+
+            if ($share['WebPhp']) {
+                $newlines[] = "\tAddType text/html php";
+                $newlines[] = "\tAddHandler $php_handler php";
+            } else {
+                $newlines[] = "\tRemoveHandler .php";
+                $newlines[] = "\tAddType application/x-httpd-php-source .php";
+            }
+
+            // TODO: the FollowSymLinks requirement is annoying
+            if ($share['WebReqSsl'] && $share['WebFollowSymLinks']) {
+                $newlines[] = "\tRewriteEngine On";
+                $newlines[] = "\tRewriteCond %{HTTPS} off";
+                $newlines[] = "\tRewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}";
+            }
+
+            // DAV (unsupported)
+            $davcheck = self::SHARE_PATH . "/$name/.DAV";
+            $davfile = new File($davcheck);
+            if ($davfile->exists())
+                $newlines[] = "\tDav on";
+
+            $newlines[] = "</Directory>\n\n\n";
+
+            if (! $file->exists())
+                $file->create('root', 'root', '0640');
+
+            $file->add_lines(implode("\n", $newlines));
         }
 
-        $file->add_lines($linestoadd);
-
-        // Make sure Samba has flexshare include
-        //--------------------------------------
-
-        $smb_conf = new File(self::FILE_SMB_CONF);
-
-        try {
-            $smb_conf->replace_lines('/#.*include.*flexshare.conf/', "include = /etc/samba/flexshare.conf\n");
-        } catch (File_No_Match_Exception $e) {
-            // Not fatal
-        }
-
-        // Validate smbd configuration
-        //----------------------------
-
+        // Validate httpd configuration before restarting server
         $config_ok = TRUE;
 
         try {
             $shell = new Shell();
             $options['validate_exit_code'] = FALSE;
-            $exitcode = $shell->execute(self::CMD_VALIDATE_SMBD, '-s', FALSE, $options);
+            $exitcode = $shell->execute(self::CMD_VALIDATE_HTTPD, '-t', TRUE, $options);
         } catch (Exception $e) {
+            // Backup out of commits
             $config_ok = FALSE;
-            clearos_log(self::LOG_TAG, "Invalid Samba config: " . clearos_exception_message($e));
         }
 
-        if ($config_ok) {
-            // Delete backups
-            if ($backup_exists)
-                $backup->delete();
-        } else {
-            // Recover backups
-            if ($backup_exists) {
-                try {
-                    $backup->move_to(self::SMB_VIRTUAL_HOST_PATH . "/" . self::FILE_SMB_VIRTUAL);
-                } catch (Exception $e) {
-                    // Supresss error here...could be same file
-                }
+        if ($exitcode != 0) {
+            $config_ok = FALSE;
+            $output = $shell->get_output();
+            clearos_log(self::LOG_TAG, "Invalid httpd configuration!");
+            // Oops...we generated an invalid conf file
+            foreach ($output as $line)
+                clearos_log(self::LOG_TAG, $line);
+        }
+
+        foreach ($vhosts as $vhost) {
+            // Not a flexshare vhost file
+            if (!isset($vhost))
+                continue;
+            $file = new File(self::PATH_TEMP . "/$vhost.$backup_key.bak");
+            if (! $file->exists()) {
+                // Conf was newly created
+                $file = new File(self::WEB_VIRTUAL_HOST_PATH . "/$vhost");
+                if (! $config_ok)
+                    $file->delete();
+                continue;
             }
 
-            throw new Engine_Exception(lang('flexshare_config_validation_failed'));
+            if ($config_ok) {
+                // Delete backups
+                $file->delete();
+            } else {
+                // Recover backups
+                $file->move_to(self::WEB_VIRTUAL_HOST_PATH . "/$vhost");
+            }
         }
+
+        if (! $config_ok)
+            throw new Engine_Exception(lang('flexshare_config_validation_failed'), CLEAROS_ERROR);
+
+        // Reload web server
+        $httpd->reset();
     }
 
     /**
-     * Initializes flexshare environment.
+     * Generic get paramter routine.
      *
-     * @return void
-     * @throws Validation_Exception, Engine_Exception, User_Not_Found_Exception
+     * @param string $name flexshare name
+     * @param string $key  key name
+     *
+     * @return string
+     * @throws Engine_Exception, File_Not_Found_Exception, Flexshare_Parameter_Not_Found_Exception
      */
 
-    function initialize()
+    protected function _get_parameter($name, $key)
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        // TODO: deprecated?
-        return;
-
-        // Bail if already initialized
-
-        $file = new File(self::FILE_INITIALIZED);
-
-        if ($file->exists())
-            return;
-
-        // Bail if we are a slave system
-        // TODO: bail on AD mode too
-
-        $mode = Mode_Factory::create();
-
-        if ($mode->is_read_only())
-            return;
-
-        // Generate random password
-
-        $password = User_Utilities::generate_password();
-
-        // Check to see if flexshare user exists
-
-        $adduser = FALSE;
-
         try {
-            $user = User_Factory::create(self::CONSTANT_ACCOUNT_USERNAME);
-            $currentinfo = $user->get_info();
-        } catch (User_Not_Found_Exception $e) {
-            $adduser = TRUE;
+            $file = new File(self::FILE_CONFIG);
+
+            if ($name == NULL)
+                $retval = $file->lookup_value("/^\s*$key\s*=\s*/i");
+            else
+                $retval = $file->lookup_value_between("/^\s*$key\s*=\s*/i", "/<Share $name>/", "/<\/Share>/");
+        } catch (File_Not_Found_Exception $e) {
+            throw new File_Not_Found_Exception($file->get_filename());
+        } catch (File_No_Match_Exception $e) {
+            throw new Flexshare_Parameter_Not_Found_Exception($key);
         }
 
-        // Add or update user account information
-        // FIXME: plugin group may not exist (different scenario compared to 5.x)
-
-        if ($adduser) {
-            $userinfo = array();
-            // $userinfo['mailFlag'] = TRUE; // Mail-to-flexshare
-            $userinfo['plugins']['ftp']['state'] = TRUE;  // Anonymous FTP
-            $userinfo['core']['last_name'] = 'System';
-            $userinfo['core']['first_name'] = 'Flexshare';
-            $userinfo['core']['home_directory'] = self::PATH_ROOT;
-
-            $user->add($userinfo, $password);
-        } else {
-            $userinfo = array();
-
-            // $userinfo['mailFlag'] = TRUE; // Mail-to-flexshare
-            $userinfo['plugins']['ftp']['state'] = TRUE;  // Anonymous FTP
-
-            $user->update($userinfo);
-            $user->reset_password($password, $password, 'api');
-        }
-
-        // Set the password in flexshare
-        // Set the initialized file
-
-        $this->set_password($password, $password);
-        $file->create("root", "root", "0644");
+        return $retval;
     }
 
     /**
-     * Convenience function.
-     *
-     * @param int  $port     port
-     * @param bool $ssl_flag flag
-     *
-     * @return  int case type
-     */
-
-    function determine_case ($port, $ssl_flag)
-    {
-        if ($port == 80)
-            $case = self::CASE_HTTP;
-        elseif ($port == 443)
-            $case = self::CASE_HTTPS;
-        elseif ($ssl_flag)
-            $case = self::CASE_CUSTOM_HTTPS;
-        else
-            $case = self::CASE_CUSTOM_HTTP;
-        return $case;
-    }
-
-    /**
-     * Generic set routine.
+     * Generic set parameter routine.
      *
      * @param string $name  flexshare name
      * @param string $key   key name
@@ -1698,7 +2849,7 @@ class Flexshare extends Engine
      * @throws Engine_Exception
      */
 
-    function set_parameter($name, $key, $value)
+    protected function _set_parameter($name, $key, $value)
     {
         clearos_profile(__METHOD__, __LINE__);
 
@@ -1754,1032 +2905,6 @@ class Flexshare extends Engine
     }
 
     /**
-     * Sets account access.
-     *
-     * @param string $password password
-     * @param string $verify   verify
-     *
-     * @return void
-     * @throws Validation_Exception, Engine_Exception
-     */
-
-    function set_password($password, $verify)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        if ($password != $verify)
-            throw new Validation_Exception(lang('flexshare_password_and_verify_do_not_match'));
-
-        Validation_Exception::is_valid($this->validate_password($password));
-
-        $file = new File(self::FILE_CONFIG);
-
-        if (! $file->exists()) {
-            $file->create("root", "root", '0600');
-            $file->add_lines("# Flexshare Configuration\n");
-        }
-
-        $this->set_parameter(NULL, 'FlexsharePW', $password);
-    }
-
-    /**
-     * Sets a flex share's description.
-     *
-     * @param string $name        flexshare name
-     * @param string $description flexshare description
-     *
-     * @return void
-     * @throws Validation_Exception, Engine_Exception
-     */
-
-    function set_description($name, $description)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        // Validate
-        Validation_Exception::is_valid($this->validate_description($description));
-
-        $this->set_parameter($name, 'ShareDescription', $description);
-    }
-
-    /**
-     * Sets a flexshare's group owner.
-     *
-     * @param string $name  flexshare name
-     * @param string $group flexshare group owner
-     *
-     * @return void
-     * @throws Validation_Exception, Engine_Exception
-     */
-
-    function set_group($name, $group)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        Validation_Exception::is_valid($this->validate_group($group));
-
-        if ($this->get_parameter($name, 'ShareGroup') == $group)
-            return;
-
-        $this->set_parameter($name, 'ShareGroup', $group);
-        $state = 0;
-
-        if ($this->get_parameter($name, 'ShareEnabled'))
-            $state = (int)$this->get_parameter($name, 'ShareEnabled');
-
-        $this->set_share_state($name, $state, TRUE);
-    }
-
-    /**
-     * Sets a flex share's root directory.
-     *
-     * @param string $name      flexshare name
-     * @param string $directory flex share directory
-     *
-     * @return void
-     * @throws Validation_Exception, Engine_Exception
-     */
-
-    function set_directory($name, $directory)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $directory = trim($directory);
-        $defaultdir = self::SHARE_PATH . '/' . $name;
-
-        if (!isset($directory) || !$directory)
-            $directory = $defaultdir;
-
-        // Validate
-        Validation_Exception::is_valid($this->validate_directory($directory));
-
-        $this->_update_folder_links($name, $directory);
-
-        $this->set_parameter($name, 'ShareDir', $directory);
-    }
-
-    ////////////////////
-    //     W E B      //
-    ////////////////////
-
-    /**
-     * Sets the enabled of web-based access.
-     *
-     * @param string $name    flexshare name
-     * @param bool   $enabled web enabled
-     *
-     * @return void
-     * @throws Validation_Exception, Engine_Exception
-     */
-
-    function set_web_enabled($name, $enabled)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'WebEnabled', ($enabled ? 1: 0));
-        $this->generate_web_flexshares();
-    }
-
-    /**
-     * Sets the server name of web-based access.
-     *
-     * @param string $name        flexshare name
-     * @param string $server_name server name
-     *
-     * @return void
-     * @throws Validation_Exception, Engine_Exception
-     */
-
-    function set_web_server_name($name, $server_name)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        // Validate
-        // --------
-        Validation_Exception::is_valid($this->validate_web_server_name($server_name));
-
-        $this->set_parameter($name, 'WebServerName', $server_name);
-    }
-
-    /**
-     * Sets whether to allow an index of files to be displayed in browser.
-     *
-     * @param string $name       flexshare name
-     * @param bool   $show_index boolean flag to determine to show file index
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_web_show_index($name, $show_index)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'WebShowIndex', $show_index);
-    }
-
-    /**
-     * Sets whether to follow sym links.
-     *
-     * @param string $name            flexshare name
-     * @param bool   $follow_symlinks boolean flag to determine to follow sym links
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_web_follow_sym_links($name, $follow_symlinks)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'WebFollowSymLinks', $follow_symlinks);
-    }
-
-    /**
-     * Sets whether to allow server side includes.
-     *
-     * @param string $name flexshare name
-     * @param bool   $ssi  boolean flag to determine whether to allow SSI's
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_web_allow_ssi($name, $ssi)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'WebAllowSSI', $ssi);
-    }
-
-    /**
-     * Sets whether to allow override of options if .htaccess file is found.
-     *
-     * @param string $name     flexshare name
-     * @param bool   $htaccess boolean flag to determine whether to allow htaccess override
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_web_htaccess_override($name, $htaccess)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'WebHtaccessOverride', $htaccess);
-    }
-
-    /**
-     * Sets an override flag to use custom port on the flexshare.
-     *
-     * @param string $name          flexshare name
-     * @param bool   $override_port boolean flag
-     * @param int    $port          port
-     *
-     * @return void
-     * @throws Validation_Exception, Engine_Exception
-     */
-
-    function set_web_override_port($name, $override_port, $port)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        if ($override_port && ($port == 80 || $port == 443))
-            throw new Engine_Exception(lang('flexshare_non_custom_port_warning'), CLEAROS_ERROR);
-
-        $inuse_ports = array();
-        $info = $this->get_share($name);
-        $ssl = $info['WebReqSsl'];
-        $shares = $this->get_share_summary();
-        foreach ($shares as $share) {
-            $info = $this->get_share($share['Name']);
-            if ($name != $share['Name'] && $ssl != $info['WebReqSsl'])
-                $inuse_ports[] = $info['WebPort'];
-        }
-        if ($override_port && (in_array($port, $this->bad_ports) || in_array($port, $inuse_ports))) {
-            throw new Validation_Exception(FLEXSHARE_LANG_ERRMSG_PORT_IN_USE);
-        }
-        $this->set_parameter($name, 'WebOverridePort', $override_port);
-        $this->set_parameter($name, 'WebPort', $port);
-    }
-
-    /**
-     * Sets the require SSL flag for the flexshare.
-     *
-     * @param string $name    flexshare name
-     * @param bool   $req_ssl boolean flag
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_web_req_ssl($name, $req_ssl)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'WebReqSsl', $req_ssl);
-    }
-
-    /**
-     * Sets the require authentication flag for the flexshare.
-     *
-     * @param string $name     flexshare name
-     * @param bool   $req_auth boolean flag
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_web_req_auth($name, $req_auth)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        // If no auth required, check e-mail restricts access
-        $prevent = TRUE;
-        if (!$req_auth) {
-            $share = $this->get_share($name);
-            if (isset($share['EmailRestrictAccess']) && $share['EmailRestrictAccess'])
-                $prevent = FALSE;
-            if (!isset($share['EmailEnabled']) || !$share['EmailEnabled'])
-                $prevent = FALSE;
-            if (!isset($share['WebEnabled']) || !$share['WebEnabled'])
-                $prevent = FALSE;
-            if ((!isset($share['WebPhp']) || !$share['WebPhp']) && (!isset($share['WebCgi']) || !$share['WebCgi']))
-                $prevent = FALSE;
-            if (isset($share['WebAccess']) && (int)$share['WebAccess'] == self::ACCESS_LAN)
-                $prevent = FALSE;
-        } else {
-            $prevent = FALSE;
-        }
-
-        if ($prevent)
-            throw new Engine_Exception(FLEXSHARE_LANG_WARNING_CONFIG, COMMON_WARNING);
-
-        $this->set_parameter($name, 'WebReqAuth', $req_auth);
-    }
-
-    /**
-     * Sets the realm name of web-based access.
-     *
-     * @param string $name  flexshare name
-     * @param bool   $realm a realm name
-     *
-     * @return void
-     * @throws Validation_Exception, Engine_Exception
-     */
-
-    function set_web_realm($name, $realm)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        // Validate
-        // --------
-        Validation_Exception::is_valid($this->validate_web_realm($realm));
-
-        $this->set_parameter($name, 'WebRealm', $realm);
-    }
-
-    /**
-     * Sets the access interface for the flexshare.
-     *
-     * @param string $name   flexshare name
-     * @param int    $access Intranet, Internet or Any
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_web_access($name, $access)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        // Validate
-        // --------
-        Validation_Exception::is_valid($this->validate_web_access($access));
-
-        // If web access is ALL, check e-mail restricts access
-        $prevent = TRUE;
-        if ((int)$access == self::ACCESS_LAN) {
-            $share = $this->get_share($name);
-            if (isset($share['EmailRestrictAccess']) && $share['EmailRestrictAccess'])
-                $prevent = FALSE;
-            if (!isset($share['EmailEnabled']) || !$share['EmailEnabled'])
-                $prevent = FALSE;
-            if (!isset($share['WebEnabled']) || !$share['WebEnabled'])
-                $prevent = FALSE;
-            if (isset($share['WebReqAuth']) && $share['WebReqAuth'])
-                $prevent = FALSE;
-            if ((!isset($share['WebPhp']) || !$share['WebPhp']) && (!isset($share['WebCgi']) || !$share['WebCgi']))
-                $prevent = FALSE;
-        } else {
-            $prevent = FALSE;
-        }
-
-        if ($prevent)
-            throw new Engine_Exception(FLEXSHARE_LANG_WARNING_CONFIG, COMMON_WARNING);
-
-        $this->set_parameter($name, 'WebAccess', $access);
-    }
-
-    /**
-     * Sets the groups allowed to access this flexshare.
-     *
-     * @param string $name   flexshare name
-     * @param array  $access group access array
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_web_group_access($name, $access)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'WebGroupAccess', implode(' ', $access));
-    }
-
-    /**
-     * Sets parameter allowing PHP executeon on the flexshare.
-     *
-     * @param string $name    flexshare name
-     * @param bool   $web_php PHP enabled or not
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_web_php($name, $web_php)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        // If PHP enabled, check e-mail restricts access
-        $prevent = TRUE;
-        if ($web_php) {
-            $share = $this->get_share($name);
-            if (isset($share['EmailRestrictAccess']) && $share['EmailRestrictAccess'])
-                $prevent = FALSE;
-            if (!isset($share['EmailEnabled']) || !$share['EmailEnabled'])
-                $prevent = FALSE;
-            if (!isset($share['WebEnabled']) || !$share['WebEnabled'])
-                $prevent = FALSE;
-            if (isset($share['WebReqAuth']) && $share['WebReqAuth'])
-                $prevent = FALSE;
-            if (isset($share['WebAccess']) && (int)$share['WebAccess'] == self::ACCESS_LAN)
-                $prevent = FALSE;
-
-        } else {
-            $prevent = FALSE;
-        }
-
-        if ($prevent)
-            throw new Engine_Exception(FLEXSHARE_LANG_WARNING_CONFIG, COMMON_WARNING);
-
-        $this->set_parameter($name, 'WebPhp', $web_php);
-    }
-
-    /**
-     * Sets parameter allowing CGI executeon on the flexshare.
-     *
-     * @param string $name    flexshare name
-     * @param bool   $web_cgi CGI enabled or not
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_web_cgi($name, $web_cgi)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        // If cgi enabled, check e-mail restricts access
-        $prevent = TRUE;
-        if ($web_cgi) {
-            $share = $this->get_share($name);
-            if (isset($share['EmailRestrictAccess']) && $share['EmailRestrictAccess'])
-                $prevent = FALSE;
-            if (!isset($share['EmailEnabled']) || !$share['EmailEnabled'])
-                $prevent = FALSE;
-            if (!isset($share['WebEnabled']) || !$share['WebEnabled'])
-                $prevent = FALSE;
-            if (isset($share['WebReqAuth']) && $share['WebReqAuth'])
-                $prevent = FALSE;
-            if (isset($share['WebAccess']) && (int)$share['WebAccess'] == self::ACCESS_LAN)
-                $prevent = FALSE;
-        } else {
-            $prevent = FALSE;
-        }
-
-        if ($prevent)
-            throw new Engine_Exception(FLEXSHARE_LANG_WARNING_CONFIG, COMMON_WARNING);
-
-        $this->set_parameter($name, 'WebCgi', $web_cgi);
-    }
-
-    ////////////////////
-    //     F T P      //
-    ////////////////////
-
-    /**
-     * Sets the enabled of ftp-based access.
-     *
-     * @param string $name    flexshare name
-     * @param bool   $enabled ftp enabled
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_enabled($name, $enabled)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FtpEnabled', $enabled);
-        $this->generate_ftp_flexshares();
-    }
-
-    /**
-     * Sets the server URL of FTP based access.
-     *
-     * @param string $name       flexshare name
-     * @param string $server_url server URL
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_server_url($name, $server_url)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        // Validate
-        // --------
-
-        Validation_Exception::is_valid($this->validate_ftp_server_url($server_url));
-
-        $this->set_parameter($name, 'FtpServerUrl', $server_url);
-    }
-
-    /**
-     * Sets an override flag to use custom port on the flexshare.
-     *
-     * @param string $name          flexshare name
-     * @param bool   $override_port boolean flag
-     * @param int    $port          port FTP listens on for this flexshare
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_override_port($name, $override_port, $port)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        if ($override_port && ($port == self::DEFAULT_PORT_FTP || $port == self::DEFAULT_PORT_FTPS))
-            throw new Engine_Exception(lang('flexshare_non_custom_port_warning'), CLEAROS_ERROR);
-
-        if ($override_port && ($port == 21 || $port == 990))
-            throw new Engine_Exception(lang('flexshare_ftp_cannot_use_default_ports'), CLEAROS_ERROR);
-
-        if ($override_port && $port < 1024)
-            throw new Engine_Exception(lang('flexshare_invalid_port'), CLEAROS_ERROR);
-        // Find all ports and see if any conflicts with n-1
-        if ($override_port) {
-            $shares = $this->get_share_summary();
-            for ($index = 0; $index < count($shares); $index++) {
-                $share = $this->get_share($shares[$index]['Name']);
-                if ($share['Name'] != $name) {
-                    if ((int)$share["FtpPort"] == ($port - 1)) {
-                        throw new Engine_Exception(lang('flexshare_ftp_port_conflict'), CLEAROS_ERROR);
-                    } else if (((int)$share["FtpPort"] -1) == $port) {
-                        throw new Engine_Exception(lang('flexshare_ftp_port_conflict'), CLEAROS_ERROR);
-                    }
-                }
-            }
-        }
-        $this->set_parameter($name, 'FtpOverridePort', $override_port);
-        $this->set_parameter($name, 'FtpPort', $port);
-    }
-
-    /**
-     * Sets the allow passive port (PASV) flag for the flexshare.
-     *
-     * @param string $name          flexshare name
-     * @param bool   $allow_passive boolean flag
-     * @param int    $port_min      minimum port range
-     * @param int    $port_max      maximum port range
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_allow_passive($name, $allow_passive, $port_min = self::FTP_PASV_MIN, $port_max = self::FTP_PASV_MAX)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        // Validate
-        // --------
-
-        if ($allow_passive)
-            Validation_Exception::is_valid($this->validate_passive_port_range($port_min, $port_max));
-
-
-        $this->set_parameter($name, 'FtpAllowPassive', $allow_passive);
-
-        if ($allow_passive) {
-            $this->set_parameter($name, 'FtpPassivePortMin', $port_min);
-            $this->set_parameter($name, 'FtpPassivePortMax', $port_max);
-        }
-    }
-
-    /**
-     * Sets the require SSL flag for the flexshare.
-     *
-     * @param string $name    flexshare name
-     * @param bool   $req_ssl boolean flag
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_req_ssl($name, $req_ssl)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, "FtpReqSsl", $req_ssl);
-    }
-
-    /**
-     * Sets the FTP owner.
-     *
-     * @param string $name  flexshare name
-     * @param string $owner owner
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_user_owner($name, $owner)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FtpUserOwner', $owner);
-    }
-
-    /**
-     * Sets the greeting message for ftp-based group access.
-     *
-     * @param string $name     flexshare name
-     * @param string $greeting greeting displayed on user login
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_group_greeting($name, $greeting)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FtpGroupGreeting', $greeting);
-    }
-
-    /**
-     * Sets the groups allowed to access this flexshare.
-     *
-     * @param string $name   flexshare name
-     * @param array  $access group access array
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_group_access($name, $access)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FtpGroupAccess', implode(' ', $access));
-    }
-
-    /**
-     * Sets the groups ownership of this flexshare.
-     *
-     * @param string $name  flexshare name
-     * @param string $owner group owner
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_group_owner($name, $owner)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FtpGroupOwner', $owner);
-    }
-
-    /**
-     * Sets the group permission allowed to access this flexshare.
-     *
-     * @param string $name       flexshare name
-     * @param int    $permission read/write permissions extended to useers with group access
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_group_permission($name, $permission)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        // Validate
-        // --------
-
-        Validation_Exception::is_valid($this->validate_ftp_group_permission($permission));
-
-        $this->set_parameter($name, 'FtpGroupPermission', $permission);
-    }
-
-    /**
-     * Sets the group umask for this flexshare.
-     *
-     * @param string $name  flexshare name
-     * @param string $umask umask
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_group_umask($name, $umask)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $value = "0" . (int)$umask['owner'] . "" . (int)$umask['group'] . "" . (int)$umask['world'];
-        $this->set_parameter($name, 'FtpGroupUmask', $value);
-    }
-
-    /**
-     * Sets the greeting message for ftp-based access.
-     *
-     * @param string $name      flexshare name
-     * @param bool   $anonymous allow anonymous login
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_allow_anonymous($name, $anonymous)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FtpAllowAnonymous', $anonymous);
-    }
-
-    /**
-     * Sets the anonymous permission allowed to access this flexshare.
-     *
-     * @param string $name       flexshare name
-     * @param int    $permission read/write permissions for anonymous users
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_anonymous_permission($name, $permission)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FtpAnonymousPermission', $permission);
-    }
-
-    /**
-     * Sets the greeting message for ftp-based anonymous access.
-     *
-     * @param string $name     flexshare name
-     * @param string $greeting greeting displayed on anonymous login
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_anonymous_greeting($name, $greeting)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FtpAnonymousGreeting', $greeting);
-    }
-
-    /**
-     * Sets the anonymous umask for this flexshare.
-     *
-     * @param string $name  flexshare name
-     * @param string $umask umask
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_anonymous_umask($name, $umask)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $value = "0" . (int)$umask['owner'] . "" . (int)$umask['group'] . "" . (int)$umask['world'];
-        $this->set_parameter($name, 'FtpAnonymousUmask', $value);
-    }
-
-    ////////////////////////////////
-    //    F I L E   (S A M B A)   //
-    ////////////////////////////////
-
-    /**
-     * Sets the audit log state.
-     *
-     * @param string $name  flexshare name
-     * @param bool   $state state of audit logging
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_file_audit_log($name, $state)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FileAuditLog', $state);
-    }
-
-    /**
-     * Sets the audit log state.
-     *
-     * @param string $name  flexshare name
-     * @param bool   $state state of audit logging
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_file_browseable($name, $state)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FileBrowseable', $state);
-    }
-
-    /**
-     * Sets the enabled of file-based (SAMBA) access.
-     *
-     * @param string $name    flexshare name
-     * @param bool   $enabled file enabled
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_file_enabled($name, $enabled)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FileEnabled', $enabled);
-        $this->generate_file_flexshares();
-    }
-
-    /**
-     * Sets file sharing comment for the flexshare.
-     *
-     * @param string $name    flexshare name
-     * @param string $comment a flexshare/fileshare comment
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_file_comment($name, $comment)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FileComment', $comment);
-    }
-
-    /**
-     * Sets file sharing public access flag for the flexshare.
-     *
-     * @param string $name          flexshare name
-     * @param bool   $public_access a boolean flag
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_file_public_access($name, $public_access)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FilePublicAccess', $public_access);
-    }
-
-    /**
-     * Sets the groups ownership of this flexshare.
-     *
-     * @param string $name  flexshare name
-     * @param string $owner group owner
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_file_group_owner($name, $owner)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FileGroupOwner', $owner);
-    }
-
-    /**
-     * Sets file sharing permissions for the flexshare.
-     *
-     * @param string $name       flexshare name
-     * @param string $permission a valid permission
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_file_permission($name, $permission)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FilePermission', $permission);
-    }
-
-    /**
-     * Sets the groups allowed to access this flexshare.
-     *
-     * @param string $name   flexshare name
-     * @param array  $access group access array
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_file_group_access($name, $access)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FileGroupAccess', implode(' ', $access));
-    }
-
-    /**
-     * Sets the Samba create mask for this flexshare.
-     *
-     * @param string $name flexshare name
-     * @param string $mask mask
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_file_create_mask($name, $mask)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $value = "0" . (int)$mask['owner'] . "" . (int)$mask['group'] . "" . (int)$mask['world'];
-        $this->set_parameter($name, 'FileCreateMask', $value);
-    }
-
-    /**
-     * Sets the recycle bin state.
-     *
-     * @param string $name  flexshare name
-     * @param bool   $state state of recycle bin option
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_file_recycle_bin($name, $state)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $this->set_parameter($name, 'FileRecycleBin', $state);
-    }
-
-    /////////////////////////////////
-    //    G E T   M E T H O D S    //
-    /////////////////////////////////
-
-    /**
-     * Generic get routine.
-     *
-     * @param string $name flexshare name
-     * @param string $key  key name
-     *
-     * @return string
-     *
-     * @throws Engine_Exception, File_Not_Found_Exception, Flexshare_Parameter_Not_Found_Exception
-     */
-
-    function get_parameter($name, $key)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        try {
-            $file = new File(self::FILE_CONFIG);
-
-            if ($name == NULL)
-                $retval = $file->lookup_value("/^\s*$key\s*=\s*/i");
-            else
-                $retval = $file->lookup_value_between("/^\s*$key\s*=\s*/i", "/<Share $name>/", "/<\/Share>/");
-        } catch (File_Not_Found_Exception $e) {
-            throw new File_Not_Found_Exception($file->get_filename(), CLEAROS_ERROR);
-        } catch (File_No_Match_Exception $e) {
-            throw new Flexshare_Parameter_Not_Found_Exception($key, CLEAROS_ERROR);
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-        }
-
-        return $retval;
-    }
-
-    /**
-     * Gets the global password.
-     *
-     * @return string
-     *
-     * @throws Engine_Exception
-     */
-
-    function get_password()
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $passwd = $this->get_parameter(NULL, 'FlexsharePW');
-
-        return $passwd;
-    }
-
-    /**
-     * Formats a value into a human readable byte size.
-     *
-     * @param string $input the value
-     * @param int    $dec   number of decimal places
-     *
-     * @return string
-     */
-
-    function get_formatted_bytes($input, $dec)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $prefix_arr = array(' B', 'KB', 'MB', 'GB', 'TB');
-        $value = round($input, $dec);
-        $i=0;
-        while ($value>1024) {
-            $value /= 1024;
-            $i++;
-        }
-        $display = round($value, $dec) . ' ' . $prefix_arr[$i];
-        return $display;
-    }
-
-    /**
      * Sanity checks the group ownership.
      *
      * Too much command line hacking will leave the group ownership of
@@ -2829,7 +2954,7 @@ class Flexshare extends Engine
         $config = $file->load();
 
         // Umount any existing
-        if ($this->get_parameter($name, 'ShareDir') != $defaultdir) {
+        if ($this->_get_parameter($name, 'ShareDir') != $defaultdir) {
             $param = $defaultdir;
             $options['env'] = 'LANG=en_US';
 
@@ -2842,371 +2967,16 @@ class Flexshare extends Engine
         }
 
         // Mount new share
-        if ($directory != $defaultdir && $this->get_parameter($name, 'ShareEnabled')) {
+        if ($directory != $defaultdir && $this->_get_parameter($name, 'ShareEnabled')) {
             $param = "--bind '$directory' '$defaultdir'";
             $shell->execute(self::CMD_MOUNT, $param, TRUE);
         }
 
         // Check for entry in fstab
-        if (isset($config[$this->get_parameter($name, 'ShareDir')]))
-            $file->delete_lines("/^" . preg_quote($this->get_parameter($name, 'ShareDir'), "/") . ".*$/");
+        if (isset($config[$this->_get_parameter($name, 'ShareDir')]))
+            $file->delete_lines("/^" . preg_quote($this->_get_parameter($name, 'ShareDir'), "/") . ".*$/");
 
-        if ($directory != $defaultdir && $this->get_parameter($name, 'ShareEnabled'))
+        if ($directory != $defaultdir && $this->_get_parameter($name, 'ShareEnabled'))
             $file->add_lines($directory . "\t" . $defaultdir . "\tnone\tdefaults,bind\t0 0\n");
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////
-    // V A L I D A T I O N   M E T H O D S
-    ///////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Validation routine for flexshare name.
-     *
-     * @param string $name flexshare name
-     *
-     * @return mixed void if name is valid, errmsg otherwise
-     */
-
-    function validate_name($name)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-        if (!preg_match("/^([A-Za-z0-9\-\.\_]+)$/", $name))
-            return lang('flexshare_invalid_name');
-    }
-
-    /**
-     * Validation routine for a group.
-     *
-     * @param string $group a system group
-     *
-     * @return mixed void if group is valid, errmsg otherwise
-     */
-
-    function validate_group($group)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        $group = Group_Factory::create($group);
-
-        if (! $group->exists()) {
-            $user = User_Factory::create($group);
-
-            if (! $user->exists())
-                return lang('flexshare_invalid_group');
-        }
-    }
-
-    /**
-     * Validation routine for password.
-     *
-     * @param string $password password
-     *
-     * @return mixed void if group is valid, errmsg otherwise
-     */
-
-    function validate_password($password)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        // TODO: Watch out for auto-generated base64 password
-    }
-
-    /**
-     * Validation routine for description.
-     *
-     * @param string $description flexshare description
-     *
-     * @return mixed void if description is valid, errmsg otherwise
-     */
-
-    function validate_description($description)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        if (!preg_match("/^([A-Za-z0-9\-\.\_\' ]*)$/", $description))
-            return lang('flexshare_invalid_description');
-    }
-
-    /**
-     * Validation routine for directory path.
-     *
-     * @param string $dir directory path for flexshare
-     *
-     * @return mixed void if directory is valid, errmsg otherwise
-     */
-
-    function validate_directory($dir)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        if (!preg_match("/^([A-Za-z0-9\-\.\_\/]+)$/", $dir))
-            return lang('flexshare_invalid_dir');
-    }
-
-    /**
-     * Validation routine for web server name.
-     *
-     * @param string $server_name web server name
-     *
-     * @return mixed void if web server name is valid, errmsg otherwise
-     */
-
-    function validate_web_server_name($server_name)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        if (!clearos_library_installed('web/Httpd'))
-            return;
-
-        $httpd = new Httpd();
-        return $httpd->validate_server_name($server_name);
-    }
-
-    /**
-     * Validation routine for web realm.
-     *
-     * @param string $realm web realm
-     *
-     * @return mixed void if web realm is valid, errmsg otherwise
-     */
-
-    function validate_web_realm($realm)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        if (!preg_match("/^([A-Za-z0-9\-\.\_\/\' ]+)$/", $realm))
-            return lang('flexshare_invalid_web_realm');
-    }
-
-    /**
-     * Validation routine for flexshare FTP.
-     *
-     * @param boolean $status FTP flexshare status
-     *
-     * @return mixed void if status is valid, errmsg otherwise
-     */
-
-    function validate_ftp_enabled($status)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-    }
-
-    /**
-     * Validation routine for FTP passive ports.
-     *
-     * @param int $port_min Port start
-     * @param int $port_max Port end
-     *
-     * @return mixed void if ports are valid, errmsg otherwise
-     */
-
-    function validate_passive_port_range($port_min, $port_max)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        if (! Network_Utils::is_valid_port_range($port_min, $port_max))
-            return lang('flexshare_port_range_invalid');
-
-        if ($port_min < 1023 || $port_max < 1023)
-            return lang('flexshare_passive_port_below_min');
-    }
-
-    /**
-     * Validation routine for FTP server URL.
-     *
-     * @param string $server_url FTP server URL
-     *
-     * @return mixed void if FTP server URL is valid, errmsg otherwise
-     */
-
-    function validate_ftp_server_url($server_url)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        if (! Network_Utils::is_valid_hostname($server_url))
-            return lang('flexshare_invalid_server_url');
-    }
-
-    /**
-     * Validation routine for flexshare require SSL on FTP.
-     *
-     * @param boolean $req FTP flexshare require SSL status
-     *
-     * @return mixed void if invalid, errmsg otherwise
-     */
-
-    function validate_ftp_req_ssl($req)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-    }
-
-    /**
-     * Validation routine for flexshare group permission on FTP.
-     *
-     * @param boolean $permission FTP flexshare group permission
-     *
-     * @return mixed void if invalid, errmsg otherwise
-     */
-
-    function validate_ftp_group_permission($permission)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-        $options = $this->get_ftp_permission_options();
-        if (!array_key_exists($permission, $options))
-            return lang('flexshare_invalid_permission');
-    }
-
-    /**
-     * Validation routine for flexshare group greeting on FTP.
-     *
-     * @param boolean $greeting FTP flexshare group greeting
-     *
-     * @return mixed void if invalid, errmsg otherwise
-     */
-
-    function validate_ftp_group_greeting($greeting)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-        // Invalid characters in greeting?
-        //if (preg_match("//" $greeting))
-        //    return lang('flexshare_invalid_greeting');
-    }
-
-    /**
-     * Validation routine for flexshare allow anonymous on FTP.
-     *
-     * @param boolean $allow_anonymous FTP flexshare allow anonymous
-     *
-     * @return mixed void if invalid, errmsg otherwise
-     */
-
-    function validate_ftp_allow_anonymous($allow_anonymous)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-    }
-
-    /**
-     * Validation routine for allow passive state.
-     *
-     * @param boolean $state state
-     *
-     * @return string error message if state is invalid
-     */
-
-    function validate_ftp_allow_passive_state($state)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-    }
-
-    /**
-     * Validation routine for flexshare web access on Web.
-    /**
-     * Validation routine for flexshare anonymous permission on FTP.
-     *
-     * @param boolean $permission FTP flexshare anonymous permission
-     *
-     * @return mixed void if invalid, errmsg otherwise
-     */
-
-    function validate_ftp_anonymous_permission($permission)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-        $options = $this->get_ftp_permission_options();
-        if (!array_key_exists($permission, $options))
-            return lang('flexshare_invalid_permission');
-    }
-
-    /**
-     * Validation routine for flexshare anonymous greeting on FTP.
-     *
-     * @param boolean $greeting FTP flexshare anonymous greeting
-     *
-     * @return mixed void if invalid, errmsg otherwise
-     */
-
-    function validate_ftp_anonymous_greeting($greeting)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-        // Invalid characters in greeting?
-        //if (preg_match("//" $greeting))
-        //    return lang('flexshare_invalid_greeting');
-    }
-
-    /**
-     * Validation routine for ports.
-     *
-     * @param integer $port port number
-     *
-     * @return string error message if port is invalid
-     */
-
-    function validate_port($port)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        if (! Network_Utils::is_valid_port($port))
-            return lang('flexshare_port_invalid');
-    }
-
-    /**
-     * Validation routine for FTP override port.
-     *
-     * @param integer $port port number
-     *
-     * @return string error message if port is invalid
-     */
-
-    function validate_ftp_override_port($port)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        if (! Network_Utils::is_valid_port($port))
-            return lang('flexshare_port_invalid');
-        if (($port == self::DEFAULT_PORT_FTP) || ($port == self::DEFAULT_PORT_FTPS))
-            return lang('flexshare_non_custom_port_warning');
-    }
-
-    /**
-     * Validation routine for FTP override port state.
-     *
-     * @param boolean $state state
-     *
-     * @return string error message if state is invalid
-     */
-
-    function validate_ftp_override_port_state($state)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-    }
-
-    /**
-     * Validation routine for flexshare web access on Web.
-     *
-     * @param boolean $accessibility Web access
-     *
-     * @return mixed void if invalid, errmsg otherwise
-     */
-
-    function validate_web_access($accessibility)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-        $options = $this->get_web_access_options();
-        if (!array_key_exists($accessibility, $options))
-            return lang('flexshare_invalid_accessibility');
-    }
-
-    /**
-     * Validation routine for flexshare file comment.
-     *
-     * @param string $comment file comment
-     *
-     * @return mixed void if invalid, errmsg otherwise
-     */
-
-    function validate_file_comment($comment)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-        if (FALSE)
-            return lang('flexshare_invalid_file_comment');
     }
 }

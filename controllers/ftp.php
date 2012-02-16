@@ -122,8 +122,8 @@ class FTP extends ClearOS_Controller
         $this->form_validation->set_policy('allow_passive', 'flexshare/Flexshare', 'validate_ftp_allow_passive_state', TRUE);
 
         if ($this->input->post('allow_passive')) {
-            $this->form_validation->set_policy('passive_min_port', 'flexshare/Flexshare', 'validate_port', TRUE);
-            $this->form_validation->set_policy('passive_max_port', 'flexshare/Flexshare', 'validate_port', TRUE);
+            $this->form_validation->set_policy('passive_min_port', 'flexshare/Flexshare', 'validate_ftp_passive_port', TRUE);
+            $this->form_validation->set_policy('passive_max_port', 'flexshare/Flexshare', 'validate_ftp_passive_port', TRUE);
         }
 
         $this->form_validation->set_policy('group_permission', 'flexshare/Flexshare', 'validate_ftp_group_permission', TRUE);

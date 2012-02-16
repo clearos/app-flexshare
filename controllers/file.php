@@ -119,6 +119,7 @@ class File extends ClearOS_Controller
                 // Set comment to the one defined by Flexshare
                 $info = $this->flexshare->get_share($share);
                 $this->flexshare->set_file_comment($share, $info['ShareDescription']);
+                $this->flexshare->set_file_browseable($share, TRUE);
 
                 $this->flexshare->set_file_permission($share, $this->input->post('file_permission'));
                 $this->flexshare->set_file_recycle_bin($share, $this->input->post('recycle_bin'));
