@@ -262,11 +262,7 @@ class Share extends ClearOS_Controller
                 $data['use_default'] = FALSE;
 
             // Groups
-            $normal_groups = $this->group_manager->get_details();
-            $builtin_groups = $this->group_manager->get_details('builtin');
-            $groups = array_merge($builtin_groups, $normal_groups);
-
-            // TODO: all flag in group_manager->get_details() to pull in allusers
+            $groups = $this->group_manager->get_details();
             $group_options[-1] = lang('base_select');
 
             foreach ($groups as $name => $group) {
@@ -279,7 +275,7 @@ class Share extends ClearOS_Controller
             // Available file share servers
             // TODO: use API call instead of file_exists
             $data['file_installed'] = (file_exists('/var/clearos/samba/initialized_local')) ? TRUE : FALSE;
-            $data['web_installed'] = (clearos_library_installed('web/Httpd')) ? TRUE : FALSE;
+            $data['web_installed'] = (clearos_library_installed('web_server/Httpd')) ? TRUE : FALSE;
             $data['ftp_installed'] = (clearos_library_installed('ftp/ProFTPd')) ? TRUE : FALSE;
         } catch (Exception $e) {
             $this->page->view_exception($e);
