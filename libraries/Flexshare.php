@@ -81,7 +81,7 @@ use \clearos\apps\samba\Smbd as Smbd;
 use \clearos\apps\smtp\Postfix as Postfix;
 use \clearos\apps\users\User_Factory as User_Factory;
 use \clearos\apps\users\User_Utilities as User_Utilities;
-use \clearos\apps\web\Httpd as Httpd;
+use \clearos\apps\web_server\Httpd as Httpd;
 
 clearos_load_library('base/Configuration_File');
 clearos_load_library('base/Engine');
@@ -102,7 +102,7 @@ clearos_load_library('samba/Smbd');
 clearos_load_library('smtp/Postfix');
 clearos_load_library('users/User_Factory');
 clearos_load_library('users/User_Utilities');
-clearos_load_library('web/Httpd');
+clearos_load_library('web_server/Httpd');
 
 // Exceptions
 //-----------
@@ -330,8 +330,7 @@ class Flexshare extends Engine
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        if (empty($name))                                                                               
-            throw new Engine_Exception(lang('flexshare_share') . " - " . lang('base_invalid'), CLEAROS_ERROR);
+        Validation_Exception::is_valid($this->validate_name($name));
 
         // Set directory back to default
         // This will remove any mount points
@@ -469,11 +468,13 @@ class Flexshare extends Engine
     /**
      * Returns a list of defined Flexshares.
      *
+     * @param boolean $hide_internal hide internal shares
+     *
      * @return array summary of flexshares
      * @throws Engine_Exception
      */
 
-    function get_share_summary()
+    function get_share_summary($hide_internal = TRUE)
     {
         clearos_profile(__METHOD__, __LINE__);
 
@@ -498,7 +499,7 @@ class Flexshare extends Engine
                 $share['Group'] = $match[1];
             } elseif (preg_match(self::REGEX_SHARE_CREATED, $line, $match)) {
                 $share['Created'] = $match[1];
-            } elseif (preg_match(self::REGEX_SHARE_ENABLED, $line, $match)) {
+           } elseif (preg_match(self::REGEX_SHARE_ENABLED, $line, $match)) {
                 $share['Enabled'] = $match[1];
             } elseif (preg_match("/^\s*ShareDir*\s*=\s*(.*$)/i", $line, $match)) {
                 $share['Dir'] = $match[1];
@@ -521,8 +522,10 @@ class Flexshare extends Engine
             } elseif (preg_match("/^\s*EmailModified*\s*=\s*(.*$)/i", $line, $match)) {
                 $share['EmailModified'] = $match[1];
             } elseif (preg_match(self::REGEX_CLOSE, $line)) {
-                $shares[] = $share;
-                unset($share);
+                if (!($share['Internal'] && $hide_internal)) {
+                    $shares[] = $share;
+                    unset($share);
+                }
             }
         }
 
@@ -832,8 +835,6 @@ class Flexshare extends Engine
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        // Validate
-        // --------
         Validation_Exception::is_valid($this->validate_web_server_name($server_name));
 
         $this->_set_parameter($name, 'WebServerName', $server_name);
@@ -1643,7 +1644,7 @@ class Flexshare extends Engine
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        if (!clearos_library_installed('web/Httpd'))
+        if (!clearos_library_installed('web_server/Httpd'))
             return;
 
         $httpd = new Httpd();
@@ -2434,9 +2435,6 @@ class Flexshare extends Engine
 
         if (! $config_ok)
             throw new Engine_Exception(lang('flexshare_config_validation_failed'));
-
-        // Reload FTP server
-        $proftpd->reset();
     }
 
     /**
@@ -2446,16 +2444,19 @@ class Flexshare extends Engine
      * @throws Engine_Exception
      */
 
-    protected function _generate_web_flexshares()
+//    protected function _generate_web_flexshares()
+// FIXME
+    public function _generate_web_flexshares()
+
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        if (!clearos_library_installed('web/Httpd'))
+        if (!clearos_library_installed('web_server/Httpd'))
             return;
 
         $httpd = new Httpd();
         $vhosts = array();
-        $allow_list = "";
+        $allow_list = '';
 
         // Create a unique file identifier
         $backup_key = time();
@@ -2464,6 +2465,7 @@ class Flexshare extends Engine
         $folder = new Folder(self::WEB_VIRTUAL_HOST_PATH);
         $vhosts = $folder->get_listing();
         $index = 0;
+
         foreach ($vhosts as $vhost) {
             // Flexshares are prefixed with 'flex-'.  Find these files
             if (preg_match("/flex-443.ssl|^" . self::PREFIX . ".*vhost$|^" . self::PREFIX . ".*conf$/i", $vhost)) {
@@ -2477,6 +2479,7 @@ class Flexshare extends Engine
         }
 
         // We'll add this back later if there is an SSL configured
+/*
         try {
             $sslfile = new File(Httpd::FILE_SSL);
             if ($sslfile->exists())
@@ -2486,8 +2489,10 @@ class Flexshare extends Engine
         } catch (Exception $e) {
             // This may not be fatal
         }
+*/
 
         $shares = $this->get_share_summary();
+
         // Recreate all virtual configs
         $newlines = array();
         $anon = array();
@@ -2496,6 +2501,7 @@ class Flexshare extends Engine
             // Reset our loop variables
             unset($newlines);
             unset($anon);
+
             $name = $shares[$index]['Name'];
             $share = $this->get_share($name);
 
@@ -2514,8 +2520,7 @@ class Flexshare extends Engine
             if ($share['WebOverridePort']) {
                 $port = $share['WebPort'];
                 $ext = '.conf';
-                if ($share['WebReqSsl'])
-                    $ssl = '.ssl';
+                $ssl = ($share['WebReqSsl']) ? '.ssl' : '';
             } else {
                 if ($share['WebReqSsl']) {
                     $port = 443;
@@ -2524,6 +2529,8 @@ class Flexshare extends Engine
                     $port = 80;
                     $ext = '.conf';
                 }
+
+                $ssl = '';
             }
 
             // Interface
@@ -2557,8 +2564,10 @@ class Flexshare extends Engine
             // cgi-bin Alias must come first.
             if ($share['WebCgi']) {
                 $cgifolder = new Folder(self::SHARE_PATH . "/$name/cgi-bin/");
+
                 if (!$cgifolder->exists())
                     $cgifolder->create(self::CONSTANT_FILES_USERNAME, self::CONSTANT_FILES_USERNAME, "0777");
+
                 $newlines[] = "ScriptAlias /flexshare/$name/cgi-bin/ " . self::SHARE_PATH . "/$name/cgi-bin/";
             }
 
@@ -2589,8 +2598,6 @@ class Flexshare extends Engine
                         $sslfile->lookup_line("/Include conf.d\/" . self::PREFIX . "443.ssl/i");
                     } catch (File_No_Match_Exception $e) {
                         $sslfile->add_lines("Include conf.d/" . self::PREFIX . "443.ssl\n");
-                    } catch (Exception $e) {
-                        throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
                     }
                     break;
 
@@ -2600,6 +2607,7 @@ class Flexshare extends Engine
                                   trim($share['WebServerName']) . "_error_log";
                     $newlines[] = "\tCustomLog " . self::HTTPD_LOG_PATH . "/" .
                                   trim($share['WebServerName']) . "_access_log common";
+
                     $ssl = new Ssl();
                     $certs = $ssl->get_certificates(Ssl::TYPE_CRT);
                     $ssl_found = FALSE;
@@ -2613,6 +2621,7 @@ class Flexshare extends Engine
                             break;
                         }
                     }
+
                     if (! $ssl_found) {
                         $ssl->set_rsa_key_size(Ssl::DEFAULT_KEY_SIZE);
                         $ssl->set_term(Ssl::TERM_1YEAR);
@@ -2658,22 +2667,22 @@ class Flexshare extends Engine
             }
 
             $newlines[] = "<Directory " . self::SHARE_PATH . "/$name>";
-                $options = "";
+                $options = '';
 
             if ($share['WebShowIndex'])
-                $options .= " +Indexes";
+                $options .= ' +Indexes';
             else
-                $options .= " -Indexes";
+                $options .= ' -Indexes';
 
             if ($share['WebFollowSymLinks'])
-                $options .= " +FollowSymLinks";
+                $options .= ' +FollowSymLinks';
             else
-                $options .= " -FollowSymLinks";
+                $options .= ' -FollowSymLinks';
 
             if ($share['WebAllowSSI'])
-                $options .= " +" . self::DEFAULT_SSI_PARAM;
+                $options .= ' +' . self::DEFAULT_SSI_PARAM;
             else
-                $options .= " -" . self::DEFAULT_SSI_PARAM;
+                $options .= ' -' . self::DEFAULT_SSI_PARAM;
 
             if (strlen($options) > 0)
                 $newlines[] = "\tOptions" . $options;
@@ -2681,6 +2690,7 @@ class Flexshare extends Engine
             if ($share['WebHtaccessOverride'])
                 $newlines[] = "\tAllowOverride All";
 
+/*
             if ($share['WebReqAuth']) {
                 $ldap_conf = "ldap://127.0.0.1:389/" . ClearDirectory::GetUsersOu() . "?uid?one?(pcnWebFlag=TRUE)";
                 $newlines[] = "\tAuthType Basic";
@@ -2697,6 +2707,7 @@ class Flexshare extends Engine
 
                 $newlines[] = "\tRequire ldap-group cn=" . $share['ShareGroup'] . "," . ClearDirectory::GetGroupsOu();
             }
+*/
 
             if ($share["WebAccess"] == self::ACCESS_LAN) {
                 $newlines[] = "\tOrder deny,allow";
@@ -2715,6 +2726,7 @@ class Flexshare extends Engine
 
             try {
                 // Default to 4
+/*
                 $php_handler = 'php-script';
                 $shell = new Shell();
                 if ($shell->execute(self::CMD_PHP, '-v', FALSE) == 0) {
@@ -2725,6 +2737,7 @@ class Flexshare extends Engine
                             $php_handler = 'php5-script';
                     }
                 }
+*/
             } catch (Exception $e) {
                 $php_handler = 'php-script';
             }
@@ -2803,9 +2816,6 @@ class Flexshare extends Engine
 
         if (! $config_ok)
             throw new Engine_Exception(lang('flexshare_config_validation_failed'), CLEAROS_ERROR);
-
-        // Reload web server
-        $httpd->reset();
     }
 
     /**

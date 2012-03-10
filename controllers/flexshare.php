@@ -108,7 +108,6 @@ class Flexshare extends ClearOS_Controller
         // Load views
         //-----------
 
-
         // TODO: view_controllers does not support passing parameters.
         // It should!  In the meantime, we use a session variable as a dirty workaround
 
@@ -125,7 +124,7 @@ class Flexshare extends ClearOS_Controller
         if (clearos_library_installed('ftp/ProFTPd'))
             $views[] = 'flexshare/ftp';
 
-        if (clearos_library_installed('web/Httpd'))
+        if (clearos_library_installed('web_server/Httpd'))
             $views[] = 'flexshare/web';
 
         $this->page->view_controllers($views, lang('flexshare_summary'));

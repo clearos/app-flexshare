@@ -107,13 +107,18 @@ class Web extends ClearOS_Controller
         // Load libraries
         //---------------
 
-        $this->load->library('web/Httpd');
-        $this->load->library('flexshare/Flexshare');
         $this->lang->load('flexshare');
+        $this->load->library('web_server/Httpd');
+        $this->load->library('flexshare/Flexshare');
+
+        // Validation
+        //-----------
 
         $this->form_validation->set_policy('web_access', 'flexshare/Flexshare', 'validate_web_access', TRUE);
+
         if ($this->input->post('req_auth'))
             $this->form_validation->set_policy('realm', 'flexshare/Flexshare', 'validate_web_realm', TRUE);
+
         $form_ok = $this->form_validation->run();
 
         // Handle form submit
@@ -121,6 +126,7 @@ class Web extends ClearOS_Controller
 
         if (($this->input->post('submit') && $form_ok)) {
             try {
+                $this->flexshare->set_web_server_name($share, $this->input->post('server_name'));
                 $this->flexshare->set_web_access($share, $this->input->post('web_access'));
                 $this->flexshare->set_web_show_index($share, $this->input->post('show_index'));
                 $this->flexshare->set_web_follow_sym_links($share, $this->input->post('follow_sym_links'));
@@ -172,12 +178,14 @@ class Web extends ClearOS_Controller
             // Default Port
             if ((int)$data['share']['WebPort'] == 0)
                 $data['share']['WebPort'] = Flexshare::DEFAULT_PORT_WEB;
-
-
         } catch (Exception $e) {
             $this->page->view_exception($e);
             return;
         }
+
+        // Defaults
+        if (empty($data['share']['WebEnabled']))
+            $data['share']['WebEnabled'] = FALSE;
 
         // Load the views
         //---------------
