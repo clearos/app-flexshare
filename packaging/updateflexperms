@@ -8,7 +8,7 @@ if ( [ -z "$1" ] || [ -z "$2" ] ); then
 	exit 1
 fi
 
-SANITYCHECK=`grep "^[[:space:]]*ShareDir=$1$" /etc/flexshare.conf 2>/dev/null`
+SANITYCHECK=`grep "^[[:space:]]*ShareDir=$1$" /etc/clearos/flexshare.conf 2>/dev/null`
 
 if [ -z "$SANITYCHECK" ]; then
 	echo "flexshare is invalid: $1"
