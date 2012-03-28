@@ -1,7 +1,7 @@
 
 Name: app-flexshare
 Epoch: 1
-Version: 1.0.6
+Version: 1.0.10
 Release: 1%{dist}
 Summary: Flexshare
 License: GPLv3
