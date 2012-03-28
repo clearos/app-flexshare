@@ -2538,7 +2538,7 @@ class Flexshare extends Engine
 
             if ($share['WebAccess'] == self::ACCESS_LAN) {
                 $ifacemanager = new Iface_Manager();
-                $lans = $ifacemanager->get_lan_networks();
+                $lans = $ifacemanager->get_most_trusted_networks();
             }
 
             $case = $this->_determine_web_server_case($port, $share['WebReqSsl']);
