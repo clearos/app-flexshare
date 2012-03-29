@@ -23,3 +23,8 @@ for CONFIG in $CONFIGS; do
 done
 
 /sbin/service proftpd reload
+
+# FIXME - overkill - remove
+/usr/clearos/apps/flexshare/deploy/set-file-permissions >/dev/null 2>&1
+
+exit 0

@@ -929,7 +929,7 @@ class Flexshare extends Engine
         $inuse_ports = array();
         $info = $this->get_share($name);
         $ssl = $info['WebReqSsl'];
-        $shares = $this->get_share_summary();
+        $shares = $this->get_share_summary(FALSE);
         foreach ($shares as $share) {
             $info = $this->get_share($share['Name']);
             if ($name != $share['Name'] && $ssl != $info['WebReqSsl'])
@@ -1223,7 +1223,7 @@ class Flexshare extends Engine
             throw new Engine_Exception(lang('flexshare_invalid_port'), CLEAROS_ERROR);
         // Find all ports and see if any conflicts with n-1
         if ($override_port) {
-            $shares = $this->get_share_summary();
+            $shares = $this->get_share_summary(FALSE);
             for ($index = 0; $index < count($shares); $index++) {
                 $share = $this->get_share($shares[$index]['Name']);
                 if ($share['Name'] != $name) {
@@ -1531,6 +1531,25 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         $this->_set_parameter($name, 'FileRecycleBin', $state);
+    }
+
+    /**
+     * Updates folder attributes.
+     *
+     * Too much command line hacking will leave the group ownership of
+     * files out of whack.  This method fixes this common issue.
+     *
+     * @return void
+     */
+
+    public function update_share_permissions()
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $shares = $this->get_share_summary(FALSE);
+
+        foreach ($shares as $detail)
+            $this->_update_folder_attributes($detail['Dir'], $detail['Group']);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -1949,7 +1968,7 @@ class Flexshare extends Engine
         if (! $samba_conf->exists())
             throw new Engine_Exception(lang('base_exception_file_not_found') . ' (' . Samba::FILE_CONFIG . ')');
 
-        $shares = $this->get_share_summary();
+        $shares = $this->get_share_summary(FALSE);
         $linestoadd = '';
 
         // Recreate samba flexshare.conf
@@ -2094,7 +2113,7 @@ class Flexshare extends Engine
             $index++;
         }
 
-        $shares = $this->get_share_summary();
+        $shares = $this->get_share_summary(FALSE);
 
         // Recreate all virtual configs
         for ($index = 0; $index < count($shares); $index++) {
@@ -2491,7 +2510,7 @@ class Flexshare extends Engine
         }
 */
 
-        $shares = $this->get_share_summary();
+        $shares = $this->get_share_summary(FALSE);
 
         // Recreate all virtual configs
         $newlines = array();
@@ -2930,7 +2949,7 @@ class Flexshare extends Engine
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        if (!$this->validate_directory($directory)  || !$this->validate_group($group))
+        if ($this->validate_directory($directory) || $this->validate_group($group))
             return;
         
         try {
