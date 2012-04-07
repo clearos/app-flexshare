@@ -99,6 +99,10 @@ echo field_toggle_enable_disable('ssi', $share['WebAllowSSI'], lang('flexshare_w
 echo field_toggle_enable_disable('htaccess', $share['WebHtaccessOverride'], lang('flexshare_web_allow_htaccess'), $read_only);
 echo field_toggle_enable_disable('php', $share['WebPhp'], lang('flexshare_web_enable_php'), $read_only);
 echo field_toggle_enable_disable('cgi', $share['WebCgi'], lang('flexshare_web_enable_cgi'), $read_only);
+echo fieldset_footer();
+
+
+echo fieldset_header(lang('flexshare_ports'));
 echo field_toggle_enable_disable('override_port', $share['WebOverridePort'], lang('flexshare_web_override_default_port'), $read_only);
 echo field_input('port', $share['WebPort'], lang('flexshare_port'), $read_only);
 echo fieldset_footer();
