@@ -1,29 +1,5 @@
 #!/bin/sh
 
-# Write out all active IPs for ProFTP configs
-#-----------------------------------------------------------
-
-# Source auto-configure functions
-[ -e /etc/init.d/functions-automagic ] && source /etc/init.d/functions-automagic
-[ -e /etc/sysconfig/automagic ] && source /etc/sysconfig/automagic
-[ -e /etc/sysconfig/proftpd ] && source /etc/sysconfig/proftpd
-
-# Bail if no-automagic is wanted
-if [ "$AUTOMAGIC" == "off" ]; then
-	return
-fi
-
-# Create list of interface IPs (remove duplicates)
-IPLIST=`/bin/echo -e "127.0.0.1\n$AUTOMAGIC_LANIPS\n$AUTOMAGIC_EXTIPS\n$AUTOMAGIC_DMZIPS\n$AUTOMAGIC_HOTIPS" | /bin/sort -u`
-IPLIST=`/bin/echo $IPLIST`
-
-CONFIGS=`/bin/ls /etc/proftpd.d/flex*.conf 2>/dev/null`
-for CONFIG in $CONFIGS; do
-	/bin/sed -i -e "s/^<VirtualHost.*/<VirtualHost $IPLIST>/" $CONFIG
-done
-
-/sbin/service proftpd reload
-
 # FIXME - overkill - remove
 /usr/clearos/apps/flexshare/deploy/set-file-permissions >/dev/null 2>&1
 

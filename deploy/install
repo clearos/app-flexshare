@@ -1,7 +1,16 @@
 #!/bin/sh
 
+# Sudoers
+#--------
+
 /usr/sbin/addsudo /usr/sbin/httpd app-flexshare-api
 /usr/sbin/addsudo /usr/sbin/proftpd app-flexshare-api
 /usr/sbin/addsudo /usr/sbin/updateflexperms app-flexshare-api
 /usr/sbin/addsudo /bin/mount app-flexshare-api
 /usr/sbin/addsudo /bin/umount app-flexshare-api
+
+# Reload clearsyncd
+#------------------
+
+/sbin/service clearsyncd condrestart >/dev/null 2>&1
+
