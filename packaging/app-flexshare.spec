@@ -1,7 +1,7 @@
 
 Name: app-flexshare
 Epoch: 1
-Version: 1.0.10
+Version: 1.0.11
 Release: 1%{dist}
 Summary: Flexshare
 License: GPLv3
@@ -20,6 +20,7 @@ License: LGPLv3
 Group: ClearOS/Libraries
 Requires: app-base-core
 Requires: app-mode-core
+Requires: csplugin-filewatch
 
 %description core
 Flexshares are flexible share resources that allow an administrator to quickly and easily define data sharing, collaboration and access areas via web, file, FTP and/or e-mail (as attachments).
