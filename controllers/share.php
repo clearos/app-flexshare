@@ -61,6 +61,8 @@ class Share extends ClearOS_Controller
     /**
      * Flexshare settings overview.
      *
+     * @param string $share share name
+     *
      * @return view
      */
 

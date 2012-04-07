@@ -75,6 +75,8 @@ class File extends ClearOS_Controller
     /**
      * Edit view.
      *
+     * @param string $share share name
+     *
      * @return view
      */
 
@@ -85,6 +87,8 @@ class File extends ClearOS_Controller
 
     /**
      * View view.
+     *
+     * @param string $share share name
      *
      * @return view
      */
@@ -97,7 +101,8 @@ class File extends ClearOS_Controller
     /**
      * Flexshare edit view.
      *
-     * @param string $share share
+     * @param string $share     share
+     * @param string $form_type form type
      *
      * @return view
      */
