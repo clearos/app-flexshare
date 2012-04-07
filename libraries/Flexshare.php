@@ -1223,8 +1223,6 @@ class Flexshare extends Engine
         if ($override_port && ($port == 21 || $port == 990))
             throw new Engine_Exception(lang('flexshare_ftp_cannot_use_default_ports'), CLEAROS_ERROR);
 
-        if ($override_port && $port < 1024)
-            throw new Engine_Exception(lang('flexshare_invalid_port'), CLEAROS_ERROR);
         // Find all ports and see if any conflicts with n-1
         if ($override_port) {
             $shares = $this->get_share_summary(FALSE);
@@ -2432,17 +2430,20 @@ class Flexshare extends Engine
 
             if (! $append) {
                 $newlines[] = self::WRITE_WARNING;
-                // Note: Syswatch/Proftp will automatically handle IP address changes
+                // Note: clearsync will automatically handle IP address changes
                 $newlines[] = "<VirtualHost 127.0.0.1>";
                 $newlines[] = "\tPort $port";
                 $newlines[] = "\tDefaultRoot " . self::SHARE_PATH . "/";
                 $newlines[] = "\tRequireValidShell off";
                 $newlines[] = "\tAuthPam on";
                 $newlines[] = "\tAuthPAMConfig proftpd";
+
                 if ($share["FtpPassivePortMin"] && $share["FtpPassivePortMax"])
                     $newlines[] = "\tPassivePorts " . $share["FtpPassivePortMin"]  . " " . $share["FtpPassivePortMax"];
-                // $newlines[] = "\tCapabilitiesEngine on";
-                // $newlines[] = "\tCapabilitiesSet +CAP_CHOWN";
+
+                $newlines[] = "\tCapabilitiesEngine on";
+                $newlines[] = "\tCapabilitiesSet +CAP_CHOWN";
+
                 $newlines[] = "";
                 $newlines[] = "\t<Limit LOGIN CDUP PWD XPWD LIST PROT$pasv>";
                 $newlines[] = "\t\tAllowAll";
@@ -2451,51 +2452,21 @@ class Flexshare extends Engine
                 $newlines[] = "\t\tDenyAll";
                 $newlines[] = "\t</Limit>";
                 $newlines[] = "";
+
                 // FTPS (SSL)
                 if ($share['FtpReqSsl']) {
-                    // We need an SSL certificate
-                    /* TODO Need SSL class
-                    try {
-                        $ssl = new Ssl();
-                        $certs = $ssl->get_certificates(Ssl::TYPE_CRT);
-                        $ssl_found = FALSE;
-
-                        foreach ($certs as $myfile => $cert) {
-                            if ($cert['common_name'] == trim($share['FtpServerUrl'])) {
-                                // Don't use CA
-                                if ($myfile == Ssl::FILE_CA_CRT)
-                                    continue;
-
-                                $ssl_found = TRUE;
-                                $cert_filename = $myfile;
-                                break;
-                            }
-                        }
-
-                        if (! $ssl_found) {
-                            $ssl->set_rsa_key_size(Ssl::DEFAULT_KEY_SIZE);
-                            $ssl->set_term(Ssl::TERM_1YEAR);
-                            $ssl->set_purpose(Ssl::PURPOSE_SERVER_CUSTOM);
-                            $csr_filename = $ssl->create_certificate_request(trim($share['FtpServerUrl']));
-                            // Self-sign be default
-                            $cert_filename = $ssl->sign_certificate_request($csr_filename);
-                        }
-                    } catch (Exception $e) {
-                        throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-                    }
-
-                    $key = preg_replace("/-cert\\.pem/", "-key.pem", $cert_filename);
                     $newlines[] = "\t<IfModule mod_tls.c>";
-                    $newlines[] = "\t  TLSEngine on";
-                    $newlines[] = "\t  TLSLog /var/log/tls.log";
-                    $newlines[] = "\t  TLSOptions NoCertRequest";
-                    $newlines[] = "\t  TLSRequired on";
-                    $newlines[] = "\t  TLSRSACertificateFile " . Ssl::DIR_SSL . "/" . $cert_filename;
-                    $newlines[] = "\t  TLSRSACertificateKeyFile " . Ssl::DIR_SSL . "/private/" . $key;
-                    $newlines[] = "\t  TLSCACertificateFile " . Ssl::DIR_SSL . "/" . SsL::FILE_CA_CRT;
-                    $newlines[] = "\t  TLSVerifyClient off";
+                    $newlines[] = "\t\tTLSEngine on";
+                    $newlines[] = "\t\tTLSLog /var/log/tls.log";
+                    // $newlines[] = "\t\tTLSOptions NoCertRequest UseImplicitSSL";
+                    $newlines[] = "\t\tTLSOptions NoCertRequest";
+                    $newlines[] = "\t\tTLSRequired on";
+                    $newlines[] = "\t\tTLSRSACertificateFile " . '/etc/pki/CA/sys-0-cert.pem';
+                    $newlines[] = "\t\tTLSRSACertificateKeyFile " .'/etc/pki/CA/private/sys-0-key.pem';
+                    $newlines[] = "\t\tTLSCACertificateFile " . '/etc/pki/CA/ca-cert.pem';
+                    $newlines[] = "\t\tTLSVerifyClient off";
                     $newlines[] = "\t</IfModule>";
-                    */
+                    $newlines[] = "\n";
                 }
             } else {
                 if ($share['FtpAllowPassive']) {
@@ -2632,10 +2603,7 @@ class Flexshare extends Engine
      * @throws Engine_Exception
      */
 
-//    protected function _generate_web_flexshares()
-// FIXME
-    public function _generate_web_flexshares()
-
+    protected function _generate_web_flexshares()
     {
         clearos_profile(__METHOD__, __LINE__);
 

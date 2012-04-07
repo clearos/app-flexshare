@@ -55,14 +55,16 @@ if ($form_type === 'edit') {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Simple view-only form
+// Simple summary form
 ///////////////////////////////////////////////////////////////////////////////
 
-if ($read_only && !$share['FtpEnabled']) {
+if ($form_type === 'summary') {
     echo form_open('/flexshare/ftp/edit/' . $share['Name']);
     echo form_header(lang('flexshare_ftp'));
 
     echo field_toggle_enable_disable('enabled', $share['FtpEnabled'], lang('base_status'), $read_only);
+    echo field_dropdown('group_permission', $group_permission_options, $share['FtpGroupPermission'], lang('flexshare_permissions'), $read_only);
+    echo field_input('port', $share['FtpPort'], lang('network_port'), $read_only);
 
     echo field_button_set($buttons);
 
@@ -86,8 +88,7 @@ echo fieldset_footer();
 
 echo fieldset_header(lang('flexshare_options'));
 echo field_input('server_url', $share['FtpServerUrl'], lang('network_hostname'), $read_only);
-// FIXME: wait for cert manager
-//echo field_toggle_enable_disable('require_ssl', $share['FtpReqSsl'], lang('flexshare_require_ssl'), $read_only);
+echo field_toggle_enable_disable('require_ssl', $share['FtpReqSsl'], lang('flexshare_require_ssl'), $read_only);
 echo field_toggle_enable_disable('override_port', $share['FtpOverridePort'], lang('flexshare_override_port'), $read_only);
 echo field_input('port', $share['FtpPort'], lang('network_port'), $read_only);
 echo field_toggle_enable_disable('allow_passive', $share['FtpAllowPassive'], lang('flexshare_allow_passive'), $read_only);

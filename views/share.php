@@ -33,12 +33,12 @@
 // Load dependencies
 ///////////////////////////////////////////////////////////////////////////////
 
+$this->load->language('base');
 $this->load->language('flexshare');
 
 ///////////////////////////////////////////////////////////////////////////////
 // Form modes
 ///////////////////////////////////////////////////////////////////////////////
-// FIXME: translate "Return to Summary" below
 
 if ($form_type === 'edit') {
     $read_only = FALSE;
@@ -54,7 +54,7 @@ if ($form_type === 'edit') {
     $form_path = '/flexshare/share/edit/'. $name;
     $buttons = array(
         anchor_edit('/app/flexshare/share/edit/' . $name),
-        anchor_custom('/app/flexshare', 'Return to Summary')
+        anchor_custom('/app/flexshare', lang('base_return_to_summary'))
     );
 } else {
     $read_only = FALSE;
