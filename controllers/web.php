@@ -68,11 +68,13 @@ class Web extends ClearOS_Controller
         if (empty($share))
             $share = $this->session->userdata('flexshare');
 
-        $this->_form($share, 'view');
+        $this->_form($share, 'summary');
     }
 
     /**
      * Edit view.
+     *
+     * @param string $share share
      *
      * @return view
      */
@@ -83,7 +85,9 @@ class Web extends ClearOS_Controller
     }
 
     /**
-     * view view.
+     * View view.
+     *
+     * @param string $share share
      *
      * @return view
      */
@@ -115,9 +119,19 @@ class Web extends ClearOS_Controller
         //-----------
 
         $this->form_validation->set_policy('web_access', 'flexshare/Flexshare', 'validate_web_access', TRUE);
+        $this->form_validation->set_policy('show_index', 'flexshare/Flexshare', 'validate_web_show_index', TRUE);
+        $this->form_validation->set_policy('follow_symlinks', 'flexshare/Flexshare', 'validate_web_follow_symlinks', TRUE);
+        $this->form_validation->set_policy('ssi', 'flexshare/Flexshare', 'validate_web_allow_ssi', TRUE);
+        $this->form_validation->set_policy('htaccess', 'flexshare/Flexshare', 'validate_web_htaccess_override', TRUE);
+        $this->form_validation->set_policy('require_ssl', 'flexshare/Flexshare', 'validate_web_require_ssl', TRUE);
+        $this->form_validation->set_policy('override_port', 'flexshare/Flexshare', 'validate_web_override_port_state', TRUE);
+        $this->form_validation->set_policy('require_authentication', 'flexshare/Flexshare', 'validate_web_require_authentication', TRUE);
+        $this->form_validation->set_policy('php', 'flexshare/Flexshare', 'validate_web_php', TRUE);
+        $this->form_validation->set_policy('cgi', 'flexshare/Flexshare', 'validate_web_cgi', TRUE);
+        $this->form_validation->set_policy('web_access', 'flexshare/Flexshare', 'validate_web_access', TRUE);
 
-        if ($this->input->post('req_auth'))
-            $this->form_validation->set_policy('realm', 'flexshare/Flexshare', 'validate_web_realm', TRUE);
+        if ($this->input->post('override_port'))
+            $this->form_validation->set_policy('port', 'flexshare/Flexshare', 'validate_web_override_port', TRUE);
 
         $form_ok = $this->form_validation->run();
 
@@ -129,22 +143,23 @@ class Web extends ClearOS_Controller
                 $this->flexshare->set_web_server_name($share, $this->input->post('server_name'));
                 $this->flexshare->set_web_access($share, $this->input->post('web_access'));
                 $this->flexshare->set_web_show_index($share, $this->input->post('show_index'));
-                $this->flexshare->set_web_follow_sym_links($share, $this->input->post('follow_sym_links'));
+                $this->flexshare->set_web_follow_symlinks($share, $this->input->post('follow_symlinks'));
                 $this->flexshare->set_web_allow_ssi($share, $this->input->post('ssi'));
                 $this->flexshare->set_web_htaccess_override($share, $this->input->post('htaccess'));
-                $this->flexshare->set_web_req_ssl($share, $this->input->post('req_ssl'));
+                $this->flexshare->set_web_require_ssl($share, $this->input->post('require_ssl'));
                 $this->flexshare->set_web_override_port(
                     $share,
                     $this->input->post('override_port'),
-                    (!$this->input->post('web_port') ? 80 : $this->input->post('web_port'))
+                    (!$this->input->post('port') ? 80 : $this->input->post('port'))
                 );
-                $this->flexshare->set_web_req_auth($share, $this->input->post('req_auth'));
+                $this->flexshare->set_web_require_authentication($share, $this->input->post('require_authentication'));
                 $this->flexshare->set_web_php($share, $this->input->post('php'));
                 $this->flexshare->set_web_cgi($share, $this->input->post('cgi'));
-                if ($this->input->post('req_auth'))
-                    $this->flexshare->set_web_realm($share, $this->input->post('realm'));
+
                 // Set enabled after all parameters have been set
                 $this->flexshare->set_web_enabled($share, $this->input->post('enabled'));
+
+                redirect('/flexshare/summary/'. $share);
             } catch (Exception $e) {
                 $this->page->set_message(clearos_exception_message($e));
             }
@@ -159,22 +174,19 @@ class Web extends ClearOS_Controller
             $data['accessibility_options'] = $this->flexshare->get_web_access_options();
             $data['server_name'] = $this->httpd->get_server_name();
 
-            $protocol = ($data['share']['WebReqSsl']) ? "https" : "http";
+            $protocol = ($data['share']['WebReqSsl']) ? 'https' : 'http';
 
             if ($data['share']['WebOverridePort'])
                 $data['server_url'] = array( 
-                    $protocol . "://" . $data['server_name'] . ":" . $data['share']['WebPort'] . "/flexshare/$name",
-                    $protocol . "://$name." . $data['server_name'] . ":" . $data['share']['WebPort']
+                    $protocol . "://" . $data['server_name'] . ":" . $data['share']['WebPort'] . "/flexshare/$share",
+                    $protocol . "://$share." . $data['server_name'] . ":" . $data['share']['WebPort']
                 ); 
             else
                 $data['server_url'] = array(
-                    $protocol . "://" . $data['server_name'] . "/flexshare/$name",
-                    $protocol . "://$name." . $data['server_name']
+                    $protocol . "://" . $data['server_name'] . "/flexshare/$share",
+                    $protocol . "://$share." . $data['server_name']
                 ); 
 
-            $data['server_url_options'] = array(
-                0 => 'bob', 1 => 'joe'
-            );
             // Default Port
             if ((int)$data['share']['WebPort'] == 0)
                 $data['share']['WebPort'] = Flexshare::DEFAULT_PORT_WEB;
@@ -184,8 +196,26 @@ class Web extends ClearOS_Controller
         }
 
         // Defaults
-        if (empty($data['share']['WebEnabled']))
+        if (! isset($data['share']['WebEnabled']))
             $data['share']['WebEnabled'] = FALSE;
+
+        if (! isset($data['share']['WebHtaccessOverride']))
+            $data['share']['WebHtaccessOverride'] = TRUE;
+
+        if (! isset($data['share']['WebReqSsl']))
+            $data['share']['WebReqSsl'] = TRUE;
+
+        if (! isset($data['share']['WebReqAuth']))
+            $data['share']['WebReqAuth'] = TRUE;
+
+        if (! isset($data['share']['WebShowIndex']))
+            $data['share']['WebShowIndex'] = TRUE;
+
+        if (! isset($data['share']['WebPhp']))
+            $data['share']['WebPhp'] = TRUE;
+
+        if (! isset($data['share']['WebCgi']))
+            $data['share']['WebCgi'] = TRUE;
 
         // Load the views
         //---------------

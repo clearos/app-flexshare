@@ -53,14 +53,20 @@ if ($form_type === 'edit') {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Simple view-only form
+// Simple summary form
 ///////////////////////////////////////////////////////////////////////////////
 
-if ($read_only && !$share['WebEnabled']) {
+if ($form_type === 'summary') {
     echo form_open('/flexshare/web/edit/' . $share['Name']);
     echo form_header(lang('flexshare_web'));
 
     echo field_toggle_enable_disable('enabled', $share['WebEnabled'], lang('base_status'), $read_only);
+
+    if ($share['WebEnabled']) {
+        echo field_view(lang('flexshare_permissions'), lang('flexshare_read_only'));
+        echo field_view(lang('flexshare_web_server_url'), $server_url[0]);
+        echo field_view(lang('flexshare_web_server_url_alt'), $server_url[1]);
+    }
 
     echo field_button_set($buttons);
 
@@ -77,7 +83,6 @@ if ($read_only && !$share['WebEnabled']) {
 echo form_open('/flexshare/web/edit/' . $share['Name']);
 echo form_header(lang('flexshare_web'));
 
-
 echo fieldset_header(lang('base_settings'));
 echo field_toggle_enable_disable('enabled', $share['WebEnabled'], lang('base_status'), $read_only);
 echo field_view(lang('flexshare_permissions'), lang('flexshare_read_only'));
@@ -85,20 +90,17 @@ echo fieldset_footer();
 
 echo fieldset_header(lang('flexshare_options'));
 echo field_input('server_name', $server_name, lang('flexshare_web_server_name'), TRUE);
-echo field_view(lang('flexshare_web_server_url'), $server_url[0]);
-echo field_view(lang('flexshare_web_server_url_alt'), $server_url[1]);
 echo field_dropdown('web_access', $accessibility_options, $share['WebAccess'], lang('flexshare_web_accessibility'), $read_only);
+echo field_toggle_enable_disable('require_authentication', $share['WebReqAuth'], lang('flexshare_web_require_authentication'), $read_only);
+echo field_toggle_enable_disable('require_ssl', $share['WebReqSsl'], lang('flexshare_web_require_ssl'), $read_only);
 echo field_toggle_enable_disable('show_index', $share['WebShowIndex'], lang('flexshare_web_show_index'), $read_only);
-echo field_toggle_enable_disable('follow_sym_links', $share['WebFollowSymLinks'], lang('flexshare_web_follow_sym_links'), $read_only);
+echo field_toggle_enable_disable('follow_symlinks', $share['WebFollowSymLinks'], lang('flexshare_web_follow_symlinks'), $read_only);
 echo field_toggle_enable_disable('ssi', $share['WebAllowSSI'], lang('flexshare_web_allow_ssi'), $read_only);
 echo field_toggle_enable_disable('htaccess', $share['WebHtaccessOverride'], lang('flexshare_web_allow_htaccess'), $read_only);
-echo field_toggle_enable_disable('req_ssl', $share['WebReqSsl'], lang('flexshare_web_require_ssl'), $read_only);
-echo field_toggle_enable_disable('override_port', $share['WebOverridePort'], lang('flexshare_web_override_default_port'), $read_only);
-echo field_input('port', $share['WebPort'], lang('flexshare_port'), $read_only);
-echo field_toggle_enable_disable('req_auth', $share['WebReqAuth'], lang('flexshare_web_require_auth'), $read_only);
-echo field_input('realm', $share['WebRealm'], lang('flexshare_web_realm'), $read_only);
 echo field_toggle_enable_disable('php', $share['WebPhp'], lang('flexshare_web_enable_php'), $read_only);
 echo field_toggle_enable_disable('cgi', $share['WebCgi'], lang('flexshare_web_enable_cgi'), $read_only);
+echo field_toggle_enable_disable('override_port', $share['WebOverridePort'], lang('flexshare_web_override_default_port'), $read_only);
+echo field_input('port', $share['WebPort'], lang('flexshare_port'), $read_only);
 echo fieldset_footer();
 
 echo field_button_set($buttons);
