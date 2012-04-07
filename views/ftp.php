@@ -87,7 +87,7 @@ echo fieldset_footer();
 echo fieldset_header(lang('flexshare_options'));
 echo field_input('server_url', $share['FtpServerUrl'], lang('network_hostname'), $read_only);
 // FIXME: wait for cert manager
-//echo field_toggle_enable_disable('req_ssl', $share['FtpReqSsl'], lang('flexshare_require_ssl'), $read_only);
+//echo field_toggle_enable_disable('require_ssl', $share['FtpReqSsl'], lang('flexshare_require_ssl'), $read_only);
 echo field_toggle_enable_disable('override_port', $share['FtpOverridePort'], lang('flexshare_override_port'), $read_only);
 echo field_input('port', $share['FtpPort'], lang('network_port'), $read_only);
 echo field_toggle_enable_disable('allow_passive', $share['FtpAllowPassive'], lang('flexshare_allow_passive'), $read_only);

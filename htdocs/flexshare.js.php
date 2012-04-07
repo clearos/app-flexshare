@@ -56,9 +56,9 @@ function ftp_check_passive() {
     }
 }
 
-function ftp_check_req_ssl() {
+function ftp_check_require_ssl() {
     if ($('#override_port').val() == 0) {
-        if ($('#req_ssl').val() == 0)
+        if ($('#require_ssl').val() == 0)
             $('#port').val(DEFAULT_PORT_FTP);
         else
             $('#port').val(DEFAULT_PORT_FTPS);
@@ -68,7 +68,7 @@ function ftp_check_req_ssl() {
 function ftp_check_override_port() {
     if ($('#override_port').val() == 0) {
         $('#port').attr('disabled', true);
-        if ($('#req_ssl').val() == 0)
+        if ($('#require_ssl').val() == 0)
             $('#port').val(DEFAULT_PORT_FTP);
         else
             $('#port').val(DEFAULT_PORT_FTPS);
@@ -87,9 +87,9 @@ function ftp_check_allow_anon() {
     }
 }
 
-function web_check_req_ssl() {
+function web_check_require_ssl() {
     if ($('#override_port').val() == 0) {
-        if ($('#req_ssl').val() == 0)
+        if ($('#require_ssl').val() == 0)
             $('#port').val(DEFAULT_PORT_HTTP);
         else
             $('#port').val(DEFAULT_PORT_HTTPS);
@@ -99,20 +99,12 @@ function web_check_req_ssl() {
 function web_check_override_port() {
     if ($('#override_port').val() == 0) {
         $('#port').attr('disabled', true);
-        if ($('#req_ssl').val() == 0)
+        if ($('#require_ssl').val() == 0)
             $('#port').val(DEFAULT_PORT_HTTP);
         else
             $('#port').val(DEFAULT_PORT_HTTPS);
     } else {
         $('#port').attr('disabled', false);
-    }
-}
-
-function web_check_req_auth() {
-    if ($('#req_auth').val() == 0) {
-        $('#realm').attr('disabled', true);
-    } else {
-        $('#realm').attr('disabled', false);
     }
 }
 
@@ -143,9 +135,9 @@ $(document).ready(function() {
         $('#group_greeting').attr('style', 'width: 260');
         $('#anonymous_greeting').attr('style', 'width: 260');
 
-        ftp_check_req_ssl();
-        $('#req_ssl').change(function(event) {
-            ftp_check_req_ssl();
+        ftp_check_require_ssl();
+        $('#require_ssl').change(function(event) {
+            ftp_check_require_ssl();
         });
 
         ftp_check_passive();
@@ -164,17 +156,13 @@ $(document).ready(function() {
 
     } else if ($(location).attr('href').match('.*/web/.*')) {
         $('#port').attr('style', 'width: 50');
-        web_check_req_ssl();
-        $('#req_ssl').change(function(event) {
-            web_check_req_ssl();
+        web_check_require_ssl();
+        $('#require_ssl').change(function(event) {
+            web_check_require_ssl();
         });
         web_check_override_port();
         $('#override_port').change(function(event) {
             web_check_override_port();
-        });
-        web_check_req_auth();
-        $('#req_auth').change(function(event) {
-            web_check_req_auth();
         });
     } else if ($(location).attr('href').match('.*/email/.*')) {
         $('#acl').attr('style', 'width: 250');
@@ -189,7 +177,6 @@ $(document).ready(function() {
     }
 
 });
-
 ";
 
-// vim: syntax=php ts=4
+// vim: syntax=javascript ts=4
