@@ -69,7 +69,7 @@ class File extends ClearOS_Controller
         if (empty($share))
             $share = $this->session->userdata('flexshare');
 
-        $this->view($share, 'view');
+        $this->_form($share, 'summary');
     }
 
     /**

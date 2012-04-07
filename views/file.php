@@ -57,10 +57,16 @@ if ($form_type === 'edit') {
 // Simple view-only form
 ///////////////////////////////////////////////////////////////////////////////
 
-if ($read_only && !$share['FileEnabled']) {
+if ($form_type == 'summary') {
     echo form_open('/flexshare/file/edit/' . $share['Name']);
     echo form_header(lang('flexshare_windows_file_share'));
     echo field_toggle_enable_disable('enabled', $share['FileEnabled'], lang('base_status'), TRUE);
+
+    if ($share['FileEnabled']) {
+        echo field_dropdown('file_permission', $permission_options, $share['FilePermission'], lang('flexshare_permissions'), $read_only);
+        echo field_view(lang('flexshare_file_server_url'), $server_url);
+    }
+
     echo field_button_set($buttons);
     echo form_footer();
     echo form_close();
@@ -82,7 +88,6 @@ echo fieldset_footer();
 
 echo fieldset_header(lang('flexshare_options'));
 echo field_view(lang('flexshare_file_server_url'), $server_url);
-// echo field_input('comment', $share['ShareDescription'], lang('flexshare_file_comment'), TRUE);
 echo field_toggle_enable_disable('recycle_bin', $share['FileRecycleBin'], lang('flexshare_file_recyle_bin'), $read_only);
 echo field_toggle_enable_disable('audit_log', $share['FileAuditLog'], lang('flexshare_file_audit_log'), $read_only);
 echo fieldset_footer();

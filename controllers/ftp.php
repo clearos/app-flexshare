@@ -153,6 +153,9 @@ class FTP extends ClearOS_Controller
             $data['share'] = $this->flexshare->get_share($share);
             $data['group_permission_options'] = $this->flexshare->get_ftp_permission_options();
             $data['anonymous_permission_options'] = $this->flexshare->get_ftp_permission_options();
+
+            $url = 'ftps://' . getenv('SERVER_ADDR') . '/' . $share;
+            $data['server_url'] = "<a target='_blank' href='$url'>$url</a>";
         } catch (Exception $e) {
             $this->page->view_exception($e);
             return;

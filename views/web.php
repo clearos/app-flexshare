@@ -64,8 +64,8 @@ if ($form_type === 'summary') {
 
     if ($share['WebEnabled']) {
         echo field_view(lang('flexshare_permissions'), lang('flexshare_read_only'));
-        echo field_view(lang('flexshare_web_server_url'), $server_url[0]);
-        echo field_view(lang('flexshare_web_server_url_alt'), $server_url[1]);
+        echo field_view(lang('flexshare_server_url'), $server_url[0]);
+        echo field_view(lang('flexshare_server_url_alt'), $server_url[1]);
     }
 
     echo field_button_set($buttons);

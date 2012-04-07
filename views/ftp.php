@@ -63,7 +63,11 @@ if ($form_type === 'summary') {
     echo form_header(lang('flexshare_ftp'));
 
     echo field_toggle_enable_disable('enabled', $share['FtpEnabled'], lang('base_status'), $read_only);
-    echo field_dropdown('group_permission', $group_permission_options, $share['FtpGroupPermission'], lang('flexshare_permissions'), $read_only);
+
+    if ($share['FtpEnabled']) {
+        echo field_dropdown('group_permission', $group_permission_options, $share['FtpGroupPermission'], lang('flexshare_permissions'), $read_only);
+        echo field_view(lang('flexshare_server_url'), $server_url);
+    }
 
     echo field_button_set($buttons);
 
