@@ -116,7 +116,7 @@ class FTP extends ClearOS_Controller
         $this->form_validation->set_policy('enabled', 'flexshare/Flexshare', 'validate_ftp_enabled', TRUE);
         $this->form_validation->set_policy('server_url', 'flexshare/Flexshare', 'validate_ftp_server_url', TRUE);
         // FIXME
-        //$this->form_validation->set_policy('req_ssl', 'flexshare/Flexshare', 'validate_ftp_req_ssl', TRUE);
+        //$this->form_validation->set_policy('require_ssl', 'flexshare/Flexshare', 'validate_ftp_require_ssl', TRUE);
         $this->form_validation->set_policy('override_port', 'flexshare/Flexshare', 'validate_ftp_override_port_state', TRUE);
         $this->form_validation->set_policy('port', 'flexshare/Flexshare', 'validate_ftp_override_port');
         $this->form_validation->set_policy('allow_passive', 'flexshare/Flexshare', 'validate_ftp_allow_passive_state', TRUE);
@@ -157,7 +157,7 @@ class FTP extends ClearOS_Controller
         if (($this->input->post('submit') && $form_ok)) {
             try {
                 $this->flexshare->set_ftp_server_url($share, $this->input->post('server_url'));
-                // FIXME $this->flexshare->set_ftp_req_ssl($share, $this->input->post('req_ssl'));
+                // FIXME $this->flexshare->set_ftp_require_ssl($share, $this->input->post('require_ssl'));
                 $this->flexshare->set_ftp_override_port(
                     $share,
                     $this->input->post('override_port'),
