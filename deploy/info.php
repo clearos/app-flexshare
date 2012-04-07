@@ -5,7 +5,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 $app['basename'] = 'flexshare';
-$app['version'] = '1.0.10';
+$app['version'] = '1.0.11';
 $app['release'] = '1';
 $app['vendor'] = 'ClearFoundation';
 $app['packager'] = 'ClearFoundation';
@@ -28,6 +28,7 @@ $app['subcategory'] = lang('base_subcategory_file');
 
 $app['core_requires'] = array(
     'app-mode-core', 
+    'csplugin-filewatch',
 );
 
 $app['core_directory_manifest'] = array(
