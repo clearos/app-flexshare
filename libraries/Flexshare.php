@@ -170,8 +170,9 @@ class Flexshare extends Engine
     const CONSTANT_FILES_USERNAME = 'flexshares';
     const MBOX_HOSTNAME = 'localhost';
     const DEFAULT_PORT_WEB = 80;
-    const DEFAULT_PORT_FTP = 2121;
-    const DEFAULT_PORT_FTPS = 2123;
+    const DEFAULT_PORT_FTP = 21;
+    const DEFAULT_PORT_FTPS = 900;
+    const DEFAULT_PORT_FTPES = 900;
     const DEFAULT_SSI_PARAM = 'IncludesNOExec';
     const REGEX_SHARE_DESC = '/^\s*ShareDescription\s*=\s*(.*$)/i';
     const REGEX_SHARE_GROUP = '/^\s*ShareGroup\s*=\s*(.*$)/i';
@@ -199,8 +200,8 @@ class Flexshare extends Engine
     const CASE_CUSTOM_HTTP = 3;
     const CASE_CUSTOM_HTTPS = 4;
     const PREFIX = 'flex-';
-    const FTP_PASV_MIN = 65000;
-    const FTP_PASV_MAX = 65100;
+    const FTP_PASV_MIN = 60000;
+    const FTP_PASV_MAX = 61000;
     const WRITE_WARNING = '
 #----------------------------------------------------------------
 # WARNING: This file is automatically created by webconfig.
@@ -1263,7 +1264,6 @@ class Flexshare extends Engine
         if ($allow_passive)
             Validation_Exception::is_valid($this->validate_passive_port_range($port_min, $port_max));
 
-
         $this->_set_parameter($name, 'FtpAllowPassive', $allow_passive);
 
         if ($allow_passive) {
@@ -1273,7 +1273,7 @@ class Flexshare extends Engine
     }
 
     /**
-     * Sets the require SSL flag for the flexshare.
+     * Sets the FTP protocol state.
      *
      * @param string $name  flexshare name
      * @param bool   $state boolean flag
@@ -1282,11 +1282,45 @@ class Flexshare extends Engine
      * @throws Engine_Exception
      */
 
-    function set_ftp_require_ssl($name, $state)
+    function set_ftp_protocol_ftp($name, $state)
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $this->_set_parameter($name, "FtpReqSsl", $state);
+        $this->_set_parameter($name, 'FtpEnableFtp', $state);
+    }
+
+    /**
+     * Sets the FTPES protocol state.
+     *
+     * @param string $name  flexshare name
+     * @param bool   $state boolean flag
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_ftp_protocol_ftpes($name, $state)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'FtpEnableFtpes', $state);
+    }
+
+    /**
+     * Sets the FTPS protocol state.
+     *
+     * @param string $name  flexshare name
+     * @param bool   $state boolean flag
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_ftp_protocol_ftps($name, $state)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'FtpEnableFtps', $state);
     }
 
     /**
@@ -1738,19 +1772,6 @@ class Flexshare extends Engine
     }
 
     /**
-     * Validation routine for flexshare require SSL on FTP.
-     *
-     * @param boolean $req FTP flexshare require SSL status
-     *
-     * @return mixed void if invalid, errmsg otherwise
-     */
-
-    function validate_ftp_require_ssl($req)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-    }
-
-    /**
      * Validation routine for flexshare group permission on FTP.
      *
      * @param boolean $permission FTP flexshare group permission
@@ -1887,6 +1908,22 @@ class Flexshare extends Engine
 
         if (! Network_Utils::is_valid_port($port))
             return lang('flexshare_port_invalid');
+    }
+
+    /**
+     * Validation routine for FTP protocol state.
+     *
+     * @param boolean $state state
+     *
+     * @return string error message if state is invalid
+     */
+
+    function validate_ftp_protocol_state($state)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        if (! clearos_is_valid_boolean($state))
+            return lang('flexshare_ftp_state_invalid');
     }
 
     /**
@@ -2335,15 +2372,10 @@ class Flexshare extends Engine
             // Ie. /etc/proftpd.d/flex-<port>.conf
 
             // Port
-            if ($share['FtpOverridePort']) {
+            if ($share['FtpOverridePort'])
                 $port = $share['FtpPort'];
-            } else {
-                if ($share['FtpReqSsl']) {
-                    $port = self::DEFAULT_PORT_FTPS;
-                } else {
-                    $port = self::DEFAULT_PORT_FTP;
-                }
-            }
+            else
+                $port = self::DEFAULT_PORT_FTP;
 
             // Passive mode flag
             $pasv = '';
@@ -2367,6 +2399,7 @@ class Flexshare extends Engine
 
             // Create new file in parallel
             $filename = self::PREFIX . $port . '.conf';
+            $ftps_filename = self::PREFIX . '990' . '.conf';
 
             // Add to confs array in case of failure
             if (!in_array($filename, $confs))
@@ -2378,7 +2411,7 @@ class Flexshare extends Engine
             if ($tempfile->exists())
                 $tempfile->delete();
 
-            $tempfile->create("root", "root", '0640');
+            $tempfile->create('root', 'root', '0644');
 
             if ($file->exists()) {
                 $oldlines = $file->get_contents_as_array();
@@ -2453,14 +2486,14 @@ class Flexshare extends Engine
                 $newlines[] = "\t</Limit>";
                 $newlines[] = "";
 
-                // FTPS (SSL)
-                if ($share['FtpReqSsl']) {
+                // FTPES (SSL)
+                if ($share['FtpEnableFtpes']) {
+                    $tls_required = ($share['FtpEnableFtp']) ? 'off' : 'on';
                     $newlines[] = "\t<IfModule mod_tls.c>";
                     $newlines[] = "\t\tTLSEngine on";
                     $newlines[] = "\t\tTLSLog /var/log/tls.log";
-                    // $newlines[] = "\t\tTLSOptions NoCertRequest UseImplicitSSL";
                     $newlines[] = "\t\tTLSOptions NoCertRequest";
-                    $newlines[] = "\t\tTLSRequired on";
+                    $newlines[] = "\t\tTLSRequired $tls_required";
                     $newlines[] = "\t\tTLSRSACertificateFile " . '/etc/pki/CA/sys-0-cert.pem';
                     $newlines[] = "\t\tTLSRSACertificateKeyFile " .'/etc/pki/CA/private/sys-0-key.pem';
                     $newlines[] = "\t\tTLSCACertificateFile " . '/etc/pki/CA/ca-cert.pem';
@@ -2550,7 +2583,7 @@ class Flexshare extends Engine
         try {
             $options['validate_exit_code'] = FALSE;
             $shell = new Shell();
-            // FIXME fails when offline?
+            // TODO: this fails on DNS lookup issues
             //$exitcode = $shell->execute(self::CMD_VALIDATE_PROFTPD, '-t', TRUE, $options);
             $exitcode = 0;
         } catch (Exception $e) {
@@ -2592,8 +2625,30 @@ class Flexshare extends Engine
             }
         }
 
-        if (! $config_ok)
+        // Copy to FTPS configuration
+        if ($config_ok) {
+            $base_config = new File(self::FTP_VIRTUAL_HOST_PATH . '/' . $filename);
+            $lines = $base_config->get_contents_as_array();
+            $newlines = array();
+
+            foreach ($lines as $line) {
+                if (preg_match("/^\s*Port\s+[\d]+$/", $line))
+                    $newlines[] = "\tPort 990";
+                else if (preg_match("/^\s*TLSOptions\s+/", $line))
+                    $newlines[] = "\t\tTLSOptions NoCertRequest UseImplicitSSL";
+                else
+                    $newlines[] = $line;
+            }
+
+            $file = new File(self::FTP_VIRTUAL_HOST_PATH . '/' . $ftps_filename);
+            if ($file->exists())
+                $file->delete();
+
+            $file->create('root', 'root', '0644');
+            $file->dump_contents_from_array($newlines);
+        } else {
             throw new Engine_Exception(lang('flexshare_config_validation_failed'));
+        }
     }
 
     /**
@@ -2839,7 +2894,7 @@ class Flexshare extends Engine
             $newlines[] = "</Directory>\n\n\n";
 
             if (! $file->exists())
-                $file->create('root', 'root', '0640');
+                $file->create('root', 'root', '0644');
 
             $file->add_lines(implode("\n", $newlines));
         }

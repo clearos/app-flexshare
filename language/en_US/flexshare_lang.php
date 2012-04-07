@@ -1,5 +1,18 @@
 <?php
 
+$lang['flexshare_explicit_ftp_secure_ftpes'] = 'Explicit FTP Secure - FTPES';
+$lang['flexshare_implicit_ftp_secure_ftps'] = 'Implicit FTP Secure - FTPS';
+$lang['flexshare_ftpes_port'] = 'FTPES Port';
+$lang['flexshare_ftp_and_ftpes_port'] = 'FTP and FTPES Port';
+$lang['flexshare_ftps_port'] = 'FTPS Port';
+$lang['flexshare_ports'] = 'Ports';
+$lang['flexshare_allow_unencrypted_ftp'] = 'Allow Unencrypted FTP';
+$lang['flexshare_override_defaults'] = 'Override Defaults';
+$lang['flexshare_passive_mode'] = 'Passive Mode';
+$lang['flexshare_passive_mode_from_port'] = 'Passive Mode From Port';
+$lang['flexshare_passive_mode_to_port'] = 'Passive Mode To Port';
+
+
 $lang['flexshare_app_description'] = 'Flexshares are flexible share resources that allow an administrator to quickly and easily define data sharing, collaboration and access areas via web, file, FTP and/or e-mail (as attachments).';
 $lang['flexshare_app_name'] = 'Flexshare';
 $lang['flexshare_summary'] = 'Summary';

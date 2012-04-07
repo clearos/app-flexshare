@@ -64,7 +64,6 @@ if ($form_type === 'summary') {
 
     echo field_toggle_enable_disable('enabled', $share['FtpEnabled'], lang('base_status'), $read_only);
     echo field_dropdown('group_permission', $group_permission_options, $share['FtpGroupPermission'], lang('flexshare_permissions'), $read_only);
-    echo field_input('port', $share['FtpPort'], lang('network_port'), $read_only);
 
     echo field_button_set($buttons);
 
@@ -87,14 +86,17 @@ echo field_dropdown('group_permission', $group_permission_options, $share['FtpGr
 echo fieldset_footer();
 
 echo fieldset_header(lang('flexshare_options'));
-echo field_input('server_url', $share['FtpServerUrl'], lang('network_hostname'), $read_only);
-echo field_toggle_enable_disable('require_ssl', $share['FtpReqSsl'], lang('flexshare_require_ssl'), $read_only);
-echo field_toggle_enable_disable('override_port', $share['FtpOverridePort'], lang('flexshare_override_port'), $read_only);
-echo field_input('port', $share['FtpPort'], lang('network_port'), $read_only);
-echo field_toggle_enable_disable('allow_passive', $share['FtpAllowPassive'], lang('flexshare_allow_passive'), $read_only);
-echo field_input('passive_min_port', $share['FtpPassivePortMin'], lang('flexshare_from_port'), $read_only);
-echo field_input('passive_max_port', $share['FtpPassivePortMax'], lang('flexshare_to_port'), $read_only);
 echo field_textarea('group_greeting', $share['FtpGroupGreeting'], lang('flexshare_greeting'), $read_only);
+echo fieldset_footer();
+
+echo fieldset_header(lang('flexshare_ports'));
+echo field_input('ftps_port', '990', lang('flexshare_ftps_port'), TRUE);
+echo field_input('ftpes_port', '21', lang('flexshare_ftp_and_ftpes_port'), TRUE);
+echo field_toggle_enable_disable('ftp', TRUE, lang('flexshare_allow_unencrypted_ftp'), TRUE);
+echo field_toggle_enable_disable('allow_passive', $share['FtpAllowPassive'], lang('flexshare_passive_mode'), TRUE);
+echo field_input('passive_min_port', $share['FtpPassivePortMin'], lang('flexshare_passive_mode_from_port'), TRUE);
+echo field_input('passive_max_port', $share['FtpPassivePortMax'], lang('flexshare_passive_mode_to_port'), TRUE);
+echo fieldset_footer();
 
 /* TODO: see if anyone really needs this */
 /* 
@@ -102,8 +104,6 @@ echo field_toggle_enable_disable('allow_anonymous', $share['FtpAllowAnonymous'],
 echo field_dropdown('anonymous_permission', $anonymous_permission_options, $share['FtpAnonymousPermission'], lang('flexshare_anonymous_permissions'), $read_only);
 echo field_textarea('anonymous_greeting', $share['FtpAnonymousGreeting'], lang('flexshare_anonymous_greeting'), $read_only);
 */
-
-echo fieldset_footer();
 
 echo field_button_set($buttons);
 
