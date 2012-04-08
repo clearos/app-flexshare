@@ -2318,6 +2318,7 @@ class Flexshare extends Engine
         }
 
         $shares = $this->get_share_summary(FALSE);
+        $ftps_filename = '';
 
         // Recreate all virtual configs
         for ($index = 0; $index < count($shares); $index++) {
@@ -2487,20 +2488,19 @@ class Flexshare extends Engine
                 $newlines[] = "";
 
                 // FTPES (SSL)
-                if ($share['FtpEnableFtpes']) {
+                // if ($share['FtpEnableFtpes']) {
                     $tls_required = ($share['FtpEnableFtp']) ? 'off' : 'on';
                     $newlines[] = "\t<IfModule mod_tls.c>";
                     $newlines[] = "\t\tTLSEngine on";
                     $newlines[] = "\t\tTLSLog /var/log/tls.log";
                     $newlines[] = "\t\tTLSOptions NoCertRequest";
                     $newlines[] = "\t\tTLSRequired $tls_required";
-                    $newlines[] = "\t\tTLSRSACertificateFile " . '/etc/pki/CA/sys-0-cert.pem';
-                    $newlines[] = "\t\tTLSRSACertificateKeyFile " .'/etc/pki/CA/private/sys-0-key.pem';
-                    $newlines[] = "\t\tTLSCACertificateFile " . '/etc/pki/CA/ca-cert.pem';
+                    $newlines[] = "\t\tTLSRSACertificateFile /etc/pki/CA/bootstrap.crt";
+                    $newlines[] = "\t\tTLSRSACertificateKeyFile /etc/pki/CA/bootstrap.key";
                     $newlines[] = "\t\tTLSVerifyClient off";
                     $newlines[] = "\t</IfModule>";
                     $newlines[] = "\n";
-                }
+                // }
             } else {
                 if ($share['FtpAllowPassive']) {
                     $tempfile->replace_lines(
@@ -2625,8 +2625,11 @@ class Flexshare extends Engine
             }
         }
 
+        if (!$config_ok)
+            throw new Engine_Exception(lang('flexshare_config_validation_failed'));
+
         // Copy to FTPS configuration
-        if ($config_ok) {
+        if (!empty($ftps_filename)) {
             $base_config = new File(self::FTP_VIRTUAL_HOST_PATH . '/' . $filename);
             $lines = $base_config->get_contents_as_array();
             $newlines = array();
@@ -2646,8 +2649,6 @@ class Flexshare extends Engine
 
             $file->create('root', 'root', '0644');
             $file->dump_contents_from_array($newlines);
-        } else {
-            throw new Engine_Exception(lang('flexshare_config_validation_failed'));
         }
     }
 

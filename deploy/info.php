@@ -29,6 +29,7 @@ $app['subcategory'] = lang('base_subcategory_file');
 $app['core_requires'] = array(
     'app-mode-core', 
     'csplugin-filewatch',
+    'app-certificate-manager'
 );
 
 $app['core_directory_manifest'] = array(
