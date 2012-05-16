@@ -34,11 +34,17 @@ $flexshare = new Flexshare();
 
 $shares = $flexshare->get_share_summary();
 
-// If Dir is set to /var/flexshare/shares (wrong) then set it to the default.
 try { 
     foreach ($shares as $share => $details) {
+        // If Dir is set to /var/flexshare/shares (wrong) then set it to the default.
         if ($details['Dir'] == '/var/flexshare/shares')
             $flexshare->set_directory($details['Name'], NULL);
+
+        // If flexshare is enabled, regenerate config files (fix FTP unencrypted)
+        if ($details['Enabled']) {
+             $flexshare->set_share_state($details['Name'], FALSE);
+             $flexshare->set_share_state($details['Name'], TRUE);
+        }
     }
 } catch (Exception $e) {
     // Not fatal
