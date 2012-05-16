@@ -24,3 +24,5 @@ if [ "$CHECKOWNERSHIP" != "root.root" ]; then
     chown root.root $DIR
 fi
 
+# Fixed tracker #605
+/usr/clearos/apps/flexshare/deploy/fix-share-dir

@@ -1,0 +1,45 @@
+#!/usr/clearos/sandbox/usr/bin/php
+<?php
+
+// TODO: Remove in version 6.3.0 or later
+
+///////////////////////////////////////////////////////////////////////////////
+// B O O T S T R A P
+///////////////////////////////////////////////////////////////////////////////
+
+$bootstrap = getenv('CLEAROS_BOOTSTRAP') ? getenv('CLEAROS_BOOTSTRAP') : '/usr/clearos/framework/shared';
+require_once $bootstrap . '/bootstrap.php';
+
+///////////////////////////////////////////////////////////////////////////////
+// D E P E N D E N C I E S
+///////////////////////////////////////////////////////////////////////////////
+
+// Classes
+//--------
+
+use \clearos\apps\flexshare\Flexshare as Flexshare;
+
+clearos_load_library('flexshare/Flexshare');
+
+// Exceptions
+//-----------
+
+use \Exception as Exception;
+
+///////////////////////////////////////////////////////////////////////////////
+// M A I N
+///////////////////////////////////////////////////////////////////////////////
+
+$flexshare = new Flexshare();
+
+$shares = $flexshare->get_share_summary();
+
+// If Dir is set to /var/flexshare/shares (wrong) then set it to the default.
+try { 
+    foreach ($shares as $share => $details) {
+        if ($details['Dir'] == '/var/flexshare/shares')
+            $flexshare->set_directory($details['Name'], NULL);
+    }
+} catch (Exception $e) {
+    // Not fatal
+}
