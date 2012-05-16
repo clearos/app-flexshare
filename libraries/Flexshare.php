@@ -568,7 +568,7 @@ class Flexshare extends Engine
             $name = preg_replace('/ /', '_', strtoupper(lang('flexshare_share_name'))); 
 
         // Default
-        $options[self::SHARE_PATH] = lang('base_default') . ' (' . self::SHARE_PATH . '/' . $name . ")\n";
+        $options[self::SHARE_PATH . '/' . $name] = lang('base_default') . ' (' . self::SHARE_PATH . '/' . $name . ")";
 
         return $options;
     }
