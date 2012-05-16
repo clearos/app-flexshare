@@ -2489,12 +2489,11 @@ class Flexshare extends Engine
 
                 // FTPES (SSL)
                 // if ($share['FtpEnableFtpes']) {
-                    $tls_required = ($share['FtpEnableFtp']) ? 'off' : 'on';
                     $newlines[] = "\t<IfModule mod_tls.c>";
                     $newlines[] = "\t\tTLSEngine on";
                     $newlines[] = "\t\tTLSLog /var/log/tls.log";
                     $newlines[] = "\t\tTLSOptions NoCertRequest";
-                    $newlines[] = "\t\tTLSRequired $tls_required";
+                    $newlines[] = "\t\tTLSRequired off";
                     $newlines[] = "\t\tTLSRSACertificateFile /etc/pki/CA/bootstrap.crt";
                     $newlines[] = "\t\tTLSRSACertificateKeyFile /etc/pki/CA/bootstrap.key";
                     $newlines[] = "\t\tTLSVerifyClient off";
