@@ -37,6 +37,8 @@
 //-----------
 
 use \clearos\apps\flexshare\Flexshare_Parameter_Not_Found_Exception as Flexshare_Parameter_Not_Found_Exception;
+use \clearos\apps\flexshare\Flexshare as Flexshare;
+use \Exception as Exception;
 
 clearos_load_library('flexshare/Flexshare_Parameter_Not_Found_Exception');
 
@@ -187,14 +189,6 @@ class Share extends ClearOS_Controller
             return;
         }
 
-        if (count($directories) === 1) {
-            $default_info = array_keys($directories);
-            $default_directory = $default_info[0];
-            $directory = $default_info[0];
-        } else {
-            $directory = $this->input->post('directory');
-        }
-
         // Set validation rules
         //---------------------
          
@@ -203,7 +197,7 @@ class Share extends ClearOS_Controller
         $this->form_validation->set_policy('description', 'flexshare/Flexshare', 'validate_description', TRUE);
         $this->form_validation->set_policy('group', 'flexshare/Flexshare', 'validate_group', TRUE);
 
-        if (count($directories) !== 1)
+        if ($this->input->post('directory'))
             $this->form_validation->set_policy('directory', 'flexshare/Flexshare', 'validate_directory', TRUE);
 
         $form_ok = $this->form_validation->run();
@@ -212,6 +206,13 @@ class Share extends ClearOS_Controller
         //-------------------
 
         if (($this->input->post('submit') && $form_ok)) {
+            $share = ($this->input->post('name')) ? $this->input->post('name') : $share;
+            $directory = ($this->input->post('directory')) ? $this->input->post('directory') : '';
+
+            // If directory is set to default path, tack on the share name
+            if (empty($directory) || ($directory == Flexshare::SHARE_PATH))
+                $directory = Flexshare::SHARE_PATH . '/' . $share;
+
             try {
                 if ($form_type == 'edit') {
                     $this->flexshare->set_description($share, $this->input->post('description'));

@@ -565,10 +565,12 @@ class Flexshare extends Engine
 
         // If $name is NULL, fancy up the path displayed
         if ($name == NULL)
-            $name = preg_replace('/ /', '_', strtoupper(lang('flexshare_share_name'))); 
+            $display_name = preg_replace('/ /', '_', strtoupper(lang('flexshare_share_name'))); 
+        else
+            $display_name = $name;
 
         // Default
-        $options[self::SHARE_PATH . '/' . $name] = lang('base_default') . ' (' . self::SHARE_PATH . '/' . $name . ")";
+        $options[self::SHARE_PATH . '/' . $name] = lang('base_default') . ' (' . self::SHARE_PATH . '/' . $display_name . ")";
 
         return $options;
     }
