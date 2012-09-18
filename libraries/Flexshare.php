@@ -2172,7 +2172,7 @@ class Flexshare extends Engine
         $samba_conf = new File(Samba::FILE_CONFIG);
 
         if (! $samba_conf->exists())
-            throw new Engine_Exception(lang('base_exception_file_not_found') . ' (' . Samba::FILE_CONFIG . ')');
+            throw new Engine_Exception(lang('base_file_not_found') . ' (' . Samba::FILE_CONFIG . ')');
 
         $shares = $this->get_share_summary(FALSE);
         $linestoadd = '';
