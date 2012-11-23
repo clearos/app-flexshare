@@ -274,12 +274,6 @@ class Share extends ClearOS_Controller
             }
 
             $data['group_options'] = $group_options;
-
-            // Available file share servers
-            // TODO: use API call instead of file_exists
-            $data['file_installed'] = (file_exists('/var/clearos/samba/initialized_local')) ? TRUE : FALSE;
-            $data['web_installed'] = (clearos_library_installed('web_server/Httpd')) ? TRUE : FALSE;
-            $data['ftp_installed'] = (clearos_library_installed('ftp/ProFTPd')) ? TRUE : FALSE;
         } catch (Exception $e) {
             $this->page->view_exception($e);
             return;

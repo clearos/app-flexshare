@@ -119,9 +119,11 @@ class Flexshare extends ClearOS_Controller
 
         $views[] = 'flexshare/share';
 
-        // TODO: use API call instead of file_exists
-        if (file_exists('/var/clearos/samba/initialized_local'))
-            $views[] = 'flexshare/file';
+        if (clearos_library_installed('samba_common/Samba')) {
+            $this->load->library('samba_common/Samba');
+            if ($this->samba->is_file_server())
+                $views[] = 'flexshare/file';
+        }
 
         if (clearos_library_installed('ftp/ProFTPd'))
             $views[] = 'flexshare/ftp';

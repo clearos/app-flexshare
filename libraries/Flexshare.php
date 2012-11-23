@@ -52,13 +52,6 @@ clearos_load_language('flexshare');
 // D E P E N D E N C I E S
 ///////////////////////////////////////////////////////////////////////////////
 
-// Factories
-//----------
-
-use \clearos\apps\groups\Group_Factory as Group;
-
-clearos_load_library('groups/Group_Factory');
-
 // Classes
 //--------
 
@@ -66,42 +59,26 @@ use \clearos\apps\base\Configuration_File as Configuration_File;
 use \clearos\apps\base\Engine as Engine;
 use \clearos\apps\base\File as File;
 use \clearos\apps\base\Folder as Folder;
-use \clearos\apps\base\Mime as Mime;
 use \clearos\apps\base\Shell as Shell;
 use \clearos\apps\ftp\ProFTPd as ProFTPd;
 use \clearos\apps\groups\Group_Factory as Group_Factory;
-use \clearos\apps\imap\Cyrus as Cyrus;
-use \clearos\apps\mail_notification\Mail_Notification as Mail_Notification;
-use \clearos\apps\mode\Mode_Factory as Mode_Factory;
-use \clearos\apps\network\Hostname as Hostname;
 use \clearos\apps\network\Iface_Manager as Iface_Manager;
 use \clearos\apps\network\Network_Utils as Network_Utils;
-use \clearos\apps\samba\Samba as Samba;
-use \clearos\apps\samba\Smbd as Smbd;
-use \clearos\apps\smtp\Postfix as Postfix;
+use \clearos\apps\samba_common\Samba as Samba;
 use \clearos\apps\users\User_Factory as User_Factory;
-use \clearos\apps\users\User_Utilities as User_Utilities;
 use \clearos\apps\web_server\Httpd as Httpd;
 
 clearos_load_library('base/Configuration_File');
 clearos_load_library('base/Engine');
 clearos_load_library('base/File');
 clearos_load_library('base/Folder');
-clearos_load_library('base/Mime');
 clearos_load_library('base/Shell');
 clearos_load_library('ftp/ProFTPd');
 clearos_load_library('groups/Group_Factory');
-clearos_load_library('imap/Cyrus');
-clearos_load_library('mail_notification/Mail_Notification');
-clearos_load_library('mode/Mode_Factory');
-clearos_load_library('network/Hostname');
 clearos_load_library('network/Iface_Manager');
 clearos_load_library('network/Network_Utils');
-clearos_load_library('samba/Samba');
-clearos_load_library('samba/Smbd');
-clearos_load_library('smtp/Postfix');
+clearos_load_library('samba_common/Samba');
 clearos_load_library('users/User_Factory');
-clearos_load_library('users/User_Utilities');
 clearos_load_library('web_server/Httpd');
 
 // Exceptions
@@ -114,7 +91,6 @@ use \clearos\apps\base\File_Not_Found_Exception as File_Not_Found_Exception;
 use \clearos\apps\base\Validation_Exception as Validation_Exception;
 use \clearos\apps\flexshare\Flexshare_Not_Found_Exception as Flexshare_Not_Found_Exception;
 use \clearos\apps\flexshare\Flexshare_Parameter_Not_Found_Exception as Flexshare_Parameter_Not_Found_Exception;
-use \clearos\apps\users\User_Not_Found_Exception as User_Not_Found_Exception;
 
 clearos_load_library('base/Engine_Exception');
 clearos_load_library('base/File_No_Match_Exception');
@@ -122,7 +98,6 @@ clearos_load_library('base/File_Not_Found_Exception');
 clearos_load_library('base/Validation_Exception');
 clearos_load_library('flexshare/Flexshare_Not_Found_Exception');
 clearos_load_library('flexshare/Flexshare_Parameter_Not_Found_Exception');
-clearos_load_library('users/User_Not_Found_Exception');
 
 ///////////////////////////////////////////////////////////////////////////////
 // C L A S S
@@ -149,7 +124,6 @@ class Flexshare extends Engine
     const LOG_TAG = 'flexshare';
     const FILE_CONFIG = '/etc/clearos/flexshare.conf';
     const FILE_SMB_VIRTUAL = 'flexshare.conf';
-    const FILE_SMB_CONF = '/etc/samba/smb.conf';
     const FILE_FSTAB_CONFIG = '/etc/fstab';
     const PATH_ROOT = '/var/flexshare';
     const PATH_TEMP = '/var/tmp';
@@ -162,10 +136,10 @@ class Flexshare extends Engine
     const CMD_VALIDATE_HTTPD = '/usr/sbin/httpd';
     const CMD_VALIDATE_PROFTPD = '/usr/sbin/proftpd';
     const CMD_VALIDATE_SMBD = '/usr/bin/testparm';
-    const CMD_MOUNT = "/bin/mount";
-    const CMD_UMOUNT = "/bin/umount";
-    const CMD_PHP = "/usr/clearos/sandbox/usr/bin/php";
-    const CMD_UPDATE_PERMS = "/usr/sbin/updateflexperms";
+    const CMD_MOUNT = '/bin/mount';
+    const CMD_UMOUNT = '/bin/umount';
+    const CMD_PHP = '/usr/clearos/sandbox/usr/bin/php';
+    const CMD_UPDATE_PERMS = '/usr/sbin/updateflexperms';
     const CONSTANT_ACCOUNT_USERNAME = 'flexshare';
     const CONSTANT_FILES_USERNAME = 'flexshares';
     const MBOX_HOSTNAME = 'localhost';
@@ -229,9 +203,6 @@ class Flexshare extends Engine
     function __construct()
     {
         clearos_profile(__METHOD__, __LINE__);
-
-        //if (!extension_loaded("imap"))
-         //   dl("imap.so");
     }
 
     /**
@@ -265,8 +236,8 @@ class Flexshare extends Engine
         Validation_Exception::is_valid($this->validate_group($group));
         Validation_Exception::is_valid($this->validate_directory($directory));
 
-        // Samba limitations
-        //------------------
+        // Windows limitations
+        //--------------------
 
         $groupobj = Group_Factory::create($name);
 
@@ -2147,7 +2118,12 @@ class Flexshare extends Engine
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        if (!clearos_library_installed('samba/Smbd'))
+        if (!clearos_library_installed('samba_common/Samba'))
+            return;
+
+        $samba = new Samba();
+
+        if (! $samba->is_file_server())
             return;
 
         // Create a unique file identifier
@@ -2168,11 +2144,6 @@ class Flexshare extends Engine
             $file->delete();
 
         $file->create('root', 'root', '0644');
-
-        $samba_conf = new File(Samba::FILE_CONFIG);
-
-        if (! $samba_conf->exists())
-            throw new Engine_Exception(lang('base_file_not_found') . ' (' . Samba::FILE_CONFIG . ')');
 
         $shares = $this->get_share_summary(FALSE);
         $linestoadd = '';
@@ -2242,13 +2213,7 @@ class Flexshare extends Engine
         // Make sure Samba has flexshare include
         //--------------------------------------
 
-        $smb_conf = new File(self::FILE_SMB_CONF);
-
-        try {
-            $smb_conf->replace_lines('/#.*include.*flexshare.conf/', "include = /etc/samba/flexshare.conf\n");
-        } catch (File_No_Match_Exception $e) {
-            // Not fatal
-        }
+        $samba->add_include('/etc/samba/flexshare.conf');
 
         // Validate smbd configuration
         //----------------------------

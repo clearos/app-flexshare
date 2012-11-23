@@ -113,7 +113,7 @@ class File extends ClearOS_Controller
         //---------------
 
         $this->lang->load('flexshare');
-        $this->load->library('samba/Samba');
+        $this->load->library('samba_common/Samba');
         $this->load->library('flexshare/Flexshare');
 
         // Handle form submit
