@@ -9,6 +9,11 @@
 /usr/sbin/addsudo /bin/mount app-flexshare-api
 /usr/sbin/addsudo /bin/umount app-flexshare-api
 
+# Initialize storage
+#-------------------
+
+/usr/sbin/storage
+
 # Reload clearsyncd
 #------------------
 

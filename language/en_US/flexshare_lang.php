@@ -11,6 +11,7 @@ $lang['flexshare_override_defaults'] = 'Override Defaults';
 $lang['flexshare_passive_mode'] = 'Passive Mode';
 $lang['flexshare_passive_mode_from_port'] = 'Passive Mode From Port';
 $lang['flexshare_passive_mode_to_port'] = 'Passive Mode To Port';
+$lang['flexshare_flexshare_storage'] = 'Flexshare Storage';
 
 
 $lang['flexshare_app_description'] = 'Flexshares are flexible share resources that allow an administrator to quickly and easily define data sharing, collaboration and access areas via web, file, FTP and/or e-mail (as attachments).';
@@ -97,3 +98,4 @@ $lang['flexshare_email_acl_address_is_invalid'] = 'Invalid e-mail - one address 
 $lang['flexshare_port_invalid'] = 'Port is invalid.';
 $lang['flexshare_port_range_invalid'] = 'Port range in invalid.';
 $lang['flexshare_options'] = 'Options';
+$lang['flexshare_flexshare_storage'] = 'Flexshare Storage';

@@ -1,7 +1,7 @@
 
 Name: app-flexshare
 Epoch: 1
-Version: 1.4.5
+Version: 1.4.7
 Release: 1%{dist}
 Summary: Flexshare
 License: GPLv3
@@ -20,6 +20,7 @@ License: LGPLv3
 Group: ClearOS/Libraries
 Requires: app-base-core
 Requires: app-mode-core
+Requires: app-storage-core
 Requires: csplugin-filewatch
 Requires: app-certificate-manager
 
@@ -41,6 +42,7 @@ install -d -m 0755 %{buildroot}/var/flexshare
 install -d -m 0755 %{buildroot}/var/flexshare/shares
 install -D -m 0644 packaging/filewatch-flexshare-network.conf %{buildroot}/etc/clearsync.d/filewatch-flexshare-network.conf
 install -D -m 0600 packaging/flexshare.conf %{buildroot}/etc/clearos/flexshare.conf
+install -D -m 0644 packaging/flexshare_default.conf %{buildroot}/etc/clearos/storage.d/flexshare_default.conf
 install -D -m 0755 packaging/updateflexperms %{buildroot}/usr/sbin/updateflexperms
 
 %post
@@ -89,4 +91,5 @@ exit 0
 /usr/clearos/apps/flexshare/libraries
 /etc/clearsync.d/filewatch-flexshare-network.conf
 %config(noreplace) /etc/clearos/flexshare.conf
+/etc/clearos/storage.d/flexshare_default.conf
 /usr/sbin/updateflexperms
