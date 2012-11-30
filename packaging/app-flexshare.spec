@@ -20,7 +20,7 @@ License: LGPLv3
 Group: ClearOS/Libraries
 Requires: app-base-core
 Requires: app-mode-core
-Requires: app-storage-core
+Requires: app-storage-core >= 1:1.4.7
 Requires: csplugin-filewatch
 Requires: app-certificate-manager
 
