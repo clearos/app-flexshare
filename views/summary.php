@@ -43,7 +43,8 @@ $this->lang->load('flexshare');
 $headers = array(
     lang('flexshare_name'),
     lang('flexshare_group'),
-    lang('flexshare_options')
+    lang('flexshare_options'),
+    lang('base_enabled')
 );
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -81,7 +82,8 @@ foreach ($flexshares as $share) {
     $item['details'] = array(
         $share['Name'],
         $share['Group'],
-        $images
+        $images,
+        ($share['Enabled'] ? '<div style=\'margin-left: 20;\' class=\'theme-field-checkbox-enabled\'></div>' : '')
     );
 
     $items[] = $item;

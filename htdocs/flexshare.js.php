@@ -127,6 +127,10 @@ function email_check_save() {
 }
 
 $(document).ready(function() {
+    if ($(location).attr('href').match('.*/flexshare/summary/.*')) {
+        if ($('#enabled').val() != 1)
+            $('#enabled_text').css('color', 'red');
+    }
     // FTP
     if ($(location).attr('href').match('.*/ftp/.*')) {
         $('#port').attr('style', 'width: 50');
