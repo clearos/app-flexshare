@@ -206,7 +206,7 @@ class Share extends ClearOS_Controller
         //-------------------
 
         if (($this->input->post('submit') && $form_ok)) {
-            $share = ($this->input->post('name')) ? $this->input->post('name') : $share;
+            $share = ($this->input->post('name')) ? strtolower($this->input->post('name')) : $share;
             $directory = ($this->input->post('directory')) ? $this->input->post('directory') : '';
 
             // If directory is set to default path, tack on the share name
@@ -228,9 +228,9 @@ class Share extends ClearOS_Controller
                         $this->input->post('group'),
                         $directory
                     );
-                    $this->flexshare->set_share_state($this->input->post('name'), TRUE);
+                    $this->flexshare->set_share_state(strtolower($this->input->post('name')), TRUE);
 
-                    redirect('/flexshare/summary/' . $this->input->post('name'));
+                    redirect('/flexshare/summary/' . strtolower($this->input->post('name')));
                 }
 
             } catch (Exception $e) {
