@@ -65,9 +65,6 @@ class Web extends ClearOS_Controller
 
     function index($share)
     {
-        if (empty($share))
-            $share = $this->session->userdata('flexshare');
-
         $this->_form($share, 'summary');
     }
 

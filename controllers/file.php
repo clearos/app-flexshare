@@ -65,10 +65,6 @@ class File extends ClearOS_Controller
 
     function index($share)
     {
-        // See comment in share.php
-        if (empty($share))
-            $share = $this->session->userdata('flexshare');
-
         $this->_form($share, 'summary');
     }
 

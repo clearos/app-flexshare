@@ -110,26 +110,40 @@ class Flexshare extends ClearOS_Controller
         // Load views
         //-----------
 
-        // TODO: view_controllers does not support passing parameters.
-        // It should!  In the meantime, we use a session variable as a dirty workaround
-
-        $this->session->set_userdata('flexshare', $share);
-
         $views = array();
 
-        $views[] = 'flexshare/share';
+        $details['controller'] = 'flexshare/share';
+        $details['method'] = 'index';
+        $details['params'] = $share;
+
+        $views[] = $details;
 
         if (clearos_library_installed('samba_common/Samba')) {
             $this->load->library('samba_common/Samba');
-            if ($this->samba->is_file_server())
-                $views[] = 'flexshare/file';
+            if ($this->samba->is_file_server()) {
+                $details['controller'] = 'flexshare/file';
+                $details['method'] = 'index';
+                $details['params'] = $share;
+
+                $views[] = $details;
+            }
         }
 
-        if (clearos_library_installed('ftp/ProFTPd'))
-            $views[] = 'flexshare/ftp';
+        if (clearos_library_installed('ftp/ProFTPd')) {
+            $details['controller'] = 'flexshare/ftp';
+            $details['method'] = 'index';
+            $details['params'] = $share;
 
-        if (clearos_library_installed('web_server/Httpd'))
-            $views[] = 'flexshare/web';
+            $views[] = $details;
+        }
+
+        if (clearos_library_installed('web_server/Httpd')) {
+            $details['controller'] = 'flexshare/web';
+            $details['method'] = 'index';
+            $details['params'] = $share;
+
+            $views[] = $details;
+        }
 
         $this->page->view_controllers($views, lang('flexshare_summary'));
     }
