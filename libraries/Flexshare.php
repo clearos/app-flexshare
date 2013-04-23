@@ -2725,6 +2725,11 @@ class Flexshare extends Engine
                     $newlines[] = "Listen *:$port\n";
                 if ($case != self::CASE_HTTP)
                     $newlines[] = "NameVirtualHost *:$port\n";
+
+                $newlines[] = "# Authentication mechanism";
+                $newlines[] = "DefineExternalAuth pwauth pipe /usr/bin/pwauth";
+                $newlines[] = "DefineExternalGroup pwauth pipe /usr/bin/unixgroup";
+                $newlines[] = "";
             }
 
             // cgi-bin Alias must come first.
