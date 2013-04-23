@@ -2616,6 +2616,15 @@ class Flexshare extends Engine
             $file->create('root', 'root', '0644');
             $file->dump_contents_from_array($newlines);
         }
+
+        if ($config_ok) {
+            try {
+                $proftpd = new ProFTPd();
+                $proftpd->reset(TRUE);
+            } catch (Exception $e) {
+                // Keep going
+            }
+        }
     }
 
     /**
@@ -2917,8 +2926,16 @@ class Flexshare extends Engine
             }
         }
 
-        if (! $config_ok)
+        if ($config_ok) {
+            try {
+                $httpd = new Httpd();
+                $httpd->reset(TRUE);
+            } catch (Exception $e) {
+                // Keep going
+            }
+        } else {
             throw new Engine_Exception(lang('flexshare_config_validation_failed'), CLEAROS_ERROR);
+        }
     }
 
     /**
