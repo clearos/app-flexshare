@@ -3,9 +3,9 @@
 /**
  * Flexshare controller.
  *
- * @category   Apps
- * @package    Flexshare
- * @subpackage Controllers
+ * @category   apps
+ * @package    flexshare
+ * @subpackage controllers
  * @author     ClearFoundation <developer@clearfoundation.com>
  * @copyright  2011 ClearFoundation
  * @license    http://www.gnu.org/copyleft/gpl.html GNU General Public License version 3 or later
@@ -42,9 +42,9 @@ use \Exception as Exception;
 /**
  * Flexshare controller.
  *
- * @category   Apps
- * @package    Flexshare
- * @subpackage Controllers
+ * @category   apps
+ * @package    flexshare
+ * @subpackage controllers
  * @author     ClearFoundation <developer@clearfoundation.com>
  * @copyright  2011 ClearFoundation
  * @license    http://www.gnu.org/copyleft/gpl.html GNU General Public License version 3 or later

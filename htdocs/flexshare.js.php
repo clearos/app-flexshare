@@ -3,9 +3,9 @@
 /**
  * Javascript helper for Flexshare.
  *
- * @category   Apps
- * @package    Flexshare
- * @subpackage Javascript
+ * @category   apps
+ * @package    flexshare
+ * @subpackage javascript
  * @author     ClearFoundation <developer@clearcenter.com>
  * @copyright  2011 ClearFoundation
  * @license    http://www.gnu.org/copyleft/gpl.html GNU General Public License version 3 or later

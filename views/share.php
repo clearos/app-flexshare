@@ -3,9 +3,9 @@
 /**
  * Flexshare add/edit view.
  *
- * @category   Apps
- * @package    Flexshare
- * @subpackage Views
+ * @category   apps
+ * @package    flexshare
+ * @subpackage views
  * @author     ClearFoundation <developer@clearfoundation.com>
  * @copyright  2011 ClearFoundation
  * @license    http://www.gnu.org/copyleft/gpl.html GNU General Public License version 3 or later
