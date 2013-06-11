@@ -43,7 +43,7 @@ if ($form_type === 'edit') {
     $read_only = FALSE;
     $buttons = array(
         form_submit_update('submit'),
-        anchor_cancel('/app/flexshare/summary/' . $share['Name']),
+        anchor_cancel('/app/flexshare/shares/summary/' . $share['Name']),
     );
 } else {
     $read_only = TRUE;

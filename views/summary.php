@@ -61,12 +61,12 @@ foreach ($flexshares as $share) {
 
     $state = ($share['Enabled']) ? 'disable' : 'enable';
     $buttons = array(
-        anchor_edit('/app/flexshare/summary/' . $share['Name']),
+        anchor_edit('/app/flexshare/shares/summary/' . $share['Name']),
         anchor_delete('/app/flexshare/share/delete/' . $share['Name'])
     );
 
     $item['title'] = $share['Name'];
-    $item['action'] = '/app/flexshare/summary/' . $share['Name'];
+    $item['action'] = '/app/flexshare/shares/summary/' . $share['Name'];
     $item['anchors'] = button_set($buttons);
     $images = '';
 

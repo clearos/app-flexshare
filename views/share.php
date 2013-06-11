@@ -46,7 +46,7 @@ if ($form_type === 'edit') {
     $form_path = '/flexshare/share/edit/'. $name;
     $buttons = array(
         form_submit_update('submit'),
-        anchor_cancel('/app/flexshare/summary/' . $name)
+        anchor_cancel('/app/flexshare/shares/summary/' . $name)
     );
 } else if ($form_type === 'view') {
     $read_only = TRUE;

@@ -7,7 +7,7 @@
  * @package    flexshare
  * @subpackage controllers
  * @author     ClearFoundation <developer@clearfoundation.com>
- * @copyright  2011 ClearFoundation
+ * @copyright  2013 ClearFoundation
  * @license    http://www.gnu.org/copyleft/gpl.html GNU General Public License version 3 or later
  * @link       http://www.clearfoundation.com/docs/developer/apps/flexshare/
  */
@@ -30,12 +30,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////
-// D E P E N D E N C I E S
-///////////////////////////////////////////////////////////////////////////////
-
-use \Exception as Exception;
-
-///////////////////////////////////////////////////////////////////////////////
 // C L A S S
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -46,7 +40,7 @@ use \Exception as Exception;
  * @package    flexshare
  * @subpackage controllers
  * @author     ClearFoundation <developer@clearfoundation.com>
- * @copyright  2011 ClearFoundation
+ * @copyright  2013 ClearFoundation
  * @license    http://www.gnu.org/copyleft/gpl.html GNU General Public License version 3 or later
  * @link       http://www.clearfoundation.com/docs/developer/apps/flexshare/
  */
@@ -54,97 +48,24 @@ use \Exception as Exception;
 class Flexshare extends ClearOS_Controller
 {
     /**
-     * Flexshare server overview.
+     * Flexshare summary view.
      *
      * @return view
      */
 
     function index()
     {
-        // Show account status widget if we're not in a happy state
-        //---------------------------------------------------------
-
-        $this->load->module('accounts/status');
-
-        if ($this->status->unhappy()) {
-            $this->status->widget('flexshare');
-            return;
-        }
-
-        // Load libraries
-        //---------------
-
-        $this->lang->load('flexshare');
-        $this->load->library('flexshare/Flexshare');
-
-        // Load view data
-        //---------------
-
-        try {
-            $data['flexshares'] = $this->flexshare->get_share_summary();
-        } catch (Exception $e) {
-            $this->page->set_message(clearos_exception_message($e));
-        }
- 
-        // Load views
-        //-----------
-
-        $this->page->view_form('summary', $data, lang('flexshare_flexshare'));
-    }
-
-    /**
-     * Flexshare summary view.
-     *
-     * @param string $share share name
-     *
-     * @return view
-     */
-
-    function summary($share)
-    {
         // Load libraries
         //---------------
 
         $this->lang->load('flexshare');
 
-        // Load views
-        //-----------
+        // Load controllers
+        //-----------------
 
-        $views = array();
+        // $controllers = array('flexshare/shares', 'flexshare/web_apps');
+        $controllers = array('flexshare/shares');
 
-        $details['controller'] = 'flexshare/share';
-        $details['method'] = 'index';
-        $details['params'] = $share;
-
-        $views[] = $details;
-
-        if (clearos_library_installed('samba_common/Samba')) {
-            $this->load->library('samba_common/Samba');
-            if ($this->samba->is_file_server()) {
-                $details['controller'] = 'flexshare/file';
-                $details['method'] = 'index';
-                $details['params'] = $share;
-
-                $views[] = $details;
-            }
-        }
-
-        if (clearos_library_installed('ftp/ProFTPd')) {
-            $details['controller'] = 'flexshare/ftp';
-            $details['method'] = 'index';
-            $details['params'] = $share;
-
-            $views[] = $details;
-        }
-
-        if (clearos_library_installed('web_server/Httpd')) {
-            $details['controller'] = 'flexshare/web';
-            $details['method'] = 'index';
-            $details['params'] = $share;
-
-            $views[] = $details;
-        }
-
-        $this->page->view_controllers($views, lang('flexshare_summary'));
+        $this->page->view_controllers($controllers, lang('flexshare_app_name'));
     }
 }
