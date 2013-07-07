@@ -127,7 +127,7 @@ class File extends ClearOS_Controller
                 $this->flexshare->set_file_audit_log($share, $this->input->post('audit_log'));
                 $this->flexshare->set_file_enabled($share, $this->input->post('enabled'));
 
-                redirect('/flexshare/summary/' . $share);
+                redirect('/flexshare/shares/summary/' . $share);
             } catch (Exception $e) {
                 $this->page->set_message(clearos_exception_message($e));
             }

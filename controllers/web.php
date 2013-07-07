@@ -156,7 +156,7 @@ class Web extends ClearOS_Controller
                 // Set enabled after all parameters have been set
                 $this->flexshare->set_web_enabled($share, $this->input->post('enabled'));
 
-                redirect('/flexshare/summary/'. $share);
+                redirect('/flexshare/shares/summary/'. $share);
             } catch (Exception $e) {
                 $this->page->set_message(clearos_exception_message($e));
             }

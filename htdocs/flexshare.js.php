@@ -127,7 +127,7 @@ function email_check_save() {
 }
 
 $(document).ready(function() {
-    if ($(location).attr('href').match('.*/flexshare/summary/.*')) {
+    if ($(location).attr('href').match('.*/flexshare/shares/summary/.*')) {
         if ($('#enabled').val() != 1)
             $('#enabled_text').css('color', 'red');
     }
