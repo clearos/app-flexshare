@@ -127,6 +127,7 @@ class Flexshare extends Engine
     const FILE_FSTAB_CONFIG = '/etc/fstab';
     const PATH_ROOT = '/var/flexshare';
     const PATH_TEMP = '/var/tmp';
+    const PATH_CONFIGLET = '/etc/clearos/flexshare.d';
     const FILE_INITIALIZED = '/var/clearos/flexshare/initialized';
     const SHARE_PATH = '/var/flexshare/shares';
     const HTTPD_LOG_PATH = '/var/log/httpd';
@@ -2976,59 +2977,70 @@ class Flexshare extends Engine
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $share = array('WebEnabled' => 0, 'FtpEnabled' => 0, 'FileEnabled' => 0, 'EmailEnabled' => 0);
         $shares = array();
 
-        $file = new File(self::FILE_CONFIG);
+        $folder = new Folder(self::PATH_CONFIGLET);
+        $configlets = $folder->get_recursive_listing();
 
-        if (! $file->exists())
-            return $shares;
+        $configs = array(self::FILE_CONFIG);
 
-        $lines = $file->get_contents_as_array();
+        foreach ($configlets as $configlet) {
+            if (preg_match('/\.conf$/', $configlet))
+                $configs[] = self::PATH_CONFIGLET . '/' . $configlet;
+        }
+                
+        foreach ($configs as $config_file) {
+            $file = new File($config_file);
 
-        $match = array();
+            if (!$file->exists())
+                continue;
 
-        foreach ($lines as $line) {
-            if (preg_match(self::REGEX_OPEN, $line, $match)) {
-                $share['Name'] = $match[1];
-            } elseif (preg_match(self::REGEX_SHARE_DESC, $line, $match)) {
-                $share['Description'] = $match[1];
-            } elseif (preg_match(self::REGEX_SHARE_GROUP, $line, $match)) {
-                $share['Group'] = $match[1];
-            } elseif (preg_match(self::REGEX_SHARE_CREATED, $line, $match)) {
-                $share['Created'] = $match[1];
-            } elseif (preg_match(self::REGEX_SHARE_ENABLED, $line, $match)) {
-                $share['Enabled'] = $match[1];
-            } elseif (preg_match("/^\s*ShareDir*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['Dir'] = $match[1];
-            } elseif (preg_match("/^\s*ShareInternal*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['Internal'] = $match[1];
-            } elseif (preg_match("/^\s*WebEnabled*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['WebEnabled'] = $match[1];
-            } elseif (preg_match("/^\s*FtpEnabled*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['FtpEnabled'] = $match[1];
-            } elseif (preg_match("/^\s*FileEnabled*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['FileEnabled'] = $match[1];
-            } elseif (preg_match("/^\s*EmailEnabled*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['EmailEnabled'] = $match[1];
-            } elseif (preg_match("/^\s*WebModified*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['WebModified'] = $match[1];
-            } elseif (preg_match("/^\s*FtpModified*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['FtpModified'] = $match[1];
-            } elseif (preg_match("/^\s*FileModified*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['FileModified'] = $match[1];
-            } elseif (preg_match("/^\s*EmailModified*\s*=\s*(.*$)/i", $line, $match)) {
-                $share['EmailModified'] = $match[1];
-            } elseif (preg_match(self::REGEX_CLOSE, $line)) {
-                if (($type === self::TYPE_ALL)
-                    || (($type === self::TYPE_FILE_SHARE) && empty($share['Internal']))
-                    || (($type === self::TYPE_WEB_SITE) && ($share['Internal'] == 1))
-                    || (($type === self::TYPE_WEB_APP) && ($share['Internal'] == 2))
-                    ) {
-                    $shares[] = $share;
+            $lines = $file->get_contents_as_array();
+
+            $match = array();
+
+            foreach ($lines as $line) {
+                if (preg_match(self::REGEX_OPEN, $line, $match)) {
+                    $share['Name'] = $match[1];
+                } elseif (preg_match(self::REGEX_SHARE_DESC, $line, $match)) {
+                    $share['Description'] = $match[1];
+                } elseif (preg_match(self::REGEX_SHARE_GROUP, $line, $match)) {
+                    $share['Group'] = $match[1];
+                } elseif (preg_match(self::REGEX_SHARE_CREATED, $line, $match)) {
+                    $share['Created'] = $match[1];
+                } elseif (preg_match(self::REGEX_SHARE_ENABLED, $line, $match)) {
+                    $share['Enabled'] = $match[1];
+                } elseif (preg_match("/^\s*ShareDir*\s*=\s*(.*$)/i", $line, $match)) {
+                    $share['Dir'] = $match[1];
+                } elseif (preg_match("/^\s*ShareInternal*\s*=\s*(.*$)/i", $line, $match)) {
+                    $share['Internal'] = $match[1];
+                } elseif (preg_match("/^\s*WebEnabled*\s*=\s*(.*$)/i", $line, $match)) {
+                    $share['WebEnabled'] = $match[1];
+                } elseif (preg_match("/^\s*FtpEnabled*\s*=\s*(.*$)/i", $line, $match)) {
+                    $share['FtpEnabled'] = $match[1];
+                } elseif (preg_match("/^\s*FileEnabled*\s*=\s*(.*$)/i", $line, $match)) {
+                    $share['FileEnabled'] = $match[1];
+                } elseif (preg_match("/^\s*EmailEnabled*\s*=\s*(.*$)/i", $line, $match)) {
+                    $share['EmailEnabled'] = $match[1];
+                } elseif (preg_match("/^\s*WebModified*\s*=\s*(.*$)/i", $line, $match)) {
+                    $share['WebModified'] = $match[1];
+                } elseif (preg_match("/^\s*FtpModified*\s*=\s*(.*$)/i", $line, $match)) {
+                    $share['FtpModified'] = $match[1];
+                } elseif (preg_match("/^\s*FileModified*\s*=\s*(.*$)/i", $line, $match)) {
+                    $share['FileModified'] = $match[1];
+                } elseif (preg_match("/^\s*EmailModified*\s*=\s*(.*$)/i", $line, $match)) {
+                    $share['EmailModified'] = $match[1];
+                } elseif (preg_match(self::REGEX_CLOSE, $line)) {
+                    if (($type === self::TYPE_ALL)
+                        || (($type === self::TYPE_FILE_SHARE) && empty($share['Internal']))
+                        || (($type === self::TYPE_WEB_SITE) && ($share['Internal'] == 1))
+                        || (($type === self::TYPE_WEB_APP) && ($share['Internal'] == 2))
+                        ) {
+                        $shares[] = $share;
+                    }
+
+                    $share = array('WebEnabled' => 0, 'FtpEnabled' => 0, 'FileEnabled' => 0, 'EmailEnabled' => 0);
                 }
-
-                unset($share);
             }
         }
 
