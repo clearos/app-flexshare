@@ -149,11 +149,6 @@ class Flexshare extends Engine
     const DEFAULT_PORT_FTPS = 900;
     const DEFAULT_PORT_FTPES = 900;
     const DEFAULT_SSI_PARAM = 'IncludesNOExec';
-    const REGEX_SHARE_DESC = '/^\s*ShareDescription\s*=\s*(.*$)/i';
-    const REGEX_SHARE_GROUP = '/^\s*ShareGroup\s*=\s*(.*$)/i';
-    const REGEX_SHARE_DIR = '/^\s*ShareDir\s*=\s*(.*$)/i';
-    const REGEX_SHARE_CREATED = '/^\s*ShareCreated\s*=\s*(.*$)/i';
-    const REGEX_SHARE_ENABLED = '/^\s*ShareEnabled\s*=\s*(.*$)/i';
     const REGEX_OPEN = '/^<Share\s(.*)>$/i';
     const REGEX_CLOSE = '/^<\/Share>$/i';
     const ACCESS_LAN = 0;
@@ -421,34 +416,14 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         $share = array();
+        $shares = $this->_get_shares(self::TYPE_ALL);
 
-        $file = new File(self::FILE_CONFIG);
-
-        if (! $file->exists())
-            throw new File_Not_Found_Exception(self::FILE_CONFIG, CLEAROS_ERROR);
-
-        $lines = $file->get_contents_as_array();
-
-        $found = FALSE;
-        $match = array();
-
-        $regex = "/^\s*([[:alpha:]]+)\s*=\s*(.*$)/i";
-        foreach ($lines as $line) {
-            if (preg_match(self::REGEX_OPEN, $line, $match)) {
-                if (trim($match[1]) == trim($name)) {
-                    $found = TRUE;
-                    $share['Name'] = $match[1];
-                } else {
-                    continue;
-                }
-            } elseif ($found && preg_match($regex, $line, $match)) {
-                $share[$match[1]] = $match[2];
-            } elseif ($found && preg_match(self::REGEX_CLOSE, $line)) {
-                break;
-            }
+        foreach ($shares as $details) {
+            if ($details['Name'] === $name)
+                $share = $details;
         }
 
-        if (!$found)
+        if (empty($share))
             throw new Flexshare_Not_Found_Exception($name, CLEAROS_INFO);
 
         return $share;
@@ -488,9 +463,9 @@ class Flexshare extends Engine
 
         // Custom
         try {
-            $custom_data = $this->_get_parameter(NULL, 'FlexshareDirCustom');
+            $custom_data = $this->_get_global_parameter('FlexshareDirCustom');
             if (! empty($custom_data)) {
-                $list = preg_split("/\\|/", $this->_get_parameter(NULL, 'FlexshareDirCustom'));
+                $list = preg_split("/\\|/", $this->_get_global_parameter('FlexshareDirCustom'));
                 foreach ($list as $custom) {
                     list ($desc, $path) = preg_split("/:/", $custom);
                     $options[$path] = $desc . ' (' . $path . ")\n";
@@ -1554,7 +1529,7 @@ class Flexshare extends Engine
         $shares = $this->get_share_summary(FALSE);
 
         foreach ($shares as $detail)
-            $this->_update_folder_attributes($detail['Dir'], $detail['Group']);
+            $this->_update_folder_attributes($detail['ShareDir'], $detail['ShareGroup']);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -2935,7 +2910,32 @@ class Flexshare extends Engine
     }
 
     /**
-     * Generic get paramter routine.
+     * Generic get global parameter routine.
+     *
+     * @param string $key key name
+     *
+     * @return string
+     * @throws Engine_Exception, File_Not_Found_Exception, Flexshare_Parameter_Not_Found_Exception
+     */
+
+    protected function _get_global_parameter($key)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        try {
+            $file = new File(self::FILE_CONFIG);
+            $retval = $file->lookup_value("/^\s*$key\s*=\s*/i");
+        } catch (File_Not_Found_Exception $e) {
+            throw new File_Not_Found_Exception($file->get_filename());
+        } catch (File_No_Match_Exception $e) {
+            throw new Flexshare_Parameter_Not_Found_Exception($key);
+        }
+
+        return $retval;
+    }
+
+    /**
+     * Generic get share parameter routine.
      *
      * @param string $name flexshare name
      * @param string $key  key name
@@ -2948,20 +2948,12 @@ class Flexshare extends Engine
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        try {
-            $file = new File(self::FILE_CONFIG);
+        $share_info = $this->get_share($name);
 
-            if ($name == NULL)
-                $retval = $file->lookup_value("/^\s*$key\s*=\s*/i");
-            else
-                $retval = $file->lookup_value_between("/^\s*$key\s*=\s*/i", "/<Share $name>/", "/<\/Share>/");
-        } catch (File_Not_Found_Exception $e) {
-            throw new File_Not_Found_Exception($file->get_filename());
-        } catch (File_No_Match_Exception $e) {
+        if (empty($share_info[$key]))
             throw new Flexshare_Parameter_Not_Found_Exception($key);
-        }
-
-        return $retval;
+        else
+            return $share_info[$key];
     }
 
     /**
@@ -3002,40 +2994,15 @@ class Flexshare extends Engine
             foreach ($lines as $line) {
                 if (preg_match(self::REGEX_OPEN, $line, $match)) {
                     $share['Name'] = $match[1];
-                } elseif (preg_match(self::REGEX_SHARE_DESC, $line, $match)) {
-                    $share['Description'] = $match[1];
-                } elseif (preg_match(self::REGEX_SHARE_GROUP, $line, $match)) {
-                    $share['Group'] = $match[1];
-                } elseif (preg_match(self::REGEX_SHARE_CREATED, $line, $match)) {
-                    $share['Created'] = $match[1];
-                } elseif (preg_match(self::REGEX_SHARE_ENABLED, $line, $match)) {
-                    $share['Enabled'] = $match[1];
-                } elseif (preg_match("/^\s*ShareDir*\s*=\s*(.*$)/i", $line, $match)) {
-                    $share['Dir'] = $match[1];
-                } elseif (preg_match("/^\s*ShareInternal*\s*=\s*(.*$)/i", $line, $match)) {
-                    $share['Internal'] = $match[1];
-                } elseif (preg_match("/^\s*WebEnabled*\s*=\s*(.*$)/i", $line, $match)) {
-                    $share['WebEnabled'] = $match[1];
-                } elseif (preg_match("/^\s*FtpEnabled*\s*=\s*(.*$)/i", $line, $match)) {
-                    $share['FtpEnabled'] = $match[1];
-                } elseif (preg_match("/^\s*FileEnabled*\s*=\s*(.*$)/i", $line, $match)) {
-                    $share['FileEnabled'] = $match[1];
-                } elseif (preg_match("/^\s*EmailEnabled*\s*=\s*(.*$)/i", $line, $match)) {
-                    $share['EmailEnabled'] = $match[1];
-                } elseif (preg_match("/^\s*WebModified*\s*=\s*(.*$)/i", $line, $match)) {
-                    $share['WebModified'] = $match[1];
-                } elseif (preg_match("/^\s*FtpModified*\s*=\s*(.*$)/i", $line, $match)) {
-                    $share['FtpModified'] = $match[1];
-                } elseif (preg_match("/^\s*FileModified*\s*=\s*(.*$)/i", $line, $match)) {
-                    $share['FileModified'] = $match[1];
-                } elseif (preg_match("/^\s*EmailModified*\s*=\s*(.*$)/i", $line, $match)) {
-                    $share['EmailModified'] = $match[1];
+                } elseif (preg_match("/^\s*([[:alpha:]]+)\s*=\s*(.*$)/i", $line, $match)) {
+                    $share[$match[1]] = $match[2];
                 } elseif (preg_match(self::REGEX_CLOSE, $line)) {
                     if (($type === self::TYPE_ALL)
-                        || (($type === self::TYPE_FILE_SHARE) && empty($share['Internal']))
-                        || (($type === self::TYPE_WEB_SITE) && ($share['Internal'] == 1))
-                        || (($type === self::TYPE_WEB_APP) && ($share['Internal'] == 2))
+                        || (($type === self::TYPE_FILE_SHARE) && empty($share['ShareInternal']))
+                        || (($type === self::TYPE_WEB_SITE) && ($share['ShareInternal'] == 1))
+                        || (($type === self::TYPE_WEB_APP) && ($share['ShareInternal'] == 2))
                         ) {
+                        $share['ShareConfig'] = $config_file;
                         $shares[] = $share;
                     }
 
@@ -3062,54 +3029,44 @@ class Flexshare extends Engine
     {
         clearos_profile(__METHOD__, __LINE__);
 
+        // Grab location of configuration (flexshare.conf or configlet) 
+        $config_file = $this->_get_parameter($name, 'ShareConfig');
+
         // Convert carriage returns
         $value = preg_replace("/\n/", "", $value);
 
         // Update tag if it exists
         try {
             $match = FALSE;
-            $file = new File(self::FILE_CONFIG);
+            $file = new File($config_file);
 
-            if ($name == NULL) {
-                $needle = "/^\s*$key\s*=\s*/i";
-                $match = $file->replace_lines($needle, "$key=$value\n");
-            } else {
-                $needle = "/^\s*$key\s*=\s*/i";
-                $match = $file->replace_lines_between($needle, "  $key=$value\n", "/<Share $name>/", "/<\/Share>/");
-            }
+            $needle = "/^\s*$key\s*=\s*/i";
+            $match = $file->replace_lines_between($needle, "  $key=$value\n", "/<Share $name>/", "/<\/Share>/");
         } catch (File_No_Match_Exception $e) {
             // Do nothing
-        } catch (Exception $e) {
-            throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
         }
 
         // If tag does not exist, add it
-        if (! $match && $name == NULL)
-            $file->add_lines_after("$key=$value\n", "/#*./");
-        elseif (! $match)
+        if (! $match)
             $file->add_lines_after("  $key=$value\n", "/<Share $name>/");
 
         // Update last modified
-        if ($name != NULL) {
-            if (preg_match("/^Web/", $key))
-                $lastmod = "WebModified";
-            else if (preg_match("/^Ftp/", $key))
-                $lastmod = "FtpModified";
-            else if (preg_match("/^File/", $key))
-                $lastmod = "FileModified";
-            else if (preg_match("/^Email/", $key))
-                $lastmod = "EmailModified";
-            else
-                return;
+        if (preg_match("/^Web/", $key))
+            $lastmod = "WebModified";
+        else if (preg_match("/^Ftp/", $key))
+            $lastmod = "FtpModified";
+        else if (preg_match("/^File/", $key))
+            $lastmod = "FileModified";
+        else if (preg_match("/^Email/", $key))
+            $lastmod = "EmailModified";
+        else
+            return;
 
-            try {
-                $mod = "  " . $lastmod . "=" . time() . "\n";
-                $file->replace_lines_between("/" . $lastmod . "/", $mod, "/<Share $name>/", "/<\/Share>/");
-            } catch (File_No_Match_Exception $e) {
-                $file->add_lines_after($mod, "/<Share $name>/");
-            } catch (Exception $e) {
-                throw new Engine_Exception(clearos_exception_message($e), CLEAROS_ERROR);
-            }
+        try {
+            $mod = "  " . $lastmod . "=" . time() . "\n";
+            $file->replace_lines_between("/" . $lastmod . "/", $mod, "/<Share $name>/", "/<\/Share>/");
+        } catch (File_No_Match_Exception $e) {
+            $file->add_lines_after($mod, "/<Share $name>/");
         }
     }
 

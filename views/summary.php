@@ -59,7 +59,7 @@ $anchors = array(anchor_add('/app/flexshare/share/add'));
 
 foreach ($flexshares as $share) {
 
-    $state = ($share['Enabled']) ? 'disable' : 'enable';
+    $state = ($share['ShareEnabled']) ? 'disable' : 'enable';
     $buttons = array(
         anchor_edit('/app/flexshare/shares/summary/' . $share['Name']),
         anchor_delete('/app/flexshare/share/delete/' . $share['Name'])
@@ -81,9 +81,9 @@ foreach ($flexshares as $share) {
 
     $item['details'] = array(
         $share['Name'],
-        $share['Group'],
+        $share['ShareGroup'],
         $images,
-        ($share['Enabled'] ? '<div style=\'margin-left: 20;\' class=\'theme-field-checkbox-enabled\'></div>' : '')
+        ($share['ShareEnabled'] ? '<div style=\'margin-left: 20;\' class=\'theme-field-checkbox-enabled\'></div>' : '')
     );
 
     $items[] = $item;

@@ -34,6 +34,7 @@ $app['core_requires'] = array(
 );
 
 $app['core_directory_manifest'] = array(
+    '/etc/clearos/flexshare.d' => array(),
     '/var/flexshare' => array(),
     '/var/flexshare/shares' => array(),
     '/var/clearos/flexshare' => array(),
