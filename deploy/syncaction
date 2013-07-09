@@ -1,6 +1,0 @@
-#!/bin/sh
-
-# FIXME - overkill - remove
-/usr/clearos/apps/flexshare/deploy/set-file-permissions >/dev/null 2>&1
-
-exit 0
