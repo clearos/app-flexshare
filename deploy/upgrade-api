@@ -37,6 +37,7 @@ $shares = $flexshare->get_share_summary();
 try { 
     foreach ($shares as $share => $details) {
         // If ShareDir is set to /var/flexshare/shares (wrong) then set it to the default.
+        // Tracker #605
         if ($details['ShareDir'] == '/var/flexshare/shares')
             $flexshare->set_directory($details['Name'], NULL);
 

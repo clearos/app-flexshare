@@ -24,5 +24,7 @@ if [ "$CHECKOWNERSHIP" != "root.root" ]; then
     chown root.root $DIR
 fi
 
-# Fixed tracker #605
-/usr/clearos/apps/flexshare/deploy/fix-share-dir
+# Run PHP upgrade script
+#-----------------------
+
+/usr/clearos/apps/flexshare/deploy/upgrade-api
