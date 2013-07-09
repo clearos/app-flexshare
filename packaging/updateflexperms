@@ -3,12 +3,12 @@
 # Sanity check parameters
 #------------------------
 
-if ( [ -z "$1" ] || [ -z "$2" ] ); then
-	echo "usage: $0 <flexshare-path> <owner>"
+if ( [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] ); then
+	echo "usage: $0 <flexshare-path> <owner> <group>"
 	exit 1
 fi
 
-SANITYCHECK=`grep "^[[:space:]]*ShareDir=$1$" /etc/clearos/flexshare.conf 2>/dev/null`
+SANITYCHECK=`grep "^[[:space:]]*ShareDir=$1$" /etc/clearos/flexshare.conf /etc/clearos/flexshare.d/*.conf 2>/dev/null`
 
 if [ -z "$SANITYCHECK" ]; then
 	echo "flexshare is invalid: $1"
@@ -16,33 +16,16 @@ if [ -z "$SANITYCHECK" ]; then
 fi
 
 # Set file permissions
-#
-# A flexshare can be owned by either a group or a user.
-# This adds some complexity to the file permissions.
-#------------------------------------------------------
+#---------------------
 
-ISUSER=`id $2 2>/dev/null`
+USER=$2
+GROUP=$3
+DIRPERMS="0775"
 
-# Make sure group ownership is correct ("scp" users tend to forget this")
-if [ -n "$ISUSER" ]; then
-	USER=$2
-	GROUP="allusers"
-	TOPGROUP="nobody"
-	DIRPERMS="755"
-else
-	USER="flexshares"
-	GROUP=$2
-	TOPGROUP=$2
-	DIRPERMS="775"
-fi
-
-if [ -n "$ISUSER" ]; then
-	find $1 -not -user $USER -not -name .flexshare-* -exec chown $USER '{}' \;
-fi
-
+find $1 -not -user $USER -not -name .flexshare-* -exec chown $USER '{}' \;
 find $1 -not -group $GROUP -not -name .flexshare-* -exec chgrp $GROUP '{}' \;
 
-chown $USER.$TOPGROUP "$1"
+chown $USER.$GROUP "$1"
 chmod $DIRPERMS "$1"
 
 # Cosmetic - change .trash folder owner

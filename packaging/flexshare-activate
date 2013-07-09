@@ -1,0 +1,83 @@
+#!/usr/clearos/sandbox/usr/bin/php
+<?php
+
+/**
+ * Flexshare activate script for configlets.
+ *
+ * @category   apps
+ * @package    flexshare
+ * @subpackage scripts
+ * @author     ClearFoundation <developer@clearfoundation.com>
+ * @copyright  2013 ClearFoundation
+ * @license    http://www.gnu.org/copyleft/lgpl.html GNU Lesser General Public License version 3 or later
+ * @link       http://www.clearfoundation.com/docs/developer/apps/flexshare/
+ */
+
+///////////////////////////////////////////////////////////////////////////////
+// B O O T S T R A P
+///////////////////////////////////////////////////////////////////////////////
+
+$bootstrap = getenv('CLEAROS_BOOTSTRAP') ? getenv('CLEAROS_BOOTSTRAP') : '/usr/clearos/framework/shared';
+require_once $bootstrap . '/bootstrap.php';
+
+///////////////////////////////////////////////////////////////////////////////
+// T R A N S L A T I O N S
+///////////////////////////////////////////////////////////////////////////////
+
+clearos_load_language('flexshare');
+
+///////////////////////////////////////////////////////////////////////////////
+// D E P E N D E N C I E S
+///////////////////////////////////////////////////////////////////////////////
+
+use \clearos\apps\flexshare\Flexshare as Flexshare;
+
+clearos_load_library('flexshare/Flexshare');
+
+///////////////////////////////////////////////////////////////////////////////
+// O P T I O N S
+///////////////////////////////////////////////////////////////////////////////
+
+$short_options = '';
+$short_options .= 'n:'; // Share
+$short_options .= 'h';  // Help
+
+$help_options  = '';
+$help_options .= "  -n: Flexshare name\n";
+$help_options .= "\n";
+$help_options .= "  -h: Help\n";
+
+$options = getopt($short_options);
+
+$help = isset($options['h']) ? TRUE : FALSE;
+$name = isset($options['n']) ? $options['n'] : '';
+
+///////////////////////////////////////////////////////////////////////////////
+// M A I N
+///////////////////////////////////////////////////////////////////////////////
+
+
+// Basic usage stuff
+//------------------
+
+if ($help) {
+    echo "usage: " . $argv[0] . " [options]\n";
+    echo $help_options;
+    exit(0);
+}
+
+// Handle command line options
+//----------------------------
+
+$flexshare = new Flexshare();
+
+while (empty($name)) {
+    echo 'Flexshare name (e.g. myshare): ';
+    $name = trim(fgets(STDIN));
+}
+
+if ($flexshare->exists($name)) {
+    $flexshare->activate($name);
+} else {
+    echo lang('flexshare_share_not_found') . "\n";
+}

@@ -102,13 +102,6 @@ echo field_input('passive_min_port', $share['FtpPassivePortMin'], lang('flexshar
 echo field_input('passive_max_port', $share['FtpPassivePortMax'], lang('flexshare_passive_mode_to_port'), TRUE);
 echo fieldset_footer();
 
-/* TODO: see if anyone really needs this */
-/* 
-echo field_toggle_enable_disable('allow_anonymous', $share['FtpAllowAnonymous'], lang('flexshare_allow_anonymous'), $read_only);
-echo field_dropdown('anonymous_permission', $anonymous_permission_options, $share['FtpAnonymousPermission'], lang('flexshare_anonymous_permissions'), $read_only);
-echo field_textarea('anonymous_greeting', $share['FtpAnonymousGreeting'], lang('flexshare_anonymous_greeting'), $read_only);
-*/
-
 echo field_button_set($buttons);
 
 echo form_footer();

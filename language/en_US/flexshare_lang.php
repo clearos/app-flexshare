@@ -99,3 +99,4 @@ $lang['flexshare_port_invalid'] = 'Port is invalid.';
 $lang['flexshare_port_range_invalid'] = 'Port range in invalid.';
 $lang['flexshare_options'] = 'Options';
 $lang['flexshare_flexshare_storage'] = 'Flexshare Storage';
+$lang['flexshare_share_not_found'] = 'Share not found.';

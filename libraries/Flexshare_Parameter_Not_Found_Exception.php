@@ -71,12 +71,11 @@ class Flexshare_Parameter_Not_Found_Exception extends Engine_Exception
     /**
      * Flexshare_Parameter_Not_Found_Exception constructor.
      *
-     * @param string  $errmsg error message
-     * @param integer $code   error code
+     * @param integer $key paramter key
      */
 
-    public function __construct($errmsg, $code)
+    public function __construct($key)
     {
-        parent::__construct($errmsg, $code);
+        parent::__construct(lang('base_match_not_found_in_file') . ' (' . $key . ')', CLEAROS_WARNING);
     }
 }
