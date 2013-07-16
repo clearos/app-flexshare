@@ -305,7 +305,7 @@ class Flexshare extends Engine
 
         if (! $folder->exists()) {
             $folder_owner = (empty($internal)) ? self::CONSTANT_FILES_USERNAME : self::CONSTANT_WEB_APP_USERNAME;
-            $folder->create($file_owner, $group, '0775');
+            $folder->create($folder_owner, $group, '0775');
         }
 
         // Add it
@@ -368,6 +368,7 @@ class Flexshare extends Engine
         $lines = $file->get_contents_as_array();
         $found = FALSE;
         $match = array();
+        $new_lines = '';
 
         foreach ($lines as $line) {
             if (preg_match(self::REGEX_OPEN, $line, $match) && $match[1] == $name) {
@@ -380,9 +381,10 @@ class Flexshare extends Engine
             if ($found)
                 continue;
 
-            $newfile->add_lines($line);
+            $new_lines .= "$line\n";
         }
 
+        $newfile->add_lines($new_lines);
         $newfile->move_to(self::FILE_CONFIG);
 
         $this->shares = NULL; // Force a configuration reload
@@ -475,6 +477,22 @@ class Flexshare extends Engine
     }
 
     /**
+     * Returns a list of Flexshares.
+     *
+     * @param string $type type of Flexshare
+     *
+     * @return array summary of Flexshares
+     * @throws Engine_Exception
+     */
+
+    function get_shares($type = self::TYPE_FILE_SHARE)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        return $this->_get_shares($type);
+    }
+
+    /**
      * Returns a list of defined Flexshares.
      *
      * @param boolean $hide_internal hide internal shares
@@ -550,34 +568,6 @@ class Flexshare extends Engine
         );
 
         return $options;
-    }
-
-    /**
-     * Returns a list of web app type Flexshares.
-     *
-     * @return array summary of web app type Flexshares
-     * @throws Engine_Exception
-     */
-
-    function get_web_apps()
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        return $this->_get_shares(self::TYPE_WEB_APP);
-    }
-
-    /**
-     * Returns a list of web site type Flexshares.
-     *
-     * @return array summary of web site type Flexshares
-     * @throws Engine_Exception
-     */
-
-    function get_web_sites()
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        return $this->_get_shares(self::TYPE_WEB_SITE);
     }
 
     /**
@@ -812,6 +802,25 @@ class Flexshare extends Engine
 
         $this->_set_parameter($name, 'WebEnabled', ($enabled ? 1: 0));
         $this->_generate_web_flexshares();
+    }
+
+    /**
+     * Sets the server alias of web-based access.
+     *
+     * @param string $name         flexshare name
+     * @param string $server_alias server alias
+     *
+     * @return void
+     * @throws Validation_Exception, Engine_Exception
+     */
+
+    function set_web_server_alias($name, $server_alias)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        Validation_Exception::is_valid($this->validate_web_server_alias($server_alias));
+
+        $this->_set_parameter($name, 'WebServerAlias', $server_alias);
     }
 
     /**
@@ -1249,9 +1258,6 @@ class Flexshare extends Engine
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        // Validate
-        // --------
-
         if ($allow_passive)
             Validation_Exception::is_valid($this->validate_passive_port_range($port_min, $port_max));
 
@@ -1510,6 +1516,64 @@ class Flexshare extends Engine
             $this->_update_folder_attributes($detail['ShareDir'], $detail['ShareOwner'], $detail['ShareGroup']);
     }
 
+    /**
+     * Upgrades virtual hosts implementation.
+     *
+     * See tracker #1219 for more information
+     *
+     * @return void
+     */
+
+    public function upgrade_virtual_hosts()
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $shares = $this->_get_shares(self::TYPE_WEB_SITE);
+
+        foreach ($shares as $name => $share) {
+            if ($share['WebEnabled'] == FALSE) {
+                clearos_log('flexshare', 'converting web server virtual host: ' . $name);
+
+                // Load old configuration files
+                //-----------------------------
+                try {
+                    if (empty($share['WebDefaultSite']))
+                        $vhost_filename = 'virtual.' . $name . '.conf';
+                    else
+                        $vhost_filename = 'clearos.default.conf';
+
+                    $file = new File(self::WEB_VIRTUAL_HOST_PATH . '/' . $vhost_filename);
+                    $alias = $file->lookup_value('/\s*ServerAlias\s*/');
+                } catch (File_No_Match_Exception $e) {
+                    $alias = '';
+                } catch (File_Not_Found_Exception $e) {
+                    $alias = '';
+                }
+
+                // Set sane defaults to match existing capabilities
+                //-------------------------------------------------
+
+                $this->set_web_access($name, self::ACCESS_ALL);
+                $this->set_web_allow_ssi($name, TRUE);
+                $this->set_web_cgi($name, FALSE);
+                $this->set_web_follow_symlinks($name, TRUE);
+                $this->set_web_htaccess_override($name, TRUE);
+                $this->set_web_override_port($name, FALSE, 80);
+                $this->set_web_php($name, TRUE);
+                $this->set_web_realm($name, $share['ShareDescription']);
+                $this->set_web_require_authentication($name, FALSE);
+
+                // FIXME: this seems to be enable/disable now ?
+                // $this->set_web_require_ssl($name, $state);
+                
+                $this->set_web_server_alias($name, $alias);
+                $this->set_web_server_name($name, $name);
+                $this->set_web_show_index($name, TRUE);
+                $this->set_web_enabled($name, TRUE);
+            }
+        }
+    }
+
     ///////////////////////////////////////////////////////////////////////////////
     // V A L I D A T I O N   M E T H O D S
     ///////////////////////////////////////////////////////////////////////////////
@@ -1633,6 +1697,26 @@ class Flexshare extends Engine
     }
 
     /**
+     * Validation routine for web server alias.
+     *
+     * @param string $server_alias web server alias
+     *
+     * @return mixed void if web server alias is valid, errmsg otherwise
+     */
+
+    function validate_web_server_alias($server_alias)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        if (!clearos_library_installed('web_server/Httpd'))
+            return;
+
+        $httpd = new Httpd();
+
+        return $httpd->validate_aliases($server_alias);
+    }
+
+    /**
      * Validation routine for web server name.
      *
      * @param string $server_name web server name
@@ -1648,6 +1732,7 @@ class Flexshare extends Engine
             return;
 
         $httpd = new Httpd();
+
         return $httpd->validate_server_name($server_name);
     }
 
@@ -2514,12 +2599,25 @@ class Flexshare extends Engine
             $index++;
         }
 
-        $shares = $this->_get_shares(self::TYPE_ALL);
+        // Make sure default web site is first virtual host!
+        $raw_shares = $this->_get_shares(self::TYPE_ALL);
+
+        $shares = array();
+
+        foreach ($raw_shares as $name => $share) {
+            if (empty($share['WebDefaultSite']))
+                $shares[] = $share;
+            else
+                array_unshift($shares, $share);
+        }
 
         // Recreate all virtual configs
+        $lans = NULL;
         $newlines = array();
 
-        foreach ($shares as $name => $share) {
+        foreach ($shares as $share) {
+            $name = $share['Name'];
+
             // Reset our loop variables
             unset($newlines);
 
@@ -2551,10 +2649,7 @@ class Flexshare extends Engine
 
             $ext = '.conf';
 
-            // Interface
-            $lans = array();
-
-            if ($share['WebAccess'] == self::ACCESS_LAN) {
+            if (($share['WebAccess'] == self::ACCESS_LAN) && ($lans === NULL)) {
                 $ifacemanager = new Iface_Manager();
                 $lans = $ifacemanager->get_most_trusted_networks();
             }
@@ -2584,6 +2679,27 @@ class Flexshare extends Engine
                 $newlines[] = "";
             }
 
+            // Legacy: some slight differences in behavior due to the old virtual host handling
+            if (empty($share['ShareInternal'])) {
+                $server_name = $name . '.' . trim($share['WebServerName']);
+                $document_root = self::SHARE_PATH . "/$name";
+                $access_log = trim($share['WebServerName']) . '_access_log common';
+                $error_log = trim($share['WebServerName']) . '_error_log';
+            } else {
+                $server_name = trim($share['WebServerName']);
+                $document_root = $share['ShareDir'];
+
+                if (empty($share['WebDefaultSite'])) {
+                    $access_log = trim($share['WebServerName']) . '_access_log combined';
+                    $error_log = trim($share['WebServerName']) . '_error_log';
+                } else {
+                    $access_log = 'access_log combined';
+                    $error_log = 'error_log';
+                }
+            }
+
+            $newlines[] = "";
+
             // cgi-bin Alias must come first.
             if ($share['WebCgi']) {
                 $cgifolder = new Folder(self::SHARE_PATH . "/$name/cgi-bin/");
@@ -2598,15 +2714,20 @@ class Flexshare extends Engine
             $newlines[] = "Alias /flexshare/$name " . self::SHARE_PATH . "/$name\n";
 
             $newlines[] = "<VirtualHost *:$port>";
-            $newlines[] = "\tServerName " . $name . '.' . trim($share['WebServerName']);
-            $newlines[] = "\tDocumentRoot " . self::SHARE_PATH . "/$name";
+            $newlines[] = "\tServerName " . $server_name;
+
+            if (!empty($share['WebServerAlias']))
+                $newlines[] = "\tServerAlias " . trim($share['WebServerAlias']);
+
+            $newlines[] = "\tDocumentRoot " . $document_root;
 
             if ($share['WebCgi'])
                 $newlines[] = "\tScriptAlias /cgi-bin/ " . self::SHARE_PATH . "/$name/cgi-bin/";
 
             // Logging
-            $newlines[] = "\tErrorLog " . self::HTTPD_LOG_PATH . "/" . trim($share['WebServerName']) . "_error_log";
-            $newlines[] = "\tCustomLog " . self::HTTPD_LOG_PATH . "/" .  trim($share['WebServerName']) . "_access_log common";
+
+            $newlines[] = "\tErrorLog " . self::HTTPD_LOG_PATH . "/" . $error_log;
+            $newlines[] = "\tCustomLog " . self::HTTPD_LOG_PATH . "/" . $access_log;
 
             if ($share['WebReqSsl']) {
                 $newlines[] = "\tSSLEngine on\n" .
@@ -2874,6 +2995,7 @@ class Flexshare extends Engine
                         // ShareConfig and ShareOwner are implied fields
                         $share['ShareConfig'] = $config_file;
                         $share['ShareOwner'] = ($share['ShareInternal'] == 2) ?  self::CONSTANT_WEB_APP_USERNAME : self::CONSTANT_FILES_USERNAME;
+                        $share['WebDefaultSite'] = ($share['ShareDir'] == '/var/www/html') ? 1 : 0;
 
                         $shares[$share['Name']] = $share;
 
