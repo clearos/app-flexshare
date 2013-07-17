@@ -783,6 +783,44 @@ class Flexshare extends Engine
     ////////////////////
 
     /**
+     * Sets the directory alias of web-based access.
+     *
+     * @param string $name  flexshare name
+     * @param string $alias directory alias
+     *
+     * @return void
+     * @throws Validation_Exception, Engine_Exception
+     */
+
+    function set_web_directory_alias($name, $alias)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        Validation_Exception::is_valid($this->validate_web_directory_alias($alias));
+
+        $this->_set_parameter($name, 'WebDirectoryAlias', $alias);
+    }
+
+    /**
+     * Sets the directory alias of web-based access.
+     *
+     * @param string $name  flexshare name
+     * @param string $alias directory alias
+     *
+     * @return void
+     * @throws Validation_Exception, Engine_Exception
+     */
+
+    function set_web_directory_alias_alternate($name, $alias)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        Validation_Exception::is_valid($this->validate_web_directory_alias($alias));
+
+        $this->_set_parameter($name, 'WebDirectoryAliasAlternate', $alias);
+    }
+
+    /**
      * Sets the enabled of web-based access.
      *
      * @param string $name    flexshare name
@@ -824,6 +862,25 @@ class Flexshare extends Engine
     }
 
     /**
+     * Sets the alternate server alias of web-based access.
+     *
+     * @param string $name         flexshare name
+     * @param string $server_alias server alias
+     *
+     * @return void
+     * @throws Validation_Exception, Engine_Exception
+     */
+
+    function set_web_server_alias_alternate($name, $server_alias)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        Validation_Exception::is_valid($this->validate_web_server_alias($server_alias));
+
+        $this->_set_parameter($name, 'WebServerAliasAlternate', $server_alias);
+    }
+
+    /**
      * Sets the server name of web-based access.
      *
      * @param string $name        flexshare name
@@ -840,6 +897,25 @@ class Flexshare extends Engine
         Validation_Exception::is_valid($this->validate_web_server_name($server_name));
 
         $this->_set_parameter($name, 'WebServerName', $server_name);
+    }
+
+    /**
+     * Sets the alternate server name of web-based access.
+     *
+     * @param string $name        flexshare name
+     * @param string $server_name server name
+     *
+     * @return void
+     * @throws Validation_Exception, Engine_Exception
+     */
+
+    function set_web_server_name_alternate($name, $server_name)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        Validation_Exception::is_valid($this->validate_web_server_name($server_name));
+
+        $this->_set_parameter($name, 'WebServerNameAlternate', $server_name);
     }
 
     /**
@@ -1697,6 +1773,21 @@ class Flexshare extends Engine
     }
 
     /**
+     * Validation routine for web directory alias.
+     *
+     * @param string $alias directory alias
+     *
+     * @return mixed void if directory alias is valid, errmsg otherwise
+     */
+
+    function validate_web_directory_alias($alias)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        return;
+    }
+
+    /**
      * Validation routine for web server alias.
      *
      * @param string $server_alias web server alias
@@ -2445,7 +2536,7 @@ class Flexshare extends Engine
 
             // Add flexshare specific directory directives
             $newlines[] = "\t# DNR:Webconfig start - $name";
-            $newlines[] = "\t<Directory " . self::SHARE_PATH . "/$name>";
+            $newlines[] = "\t<Directory " . $share['ShareDir'] . ">";
             $newlines[] = "\t\tAllowOverwrite " . $group_write;
             $newlines[] = "\t\tAllowRetrieveRestart on";
             $newlines[] = "\t\tAllowStoreRestart on";
@@ -2680,14 +2771,34 @@ class Flexshare extends Engine
             }
 
             // Legacy: some slight differences in behavior due to the old virtual host handling
+            $server_names = array();
+            $server_aliases = array();
+            $share_aliases = array();
+            $document_roots = array();
+
             if (empty($share['ShareInternal'])) {
-                $server_name = $name . '.' . trim($share['WebServerName']);
-                $document_root = self::SHARE_PATH . "/$name";
+                $server_names[] = $name . '.' . trim($share['WebServerName']);
+                $server_aliases[] = trim($share['WebServerAlias']);
+                $share_aliases[] = "/flexshare/$name";
+                $document_roots[] = self::SHARE_PATH . "/$name";
                 $access_log = trim($share['WebServerName']) . '_access_log common';
                 $error_log = trim($share['WebServerName']) . '_error_log';
+            } else if ($share['ShareInternal'] == 2) {
+                $server_names[] = trim($share['WebServerName']);
+                $server_names[] = trim($share['WebServerNameAlternate']);
+                $server_aliases[] = trim($share['WebServerAlias']);
+                $server_aliases[] = trim($share['WebServerAliasAlternate']);
+                $share_aliases[] = trim($share['WebDirectoryAlias']);
+                $share_aliases[] = trim($share['WebDirectoryAliasAlternate']);
+                $document_roots[] = $share['ShareDir'] . '/live';
+                $document_roots[] = $share['ShareDir'] . '/test';
+                $access_log = trim($share['WebServerName']) . '_access_log combined';
+                $error_log = trim($share['WebServerName']) . '_error_log';
             } else {
-                $server_name = trim($share['WebServerName']);
-                $document_root = $share['ShareDir'];
+                $server_names[] = trim($share['WebServerName']);
+                $server_aliases[] = trim($share['WebServerAlias']);
+                $share_aliases[] = "/flexshare/$name";
+                $document_roots[] = $share['ShareDir'];
 
                 if (empty($share['WebDefaultSite'])) {
                     $access_log = trim($share['WebServerName']) . '_access_log combined';
@@ -2711,44 +2822,52 @@ class Flexshare extends Engine
                 $newlines[] = "ScriptAlias /flexshare/$name/cgi-bin/ " . self::SHARE_PATH . "/$name/cgi-bin/";
             }
 
-            $newlines[] = "Alias /flexshare/$name " . self::SHARE_PATH . "/$name\n";
+            $inx = 0;
 
-            $newlines[] = "<VirtualHost *:$port>";
-            $newlines[] = "\tServerName " . $server_name;
+            foreach ($server_names as $server_name) {
+                if ($share['ShareInternal'] == 2)
+                    $newlines[] = "Alias " . $share_aliases[$inx] . " " . $document_roots[$inx] . "\n";
+                else
+                    $newlines[] = "Alias " . $share_aliases[$inx] . " " . self::SHARE_PATH . "/$name\n";
 
-            if (!empty($share['WebServerAlias']))
-                $newlines[] = "\tServerAlias " . trim($share['WebServerAlias']);
+                $newlines[] = "<VirtualHost *:$port>";
+                $newlines[] = "\tServerName " . $server_name;
 
-            $newlines[] = "\tDocumentRoot " . $document_root;
+                if (!empty($share['WebServerAlias']))
+                    $newlines[] = "\tServerAlias " . $server_aliases[$inx];
 
-            if ($share['WebCgi'])
-                $newlines[] = "\tScriptAlias /cgi-bin/ " . self::SHARE_PATH . "/$name/cgi-bin/";
+                $newlines[] = "\tDocumentRoot " . $document_roots[$inx];
+                $inx++;
 
-            // Logging
+                if ($share['WebCgi'])
+                    $newlines[] = "\tScriptAlias /cgi-bin/ " . self::SHARE_PATH . "/$name/cgi-bin/";
 
-            $newlines[] = "\tErrorLog " . self::HTTPD_LOG_PATH . "/" . $error_log;
-            $newlines[] = "\tCustomLog " . self::HTTPD_LOG_PATH . "/" . $access_log;
+                // Logging
 
-            if ($share['WebReqSsl']) {
-                $newlines[] = "\tSSLEngine on\n" .
-                    "\tSSLCertificateFile /etc/pki/tls/certs/localhost.crt\n" .
-                    "\tSSLCertificateKeyFile /etc/pki/tls/private/localhost.key\n" .
-                    "\t# No weak export crypto allowed\n" .
-                    "\t# SSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP:+eNULL\n" .
-                    "\tSSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:!EXP:+eNULL\n" .
-                    "\tSetEnvIf User-Agent \".*MSIE.*\" " .
-                    "nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0";
+                $newlines[] = "\tErrorLog " . self::HTTPD_LOG_PATH . "/" . $error_log;
+                $newlines[] = "\tCustomLog " . self::HTTPD_LOG_PATH . "/" . $access_log;
+
+                if ($share['WebReqSsl']) {
+                    $newlines[] = "\tSSLEngine on\n" .
+                        "\tSSLCertificateFile /etc/pki/tls/certs/localhost.crt\n" .
+                        "\tSSLCertificateKeyFile /etc/pki/tls/private/localhost.key\n" .
+                        "\t# No weak export crypto allowed\n" .
+                        "\t# SSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP:+eNULL\n" .
+                        "\tSSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:!EXP:+eNULL\n" .
+                        "\tSetEnvIf User-Agent \".*MSIE.*\" " .
+                        "nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0";
+                }
+
+                if ($share['WebReqAuth']) {
+                    $newlines[] = "\tDefineExternalAuth pwauth pipe /usr/bin/pwauth";
+                    $newlines[] = "\tDefineExternalGroup pwauth pipe /usr/bin/unixgroup";
+                }
+
+                $newlines[] = "</VirtualHost>\n";
             }
-
-            if ($share['WebReqAuth']) {
-                $newlines[] = "\tDefineExternalAuth pwauth pipe /usr/bin/pwauth";
-                $newlines[] = "\tDefineExternalGroup pwauth pipe /usr/bin/unixgroup";
-            }
-
-            $newlines[] = "</VirtualHost>\n";
 
             if ($share['WebCgi']) {
-                $newlines[] = "<Directory " . self::SHARE_PATH . "/$name/cgi-bin>";
+                $newlines[] = "<Directory " . $share['ShareDir'] . "/cgi-bin>";
                 $newlines[] = "\tOptions +ExecCGI";
                 if ($share["WebAccess"] == self::ACCESS_LAN) {
                     $newlines[] = "\tOrder Deny,Allow";
@@ -2762,7 +2881,7 @@ class Flexshare extends Engine
                 $newlines[] = "</Directory>\n";
             }
 
-            $newlines[] = "<Directory " . self::SHARE_PATH . "/$name>";
+            $newlines[] = "<Directory " . $share['ShareDir'] . ">";
                 $options = '';
 
             if ($share['WebShowIndex'])
