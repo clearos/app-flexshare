@@ -2693,15 +2693,14 @@ protected function _generate_web_flexshares()
     foreach ($shares as $share) {
         $name = $share['Name'];
 
-        // Reset our loop variables
-        unset($newlines);
-
+        $newlines = array();
         $config_doc_comment = array();
         $config_aliases = array();
-        $config_virtual_host = array();
         $config_directory = array();
 
-        // If not enabled, continue through loop - we're re-creating lines here
+        // Bail if not enabled, continue through loop - we're re-creating lines here
+        //--------------------------------------------------------------------------
+
         if (! isset($share['ShareEnabled']) || ! $share['ShareEnabled'])
             continue;
 
@@ -2716,67 +2715,15 @@ protected function _generate_web_flexshares()
             $lans = $iface_manager->get_most_trusted_networks();
         }
 
-        // Need to know which file we'll be writing to.
-        // We determine this by port
-        // i.e. /etc/httpd/conf.d/flexshare-<port>.conf
+        // Configuration doc comments
+        //---------------------------
 
-        // Port and extension
-        //-------------------
-
-        if (empty($share['ShareInternal'])) {
-            if ($share['WebOverridePort']) {
-                $ports = array($share['WebPort']);
-                $ssl = ($share['WebReqSsl']) ? '-ssl' : '';
-            } else {
-                $ports = (isset($share['WebReqSsl']) && $share['WebReqSsl']) ? array(443) : array(80);
-                $ssl = '';
-            }
-        } else {
-            $ports = array(80);
-            $ssl = '';
-        }
-
-        // Legacy: some slight differences in behavior due to the old virtual host handling
-        $server_names = array();
-        $server_aliases = array();
-        $share_aliases = array();
-        $document_roots = array();
-
-        if (empty($share['ShareInternal'])) {
-            $server_names[] = $name . '.' . trim($share['WebServerName']);
-            $server_aliases[] = empty($share['WebServerAlias']) ? '' : trim($share['WebServerAlias']);
-            $share_aliases[] = "/flexshare/$name";
-            $document_roots[] = self::SHARE_PATH . "/$name";
-            $doc_comment = 'File Share';
-            $access_log = trim($share['WebServerName']) . '_access_log common';
-            $error_log = trim($share['WebServerName']) . '_error_log';
-        } else if ($share['ShareInternal'] == 2) {
-            $server_names[] = trim($share['WebServerName']);
-            $server_names[] = trim($share['WebServerNameAlternate']);
-            $server_aliases[] = trim($share['WebServerAlias']);
-            $server_aliases[] = trim($share['WebServerAliasAlternate']);
-            $share_aliases[] = trim($share['WebDirectoryAlias']);
-            $share_aliases[] = trim($share['WebDirectoryAliasAlternate']);
-            $document_roots[] = $share['ShareDir'] . '/live';
-            $document_roots[] = $share['ShareDir'] . '/test';
-            $doc_comment = 'Web App';
-            $access_log = trim($share['WebServerName']) . '_access_log combined';
-            $error_log = trim($share['WebServerName']) . '_error_log';
-        } else {
-            $server_names[] = trim($share['WebServerName']);
-            $server_aliases[] = trim($share['WebServerAlias']);
-            $share_aliases[] = "/flexshare/$name";
-            $document_roots[] = $share['ShareDir'];
+        if ($share['ShareInternal'] == 1)
             $doc_comment = 'Web Site';
-
-            if (empty($share['WebDefaultSite'])) {
-                $access_log = trim($share['WebServerName']) . '_access_log combined';
-                $error_log = trim($share['WebServerName']) . '_error_log';
-            } else {
-                $access_log = 'access_log combined';
-                $error_log = 'error_log';
-            }
-        }
+        else if ($share['ShareInternal'] == 2)
+            $doc_comment = 'Web App';
+        else
+            $doc_comment = 'File Share';
 
         $config_doc_comment[] = "";
         $config_doc_comment[] = "# -----------------------------------------------#";
@@ -2784,64 +2731,20 @@ protected function _generate_web_flexshares()
         $config_doc_comment[] = "# -----------------------------------------------#";
         $config_doc_comment[] = "";
 
-        // cgi-bin Alias must come first.
+        // cgi-bin handling
+        //-----------------
+
         if ($share['WebCgi']) {
+            // Create cgi-bin directory if it does not exist // TODO: review for web apps
             $cgifolder = new Folder(self::SHARE_PATH . "/$name/cgi-bin/");
 
-            // FIXME: review for web apps
             if (!$cgifolder->exists())
                 $cgifolder->create(self::CONSTANT_FILES_USERNAME, self::CONSTANT_FILES_USERNAME, "0777");
 
-            $config_aliases[] = "ScriptAlias /flexshare/$name/cgi-bin/ " . self::SHARE_PATH . "/$name/cgi-bin/";
-        }
-
-        $inx = 0;
-
-        foreach ($server_names as $server_name) {
-            if (empty($share['ShareInternal']))
-                $config_aliases[] = "Alias " . $share_aliases[$inx] . " " . self::SHARE_PATH . "/$name\n";
-            else if ($share['ShareInternal'] == 2)
-                $config_aliases[] = "Alias " . $share_aliases[$inx] . " " . $document_roots[$inx] . "\n";
-
-            $config_virtual_host[] = "<VirtualHost *:PORT_NUMBER>"; // See TODO below
-            $config_virtual_host[] = "\tServerName " . $server_name;
-
-            if (!empty($share['WebServerAlias']))
-                $config_virtual_host[] = "\tServerAlias " . $server_aliases[$inx];
-
-            $config_virtual_host[] = "\tDocumentRoot " . $document_roots[$inx];
-            $inx++;
-
-            if ($share['WebCgi'])
-                $config_virtual_host[] = "\tScriptAlias /cgi-bin/ " . self::SHARE_PATH . "/$name/cgi-bin/";
-
-            // Logging
-
-            $config_virtual_host[] = "\tErrorLog " . self::HTTPD_LOG_PATH . "/" . $error_log;
-            $config_virtual_host[] = "\tCustomLog " . self::HTTPD_LOG_PATH . "/" . $access_log;
-
-            if ($share['WebReqSsl']) {
-                $config_virtual_host[] = "\tSSLEngine on\n" .
-                    "\tSSLCertificateFile /etc/pki/tls/certs/localhost.crt\n" .
-                    "\tSSLCertificateKeyFile /etc/pki/tls/private/localhost.key\n" .
-                    "\t# No weak export crypto allowed\n" .
-                    "\t# SSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP:+eNULL\n" .
-                    "\tSSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:!EXP:+eNULL\n" .
-                    "\tSetEnvIf User-Agent \".*MSIE.*\" " .
-                    "nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0";
-            }
-
-            if ($share['WebReqAuth']) {
-                $config_virtual_host[] = "\tDefineExternalAuth pwauth pipe /usr/bin/pwauth";
-                $config_virtual_host[] = "\tDefineExternalGroup pwauth pipe /usr/bin/unixgroup";
-            }
-
-            $config_virtual_host[] = "</VirtualHost>\n";
-        }
-
-        if ($share['WebCgi']) {
+            // Build <Directory> block for for cgi-bin
             $config_directory[] = "<Directory " . $share['ShareDir'] . "/cgi-bin>";
             $config_directory[] = "\tOptions +ExecCGI";
+
             if ($share["WebAccess"] == self::ACCESS_LAN) {
                 $config_directory[] = "\tOrder Deny,Allow";
                 $config_directory[] = "\tDeny from all";
@@ -2852,8 +2755,12 @@ protected function _generate_web_flexshares()
                     $config_directory[] = "\tAllow from " . $allow_list;
                 }
             }
+
             $config_directory[] = "</Directory>\n";
         }
+
+        // Build <Directory> block
+        //-------------------------
 
         $config_directory[] = "<Directory " . $share['ShareDir'] . ">";
             $options = '';
@@ -2934,14 +2841,44 @@ protected function _generate_web_flexshares()
 
             $config_directory[] = "</Directory>\n\n\n";
 
+            // Ports
+            //
+            // For standard Flexshares:
+            // - SSL or non-SSL can be specified, but not both
+            // - End users can override the port number
+            //
+            // For web sites and web apps
+            // - SSL or both SSL + non-SSL can be specified
+            // - End usrs cannot override the prot number
+            //-------------------------------------------------
+            
+            if (empty($share['ShareInternal'])) {
+                if ($share['WebOverridePort'])
+                    $ports = array($share['WebPort']);
+                else
+                    $ports = (isset($share['WebReqSsl']) && $share['WebReqSsl']) ? array(443) : array(80);
+            } else {
+                $ports = (isset($share['WebReqSsl']) && $share['WebReqSsl']) ? array(443) : array(80, 443);
+            }
+
             // Create new configuration files in parallel
             //-------------------------------------------
 
-            $authentication_written = FALSE;
+            $config_one_time = array();
 
             foreach ($ports as $port) {
+                // Need to know which file we'll be writing to.
+                // We determine this by port
+                // i.e. /etc/httpd/conf.d/flexshare-<port><ssl>.conf
+
+                $ssl = (empty($share['ShareInternal']) && $share['WebOverridePort'] && $share['WebReqSsl']) ? '-ssl' : '';
+
                 $filename = self::PREFIX . $port . $ssl . '.conf';
                 $file = new File(self::WEB_VIRTUAL_HOST_PATH . '/' . $filename);
+
+                // Create the configuration file
+                // Write out a common header
+                //-------------------------------
 
                 if (! $file->exists()) {
                     $vhosts[] = $filename;
@@ -2966,17 +2903,28 @@ protected function _generate_web_flexshares()
                     $file->add_lines(implode("\n", $header_lines));
                 }
 
-                // TODO: dirty hack, but keeping the above working logic intact
-                // is more important.  Revisit later.
-                $config_virtual_host_with_port = array();
+                // Write out Aliases and Directory definitions.  This is only
+                // required once per FlexShare, whereas VirtualHost blocks
+                // can appear multiple times.
 
-                foreach ($config_virtual_host as $line)
-                    $config_virtual_host_with_port[] = preg_replace('/PORT_NUMBER/', $port, $line);
+                $check_name = $share['Name'];
+
+                if (in_array($check_name, $config_one_time)) {
+                    $config_aliases = array();
+                    $config_directory = array();
+                } else {
+                    $config_aliases = $this->_generate_web_aliases($share, $port);
+
+                    $config_one_time[] = $check_name;
+                }
+
+                // Create new configuration files in parallel
+                $config_virtual_host = $this->_generate_web_virtual_hosts($share, $port);
 
                 $config_lines = array_merge(
                     $config_doc_comment,
                     $config_aliases,
-                    $config_virtual_host_with_port,
+                    $config_virtual_host,
                     $config_directory
                 );
 
@@ -3006,6 +2954,8 @@ protected function _generate_web_flexshares()
             foreach ($output as $line)
                 clearos_log(self::LOG_TAG, $line);
         }
+// FIXME
+return;
 
         foreach ($vhosts as $vhost) {
             // Not a flexshare vhost file
@@ -3042,6 +2992,160 @@ protected function _generate_web_flexshares()
         } else {
             throw new Engine_Exception(lang('flexshare_config_validation_failed'), CLEAROS_ERROR);
         }
+    }
+
+    /**
+     * Create the Apache configuration files for the specificed flexshare.
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    protected function _generate_web_aliases($share)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $name = $share['Name'];
+        $config_aliases = array();
+
+        // cgi-bin Alias must come first
+
+        if ($share['WebCgi']) 
+            $config_aliases[] = "ScriptAlias /flexshare/$name/cgi-bin/ " . self::SHARE_PATH . "/$name/cgi-bin/";
+
+        if (empty($share['ShareInternal'])) {
+            $server_names[] = $name . '.' . trim($share['WebServerName']);
+            $share_aliases[] = "/flexshare/$name";
+            $document_roots[] = self::SHARE_PATH . "/$name";
+        } else if ($share['ShareInternal'] == 2) {
+            $server_names[] = trim($share['WebServerName']);
+            $server_names[] = trim($share['WebServerNameAlternate']);
+            $share_aliases[] = trim($share['WebDirectoryAlias']);
+            $share_aliases[] = trim($share['WebDirectoryAliasAlternate']);
+            $document_roots[] = $share['ShareDir'] . '/live';
+            $document_roots[] = $share['ShareDir'] . '/test';
+        } else {
+            $server_names[] = trim($share['WebServerName']);
+            $share_aliases[] = "/flexshare/$name";
+            $document_roots[] = $share['ShareDir'];
+        }
+
+        // Build aliases
+        //--------------
+
+        $inx = 0;
+
+        foreach ($server_names as $server_name) {
+            if (empty($share['ShareInternal']))
+                $config_aliases[] = "Alias " . $share_aliases[$inx] . " " . self::SHARE_PATH . "/$name\n";
+            else if ($share['ShareInternal'] == 2)
+                $config_aliases[] = "Alias " . $share_aliases[$inx] . " " . $document_roots[$inx] . "\n";
+
+            $inx++;
+        }
+
+        return $config_aliases;
+    }
+
+    /**
+     * Create the Apache configuration files for the specificed flexshare.
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    protected function _generate_web_virtual_hosts($share, $port)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        // The <VirtualHost> blocks for each type of share (normal, web site, web app)
+        // slightly different (legacy reasons).  The differences are captured in the
+        // the if statement below.
+        //-----------------------------------------------------------------------------
+
+        $name = $share['Name'];
+
+        $server_names = array();
+        $server_aliases = array();
+        $share_aliases = array();
+        $document_roots = array();
+
+        if (empty($share['ShareInternal'])) {
+            $server_names[] = $name . '.' . trim($share['WebServerName']);
+            $server_aliases[] = empty($share['WebServerAlias']) ? '' : trim($share['WebServerAlias']);
+            $share_aliases[] = "/flexshare/$name";
+            $document_roots[] = self::SHARE_PATH . "/$name";
+            $access_log = trim($share['WebServerName']) . '_access_log common';
+            $error_log = trim($share['WebServerName']) . '_error_log';
+        } else if ($share['ShareInternal'] == 2) {
+            $server_names[] = trim($share['WebServerName']);
+            $server_names[] = trim($share['WebServerNameAlternate']);
+            $server_aliases[] = trim($share['WebServerAlias']);
+            $server_aliases[] = trim($share['WebServerAliasAlternate']);
+            $share_aliases[] = trim($share['WebDirectoryAlias']);
+            $share_aliases[] = trim($share['WebDirectoryAliasAlternate']);
+            $document_roots[] = $share['ShareDir'] . '/live';
+            $document_roots[] = $share['ShareDir'] . '/test';
+            $access_log = trim($share['WebServerName']) . '_access_log combined';
+            $error_log = trim($share['WebServerName']) . '_error_log';
+        } else {
+            $server_names[] = trim($share['WebServerName']);
+            $server_aliases[] = trim($share['WebServerAlias']);
+            $share_aliases[] = "/flexshare/$name";
+            $document_roots[] = $share['ShareDir'];
+
+            if (empty($share['WebDefaultSite'])) {
+                $access_log = trim($share['WebServerName']) . '_access_log combined';
+                $error_log = trim($share['WebServerName']) . '_error_log';
+            } else {
+                $access_log = 'access_log combined';
+                $error_log = 'error_log';
+            }
+        }
+
+        // Build VirtualHost block
+        //------------------------
+
+        $inx = 0;
+        $config_virtual_host = array();
+
+        foreach ($server_names as $server_name) {
+            $config_virtual_host[] = "<VirtualHost *:$port>";
+            $config_virtual_host[] = "\tServerName " . $server_name;
+
+            if (!empty($share['WebServerAlias']))
+                $config_virtual_host[] = "\tServerAlias " . $server_aliases[$inx];
+
+            $config_virtual_host[] = "\tDocumentRoot " . $document_roots[$inx];
+
+            if ($share['WebCgi'])
+                $config_virtual_host[] = "\tScriptAlias /cgi-bin/ " . self::SHARE_PATH . "/$name/cgi-bin/";
+
+            $config_virtual_host[] = "\tErrorLog " . self::HTTPD_LOG_PATH . "/" . $error_log;
+            $config_virtual_host[] = "\tCustomLog " . self::HTTPD_LOG_PATH . "/" . $access_log;
+
+            if (($port === 443) || $share['WebReqSsl']) {
+                $config_virtual_host[] = "\tSSLEngine on\n" .
+                    "\tSSLCertificateFile /etc/pki/tls/certs/localhost.crt\n" .
+                    "\tSSLCertificateKeyFile /etc/pki/tls/private/localhost.key\n" .
+                    "\t# No weak export crypto allowed\n" .
+                    "\t# SSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP:+eNULL\n" .
+                    "\tSSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:!EXP:+eNULL\n" .
+                    "\tSetEnvIf User-Agent \".*MSIE.*\" " .
+                    "nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0";
+            }
+
+            if ($share['WebReqAuth']) {
+                $config_virtual_host[] = "\tDefineExternalAuth pwauth pipe /usr/bin/pwauth";
+                $config_virtual_host[] = "\tDefineExternalGroup pwauth pipe /usr/bin/unixgroup";
+            }
+
+            $config_virtual_host[] = "</VirtualHost>\n";
+
+            $inx++;
+        }
+
+        return $config_virtual_host;
     }
 
     /**
