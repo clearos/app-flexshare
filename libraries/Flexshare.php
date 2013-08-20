@@ -1006,7 +1006,7 @@ class Flexshare extends Engine
 
         $shares = $this->_get_shares(self::TYPE_ALL);
 
-        $ssl = $shares[$name]['WebReqSsl'];
+        $ssl = isset($shares[$name]['WebReqSsl']) ? $shares[$name]['WebReqSsl'] : '';
 
         $inuse_ports = array();
 
@@ -1646,6 +1646,9 @@ class Flexshare extends Engine
                 $this->set_web_server_name($name, $name);
                 $this->set_web_show_index($name, TRUE);
                 $this->set_web_enabled($name, TRUE);
+
+                // Delete old file
+                $file->delete();
             }
         }
     }
@@ -2470,6 +2473,8 @@ class Flexshare extends Engine
                     if ($found_start)
                         continue;
 
+                    $linestoadd .= $line . "\n";
+
                     // We need to know if we are working on top of another define or not
                     $append = TRUE;
                 }
@@ -2536,7 +2541,7 @@ class Flexshare extends Engine
 
             // Add flexshare specific directory directives
             $newlines[] = "\t# DNR:Webconfig start - $name";
-            $newlines[] = "\t<Directory " . $share['ShareDir'] . ">";
+            $newlines[] = "\t<Directory " . self::SHARE_PATH . "/$name>";
             $newlines[] = "\t\tAllowOverwrite " . $group_write;
             $newlines[] = "\t\tAllowRetrieveRestart on";
             $newlines[] = "\t\tAllowStoreRestart on";
@@ -2721,7 +2726,7 @@ class Flexshare extends Engine
 
             // Need to know which file we'll be writing to.
             // We determine this by port
-            // Ie. /etc/httpd/conf.d/flexshare<port>.<appropriate extension>
+            // Ie. /etc/httpd/conf.d/flexshare-<port>.conf
 
             // Port and extension
             //-------------------
@@ -2730,15 +2735,9 @@ class Flexshare extends Engine
                 $port = $share['WebPort'];
                 $ssl = ($share['WebReqSsl']) ? '-ssl' : '';
             } else {
-                if ($share['WebReqSsl'])
-                    $port = 443;
-                else
-                    $port = 80;
-
+                $port = (isset($share['WebReqSsl']) && $share['WebReqSsl']) ? 443 : 80;
                 $ssl = '';
             }
-
-            $ext = '.conf';
 
             if (($share['WebAccess'] == self::ACCESS_LAN) && ($lans === NULL)) {
                 $ifacemanager = new Iface_Manager();
@@ -2748,7 +2747,7 @@ class Flexshare extends Engine
             $case = $this->_determine_web_server_case($port, $share['WebReqSsl']);
 
             // Create new file in parallel
-            $filename = self::PREFIX . $port . $ssl . $ext;
+            $filename = self::PREFIX . $port . $ssl . '.conf';
             $file = new File(self::WEB_VIRTUAL_HOST_PATH . '/' . $filename);
 
             if (! $file->exists())
@@ -2778,9 +2777,10 @@ class Flexshare extends Engine
 
             if (empty($share['ShareInternal'])) {
                 $server_names[] = $name . '.' . trim($share['WebServerName']);
-                $server_aliases[] = trim($share['WebServerAlias']);
+                $server_aliases[] = empty($share['WebServerAlias']) ? '' : trim($share['WebServerAlias']);
                 $share_aliases[] = "/flexshare/$name";
                 $document_roots[] = self::SHARE_PATH . "/$name";
+                $doc_comment = 'File Share';
                 $access_log = trim($share['WebServerName']) . '_access_log common';
                 $error_log = trim($share['WebServerName']) . '_error_log';
             } else if ($share['ShareInternal'] == 2) {
@@ -2792,6 +2792,7 @@ class Flexshare extends Engine
                 $share_aliases[] = trim($share['WebDirectoryAliasAlternate']);
                 $document_roots[] = $share['ShareDir'] . '/live';
                 $document_roots[] = $share['ShareDir'] . '/test';
+                $doc_comment = 'Web App';
                 $access_log = trim($share['WebServerName']) . '_access_log combined';
                 $error_log = trim($share['WebServerName']) . '_error_log';
             } else {
@@ -2799,6 +2800,7 @@ class Flexshare extends Engine
                 $server_aliases[] = trim($share['WebServerAlias']);
                 $share_aliases[] = "/flexshare/$name";
                 $document_roots[] = $share['ShareDir'];
+                $doc_comment = 'Web Site';
 
                 if (empty($share['WebDefaultSite'])) {
                     $access_log = trim($share['WebServerName']) . '_access_log combined';
@@ -2809,6 +2811,10 @@ class Flexshare extends Engine
                 }
             }
 
+            $newlines[] = "";
+            $newlines[] = "# -----------------------------------------------#";
+            $newlines[] = "# $doc_comment";
+            $newlines[] = "# -----------------------------------------------#";
             $newlines[] = "";
 
             // cgi-bin Alias must come first.
@@ -2825,10 +2831,10 @@ class Flexshare extends Engine
             $inx = 0;
 
             foreach ($server_names as $server_name) {
-                if ($share['ShareInternal'] == 2)
-                    $newlines[] = "Alias " . $share_aliases[$inx] . " " . $document_roots[$inx] . "\n";
-                else
+                if (empty($share['ShareInternal']))
                     $newlines[] = "Alias " . $share_aliases[$inx] . " " . self::SHARE_PATH . "/$name\n";
+                else if ($share['ShareInternal'] == 2)
+                    $newlines[] = "Alias " . $share_aliases[$inx] . " " . $document_roots[$inx] . "\n";
 
                 $newlines[] = "<VirtualHost *:$port>";
                 $newlines[] = "\tServerName " . $server_name;
@@ -2873,6 +2879,7 @@ class Flexshare extends Engine
                     $newlines[] = "\tOrder Deny,Allow";
                     $newlines[] = "\tDeny from all";
                     if (count($lans) > 0) {
+                        $allow_list = '';
                         foreach ($lans as $lan)
                             $allow_list .= "$lan ";
                         $newlines[] = "\tAllow from " . $allow_list;
@@ -2922,6 +2929,7 @@ class Flexshare extends Engine
                 $newlines[] = "\tDeny from all";
 
                 if (count($lans) > 0) {
+                    $allow_list = '';
                     foreach ($lans as $lan)
                         $allow_list .= "$lan ";
 
@@ -2943,8 +2951,9 @@ class Flexshare extends Engine
                 $newlines[] = "\tAddType application/x-httpd-php-source .php";
             }
 
-            // TODO: the FollowSymLinks requirement is annoying
-            if ($share['WebReqSsl'] && $share['WebFollowSymLinks']) {
+            // TODO: the FollowSymLinks requirement is annoying ... still required?
+            // if ($share['WebReqSsl'] && $share['WebFollowSymLinks']) {
+            if ($share['WebReqSsl']) {
                 $newlines[] = "\tRewriteEngine On";
                 $newlines[] = "\tRewriteCond %{HTTPS} off";
                 $newlines[] = "\tRewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}";
