@@ -227,9 +227,8 @@ class Flexshare extends Engine
 
         $folder = new Folder($share['ShareDir']);
 
-        if (!$folder->exists()) {
-            $folder->create('apache', 'allusers', '0775'); // FIXME
-        }
+        if (!$folder->exists())
+            $folder->create('apache', 'allusers', '0775');
 
         $this->set_share_state($name, TRUE, TRUE);
     }
@@ -1639,9 +1638,6 @@ class Flexshare extends Engine
                 $this->set_web_realm($name, $share['ShareDescription']);
                 $this->set_web_require_authentication($name, FALSE);
 
-                // FIXME: this seems to be enable/disable now ?
-                // $this->set_web_require_ssl($name, $state);
-                
                 $this->set_web_server_alias($name, $alias);
                 $this->set_web_server_name($name, $name);
                 $this->set_web_show_index($name, TRUE);
@@ -2734,7 +2730,7 @@ class Flexshare extends Engine
             //-----------------
 
             if ($share['WebCgi']) {
-                // Create cgi-bin directory if it does not exist // TODO: review for web apps
+                // Create cgi-bin directory if it does not exist.
                 $cgifolder = new Folder(self::SHARE_PATH . "/$name/cgi-bin/");
 
                 if (!$cgifolder->exists())
@@ -2824,8 +2820,6 @@ class Flexshare extends Engine
                 $config_directory[] = "\tAddType application/x-httpd-php-source .php";
             }
 
-            // TODO: the FollowSymLinks requirement is annoying ... still required?
-            // if ($share['WebReqSsl'] && $share['WebFollowSymLinks']) {
             if ($share['WebReqSsl']) {
                 $config_directory[] = "\tRewriteEngine On";
                 $config_directory[] = "\tRewriteCond %{HTTPS} off";
