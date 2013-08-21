@@ -1005,12 +1005,13 @@ class Flexshare extends Engine
 
         $shares = $this->_get_shares(self::TYPE_ALL);
 
-        $ssl = isset($shares[$name]['WebReqSsl']) ? $shares[$name]['WebReqSsl'] : '';
+        $ssl = isset($shares[$name]['WebReqSsl']) ? $shares[$name]['WebReqSsl'] : FALSE;
 
         $inuse_ports = array();
 
         foreach ($shares as $share_name => $share) {
-            if (($name != $share_name) && ($ssl != $share['WebReqSsl']))
+            $ssl_for_share = isset($share['WebReqSsl']) ? $share['WebReqSsl'] : FALSE;
+            if (($name != $share_name) && ($ssl != $ssl_for_share))
                 $inuse_ports[] = $share['WebPort'];
         }
 
@@ -1606,7 +1607,7 @@ class Flexshare extends Engine
         $shares = $this->_get_shares(self::TYPE_WEB_SITE);
 
         foreach ($shares as $name => $share) {
-            if ($share['WebEnabled'] == FALSE) {
+            if (isset($share['WebEnabled']) && ($share['WebEnabled'] == FALSE)) {
                 clearos_log('flexshare', 'converting web server virtual host: ' . $name);
 
                 // Load old configuration files
@@ -1637,7 +1638,7 @@ class Flexshare extends Engine
                 $this->set_web_php($name, TRUE);
                 $this->set_web_realm($name, $share['ShareDescription']);
                 $this->set_web_require_authentication($name, FALSE);
-
+                $this->set_web_require_ssl($name, FALSE);
                 $this->set_web_server_alias($name, $alias);
                 $this->set_web_server_name($name, $name);
                 $this->set_web_show_index($name, TRUE);
@@ -2765,7 +2766,7 @@ class Flexshare extends Engine
             else
                 $options .= ' -Indexes';
 
-            if ($share['WebFollowSymLinks'])
+            if ($share['WebFollowSymLinks'] || $share['WebReqSsl'])
                 $options .= ' +FollowSymLinks';
             else
                 $options .= ' -FollowSymLinks';
