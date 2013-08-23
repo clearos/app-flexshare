@@ -1607,7 +1607,7 @@ class Flexshare extends Engine
         $shares = $this->_get_shares(self::TYPE_WEB_SITE);
 
         foreach ($shares as $name => $share) {
-            if (isset($share['WebEnabled']) && ($share['WebEnabled'] == FALSE)) {
+            if (!isset($share['WebEnabled']) || ($share['WebEnabled'] == FALSE)) {
                 clearos_log('flexshare', 'converting web server virtual host: ' . $name);
 
                 // Load old configuration files
