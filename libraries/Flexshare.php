@@ -2249,8 +2249,8 @@ class Flexshare extends Engine
                 $linestoadd .= "\tguest ok = Yes\n";
             } else {
                 $linestoadd .= "\tguest ok = No\n";
-                $linestoadd .= "\tdirectory mask = 775\n";
-                $linestoadd .= "\tcreate mask = 664\n";
+                $linestoadd .= "\tdirectory mask = 0775\n";
+                $linestoadd .= "\tcreate mask = 0664\n";
                 $linestoadd .= "\tvalid users = @\"%D" . '\\' . trim($share["ShareGroup"]) . "\", @" .
                     trim($share["ShareGroup"]) . "\n";
             }
