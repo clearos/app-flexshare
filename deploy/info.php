@@ -5,7 +5,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 $app['basename'] = 'flexshare';
-$app['version'] = '1.5.5';
+$app['version'] = '1.5.10';
 $app['release'] = '1';
 $app['vendor'] = 'ClearFoundation';
 $app['packager'] = 'ClearFoundation';
@@ -30,6 +30,7 @@ $app['core_requires'] = array(
     'app-mode-core', 
     'app-network-core',
     'app-storage-core >= 1:1.4.7',
+    'app-tasks-core',
     'app-certificate-manager'
 );
 
@@ -55,5 +56,10 @@ $app['core_file_manifest'] = array(
         'mode' => '0755',
         'owner' => 'root',
         'group' => 'root',
+    ),
+    'app-flexshare.cron' => array(
+        'target' => '/etc/cron.d/app-flexshare',
+        'config' => TRUE,
+        'config_params' => 'noreplace',
     ),
 );

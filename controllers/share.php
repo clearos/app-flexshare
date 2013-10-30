@@ -215,6 +215,7 @@ class Share extends ClearOS_Controller
                     $this->flexshare->set_group($share, $this->input->post('group'));
                     $this->flexshare->set_directory($share, $directory);
                     $this->flexshare->set_share_state($share, $this->input->post('enabled'));
+                    $this->flexshare->update_share($share, TRUE);
 
                     redirect('/flexshare/shares/summary/' . $share);
                 } else {
@@ -225,6 +226,7 @@ class Share extends ClearOS_Controller
                         $directory
                     );
                     $this->flexshare->set_share_state(strtolower($this->input->post('name')), TRUE);
+                    $this->flexshare->update_share($share, TRUE);
 
                     redirect('/flexshare/shares/summary/' . strtolower($this->input->post('name')));
                 }

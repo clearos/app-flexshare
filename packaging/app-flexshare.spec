@@ -1,7 +1,7 @@
 
 Name: app-flexshare
 Epoch: 1
-Version: 1.5.5
+Version: 1.5.10
 Release: 1%{dist}
 Summary: Flexshare
 License: GPLv3
@@ -22,6 +22,7 @@ Requires: app-base-core
 Requires: app-mode-core
 Requires: app-network-core
 Requires: app-storage-core >= 1:1.4.7
+Requires: app-tasks-core
 Requires: app-certificate-manager
 
 %description core
@@ -41,6 +42,7 @@ install -d -m 0755 %{buildroot}/etc/clearos/flexshare.d
 install -d -m 0755 %{buildroot}/var/clearos/flexshare
 install -d -m 0755 %{buildroot}/var/flexshare
 install -d -m 0755 %{buildroot}/var/flexshare/shares
+install -D -m 0644 packaging/app-flexshare.cron %{buildroot}/etc/cron.d/app-flexshare
 install -D -m 0600 packaging/flexshare.conf %{buildroot}/etc/clearos/flexshare.conf
 install -D -m 0644 packaging/flexshare_default.conf %{buildroot}/etc/clearos/storage.d/flexshare_default.conf
 install -D -m 0755 packaging/updateflexperms %{buildroot}/usr/sbin/updateflexperms
@@ -90,6 +92,7 @@ exit 0
 /usr/clearos/apps/flexshare/deploy
 /usr/clearos/apps/flexshare/language
 /usr/clearos/apps/flexshare/libraries
+%config(noreplace) /etc/cron.d/app-flexshare
 %config(noreplace) /etc/clearos/flexshare.conf
 /etc/clearos/storage.d/flexshare_default.conf
 /usr/sbin/updateflexperms

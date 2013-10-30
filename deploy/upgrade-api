@@ -45,10 +45,8 @@ try {
             $flexshare->set_directory($details['Name'], NULL);
 
         // If flexshare is enabled, regenerate config files (fix FTP unencrypted)
-        if ($details['ShareEnabled']) {
-             $flexshare->set_share_state($details['Name'], FALSE);
-             $flexshare->set_share_state($details['Name'], TRUE);
-        }
+        if ($details['ShareEnabled'])
+             $flexshare->update_share($details['Name'], FALSE);
     }
 } catch (Exception $e) {
     // Not fatal

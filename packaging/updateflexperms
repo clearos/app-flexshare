@@ -8,9 +8,9 @@ if ( [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] ); then
 	exit 1
 fi
 
-SANITYCHECK=`grep "^[[:space:]]*ShareDir=$1$" /etc/clearos/flexshare.conf /etc/clearos/flexshare.d/*.conf 2>/dev/null`
+SANITY_CHECK=`grep "^[[:space:]]*ShareDir=$1$" /etc/clearos/flexshare.conf /etc/clearos/flexshare.d/*.conf 2>/dev/null`
 
-if [ -z "$SANITYCHECK" ]; then
+if [ -z "$SANITY_CHECK" ]; then
 	echo "flexshare is invalid: $1"
 	exit 1
 fi
@@ -20,18 +20,16 @@ fi
 
 USER=$2
 GROUP=$3
-DIRPERMS="0775"
+DIR_PERMS="0770"
 
-find $1 -not -user $USER -not -name .flexshare-* -exec chown $USER '{}' \;
 find $1 -not -group $GROUP -not -name .flexshare-* -exec chgrp $GROUP '{}' \;
 
 chown $USER.$GROUP "$1"
-chmod $DIRPERMS "$1"
+chmod $DIR_PERMS "$1"
 
 # Cosmetic - change .trash folder owner
 #--------------------------------------
 
 if [ -d "$1/.trash" ]; then
-	chmod $DIRPERMS "$1/.trash"
-	chown $USER "$1/.trash"
+	chmod $DIR_PERMS "$1/.trash"
 fi

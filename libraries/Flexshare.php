@@ -228,9 +228,10 @@ class Flexshare extends Engine
         $folder = new Folder($share['ShareDir']);
 
         if (!$folder->exists())
-            $folder->create('apache', 'allusers', '0775');
+            $folder->create(self::CONSTANT_WEB_APP_USERNAME, 'allusers', '0770'); // FIXME: allusers
 
-        $this->set_share_state($name, TRUE, TRUE);
+        $this->set_share_state($name, TRUE);
+        $this->update_share($name, TRUE);
     }
 
     /**
@@ -286,7 +287,7 @@ class Flexshare extends Engine
 
         // Check for non-uniques
         if (count($file->get_search_results("<Share $name>")) > 0)
-            throw new Engine_Exception(lang('share_already_exists'));
+            throw new Engine_Exception(lang('flexshare_share_already_exists'));
 
         // Handle the type
         // This parameter used to be a boolean $internal.
@@ -303,8 +304,12 @@ class Flexshare extends Engine
         $folder = new Folder(self::SHARE_PATH . "/$name");
 
         if (! $folder->exists()) {
-            $folder_owner = (empty($internal)) ? self::CONSTANT_FILES_USERNAME : self::CONSTANT_WEB_APP_USERNAME;
-            $folder->create($folder_owner, $group, '0775');
+            if (!empty($internal) || clearos_app_installed('web_server'))
+                $folder_owner = self::CONSTANT_WEB_APP_USERNAME;
+            else
+                $folder_owner = self::CONSTANT_FILES_USERNAME;
+
+            $folder->create($folder_owner, $group, '0770');
         }
 
         // Add it
@@ -682,7 +687,6 @@ class Flexshare extends Engine
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        // Validate
         Validation_Exception::is_valid($this->validate_description($description));
 
         $this->_set_parameter($name, 'ShareDescription', $description);
@@ -704,16 +708,7 @@ class Flexshare extends Engine
 
         Validation_Exception::is_valid($this->validate_group($group));
 
-        if ($this->_get_parameter($name, 'ShareGroup') == $group)
-            return;
-
         $this->_set_parameter($name, 'ShareGroup', $group);
-        $state = 0;
-
-        if ($this->_get_parameter($name, 'ShareEnabled'))
-            $state = (int)$this->_get_parameter($name, 'ShareEnabled');
-
-        $this->set_share_state($name, $state, TRUE);
     }
 
     /**
@@ -747,34 +742,24 @@ class Flexshare extends Engine
     /**
      * Sets the state of a flexshare.
      *
-     * @param string $name  flexshare name
-     * @param string $state state
-     * @param string $force force re-creation of config files
+     * @param string $name       flexshare name
+     * @param string $state      state
+     * @param string $regenerate regenerate config files
      *
      * @return void
      * @throws Engine_Exception
      */
 
-    function set_share_state($name, $state, $force = FALSE)
+    function set_share_state($name, $state)
     {
         clearos_profile(__METHOD__, __LINE__);
 
         $share = $this->get_share($name);
         $state_value = ($state) ? 1 : 0;
 
-        // Do we need to generates configs again?
-        if ($force || $this->_get_parameter($name, 'ShareEnabled') != $state_value) {
-
-            // Set flag
-            $this->_set_parameter($name, 'ShareEnabled', $state_value);
-
-            $this->_generate_web_flexshares();
-            $this->_generate_ftp_flexshares();
-            $this->_generate_file_flexshares();
-        }
+        $this->_set_parameter($name, 'ShareEnabled', $state_value);
 
         $this->_update_folder_links($name, $this->_get_parameter($name, 'ShareDir'));
-        $this->_update_folder_attributes($share['ShareDir'], $share['ShareOwner'], $share['ShareGroup']);
     }
 
     ////////////////////
@@ -1590,6 +1575,38 @@ class Flexshare extends Engine
 
         foreach ($shares as $name => $detail)
             $this->_update_folder_attributes($detail['ShareDir'], $detail['ShareOwner'], $detail['ShareGroup']);
+    }
+
+    /**
+     * Updates the share for some API calls.
+     *
+     * This method should be called after updating the group (set_group)
+     * or description (set_description), i.e. information that needs to
+     * get propagated to FTP, Web, and Samba configlets.
+     *
+     * @param string  $name         flexshare name
+     * @param string  $state        state
+     * @param string  $force        force re-creation of config files
+     * @param boolean $update_perms flag if permissions should be updated
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function update_share($name, $update_perms = TRUE)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $share = $this->get_share($name);
+
+        $this->_generate_web_flexshares();
+        $this->_generate_ftp_flexshares();
+        $this->_generate_file_flexshares();
+
+        $this->_update_folder_links($name, $this->_get_parameter($name, 'ShareDir'));
+
+        if ($update_perms)
+            $this->_update_folder_attributes($share['ShareDir'], $share['ShareOwner'], $share['ShareGroup']);
     }
 
     /**
@@ -2732,7 +2749,7 @@ class Flexshare extends Engine
 
             if ($share['WebCgi']) {
                 // Create cgi-bin directory if it does not exist.
-                $cgifolder = new Folder(self::SHARE_PATH . "/$name/cgi-bin/");
+                $cgifolder = new Folder(self::SHARE_PATH . "/$name/cgi-bin", TRUE);
 
                 if (!$cgifolder->exists())
                     $cgifolder->create(self::CONSTANT_FILES_USERNAME, self::CONSTANT_FILES_USERNAME, "0777");
@@ -3235,8 +3252,12 @@ class Flexshare extends Engine
                         $share[$match[1]] = $match[2];
                     } elseif (preg_match(self::REGEX_CLOSE, $line)) {
                         // ShareConfig and ShareOwner are implied fields
+                        if (($share['ShareInternal'] == 2) || clearos_app_installed('web_server'))
+                            $share['ShareOwner'] = self::CONSTANT_WEB_APP_USERNAME;
+                        else
+                            $share['ShareOwner'] = self::CONSTANT_FILES_USERNAME;
+
                         $share['ShareConfig'] = $config_file;
-                        $share['ShareOwner'] = ($share['ShareInternal'] == 2) ?  self::CONSTANT_WEB_APP_USERNAME : self::CONSTANT_FILES_USERNAME;
                         $share['WebDefaultSite'] = ($share['ShareDir'] == '/var/www/html') ? 1 : 0;
 
                         $shares[$share['Name']] = $share;
