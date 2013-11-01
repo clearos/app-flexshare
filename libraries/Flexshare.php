@@ -1242,28 +1242,6 @@ class Flexshare extends Engine
     }
 
     /**
-     * Sets the server URL of FTP based access.
-     *
-     * @param string $name       flexshare name
-     * @param string $server_url server URL
-     *
-     * @return void
-     * @throws Engine_Exception
-     */
-
-    function set_ftp_server_url($name, $server_url)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        // Validate
-        // --------
-
-        Validation_Exception::is_valid($this->validate_ftp_server_url($server_url));
-
-        $this->_set_parameter($name, 'FtpServerUrl', $server_url);
-    }
-
-    /**
      * Sets an override flag to use custom port on the flexshare.
      *
      * @param string $name          flexshare name
@@ -1683,7 +1661,7 @@ class Flexshare extends Engine
     {
         clearos_profile(__METHOD__, __LINE__);
         if (!preg_match("/^([A-Za-z0-9\-\.\_]+)$/", $name))
-            return lang('flexshare_invalid_name');
+            return lang('flexshare_name_invalid');
     }
 
     /**
@@ -1717,7 +1695,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if (empty($owner))
-            return lang('flexshare_invalid_owner');
+            return lang('flexshare_owner_invalid');
     }
 
     /**
@@ -1753,7 +1731,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if (!preg_match("/^([A-Za-z0-9\-\.\_\' ]*)$/", $description))
-            return lang('flexshare_invalid_description');
+            return lang('flexshare_description_invalid');
     }
 
     /**
@@ -1769,7 +1747,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if (!preg_match("/^([A-Za-z0-9\-\.\_\/]+)$/", $dir))
-            return lang('flexshare_invalid_dir');
+            return lang('flexshare_directory_invalid');
     }
 
     /**
@@ -1786,7 +1764,7 @@ class Flexshare extends Engine
 
         // TODO: validate
         if (FALSE)
-            return lang('flexshare_invalid_file_comment');
+            return lang('flexshare_file_comment_invalid');
     }
 
     /**
@@ -1857,7 +1835,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if (!preg_match("/^([A-Za-z0-9\-\.\_\/\' ]+)$/", $realm))
-            return lang('flexshare_invalid_web_realm');
+            return lang('flexshare_web_realm_invalid');
     }
 
     /**
@@ -1891,22 +1869,6 @@ class Flexshare extends Engine
 
         if ($port_min < 1023 || $port_max < 1023)
             return lang('flexshare_passive_port_below_min');
-    }
-
-    /**
-     * Validation routine for FTP server URL.
-     *
-     * @param string $server_url FTP server URL
-     *
-     * @return mixed void if FTP server URL is valid, errmsg otherwise
-     */
-
-    function validate_ftp_server_url($server_url)
-    {
-        clearos_profile(__METHOD__, __LINE__);
-
-        if (! Network_Utils::is_valid_hostname($server_url))
-            return lang('flexshare_invalid_server_url');
     }
 
     /**
