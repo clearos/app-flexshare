@@ -166,6 +166,9 @@ class FTP extends ClearOS_Controller
         if ((int)$data['share']['FtpPassivePortMax'] == 0)
             $data['share']['FtpPassivePortMax'] = Flexshare::FTP_PASV_MAX;
 
+        if (empty($data['share']['FtpAllowPassive']))
+            $data['share']['FtpAllowPassive'] = TRUE;
+
         if (empty($data['share']['FtpGroupPermission']))
             $data['share']['FtpGroupPermission'] = Flexshare::PERMISSION_READ_WRITE_PLUS;
 
