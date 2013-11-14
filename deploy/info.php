@@ -45,16 +45,12 @@ $app['core_file_manifest'] = array(
     'flexshare.conf' => array(
         'target' => '/etc/clearos/flexshare.conf',
         'mode' => '0600',
-        'owner' => 'root',
-        'group' => 'root',
         'config' => TRUE,
         'config_params' => 'noreplace',
     ),
     'updateflexperms' => array(
         'target' => '/usr/sbin/updateflexperms',
         'mode' => '0755',
-        'owner' => 'root',
-        'group' => 'root',
     ),
     'app-flexshare.cron' => array(
         'target' => '/etc/cron.d/app-flexshare',
