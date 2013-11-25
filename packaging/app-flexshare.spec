@@ -12,7 +12,7 @@ Requires: %{name}-core = 1:%{version}-%{release}
 Requires: app-base
 
 %description
-Flexshares are flexible share resources that allow an administrator to quickly and easily define data sharing, collaboration and access areas via web, file, FTP and/or e-mail (as attachments).
+Flexshares are flexible share resources that allow an administrator to quickly and easily define data sharing, collaboration and access areas via web, file, and FTP.
 
 %package core
 Summary: Flexshare - Core
@@ -26,7 +26,7 @@ Requires: app-tasks-core
 Requires: app-certificate-manager
 
 %description core
-Flexshares are flexible share resources that allow an administrator to quickly and easily define data sharing, collaboration and access areas via web, file, FTP and/or e-mail (as attachments).
+Flexshares are flexible share resources that allow an administrator to quickly and easily define data sharing, collaboration and access areas via web, file, and FTP.
 
 This package provides the core API and libraries.
 
@@ -43,6 +43,7 @@ install -d -m 0755 %{buildroot}/var/clearos/flexshare
 install -d -m 0755 %{buildroot}/var/flexshare
 install -d -m 0755 %{buildroot}/var/flexshare/shares
 install -D -m 0644 packaging/app-flexshare.cron %{buildroot}/etc/cron.d/app-flexshare
+install -D -m 0755 packaging/flexshare %{buildroot}/usr/sbin/flexshare
 install -D -m 0600 packaging/flexshare.conf %{buildroot}/etc/clearos/flexshare.conf
 install -D -m 0644 packaging/flexshare_default.conf %{buildroot}/etc/clearos/storage.d/flexshare_default.conf
 install -D -m 0755 packaging/updateflexperms %{buildroot}/usr/sbin/updateflexperms
@@ -93,6 +94,7 @@ exit 0
 /usr/clearos/apps/flexshare/language
 /usr/clearos/apps/flexshare/libraries
 %config(noreplace) /etc/cron.d/app-flexshare
+/usr/sbin/flexshare
 %config(noreplace) /etc/clearos/flexshare.conf
 /etc/clearos/storage.d/flexshare_default.conf
 /usr/sbin/updateflexperms

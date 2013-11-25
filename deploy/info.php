@@ -48,6 +48,10 @@ $app['core_file_manifest'] = array(
         'config' => TRUE,
         'config_params' => 'noreplace',
     ),
+    'flexshare' => array(
+        'target' => '/usr/sbin/flexshare',
+        'mode' => '0755',
+    ),
     'updateflexperms' => array(
         'target' => '/usr/sbin/updateflexperms',
         'mode' => '0755',
