@@ -3,8 +3,8 @@
 # Sanity check parameters
 #------------------------
 
-if ( [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] ); then
-	echo "usage: $0 <flexshare-path> <owner> <group>"
+if ( [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] ); then
+	echo "usage: $0 <flexshare-path> <owner> <group> <perms>"
 	exit 1
 fi
 
@@ -20,12 +20,18 @@ fi
 
 USER=$2
 GROUP=$3
-DIR_PERMS="0770"
+DIR_PERMS=$4
 
-find $1 -not -group $GROUP -not -name .flexshare-* -exec chgrp $GROUP '{}' \;
+# FIXME: Professional beta - remove after final release
+BETA=`grep ClearOS.Prof /etc/clearos-release`
+if [ -n "$BETA" ]; then
+    DIR_PERMS="0775"
+fi
 
 chown $USER.$GROUP "$1"
 chmod $DIR_PERMS "$1"
+
+find $1 -not -group $GROUP -not -name .flexshare-* -exec chgrp $GROUP '{}' \;
 
 # Cosmetic - change .trash folder owner
 #--------------------------------------

@@ -150,6 +150,7 @@ class Flexshare extends Engine
     const DEFAULT_PORT_FTPS = 900;
     const DEFAULT_PORT_FTPES = 900;
     const DEFAULT_SSI_PARAM = 'IncludesNOExec';
+    const DEFAULT_SYSTEM_PERMISSIONS = '0770';
     const REGEX_OPEN = '/^<Share\s(.*)>$/i';
     const REGEX_CLOSE = '/^<\/Share>$/i';
     const ACCESS_LAN = 0;
@@ -165,6 +166,8 @@ class Flexshare extends Engine
     const PERMISSION_WRITE_PLUS = 3;
     const PERMISSION_READ_WRITE = 4;
     const PERMISSION_READ_WRITE_PLUS = 5;
+    const PERMISSIONS_SECURE = '0770';
+    const PERMISSIONS_READ_ONLY = '0775';
     const DIR_INDEX_LIST = 'index.htm index.html index.php index.php3 default.html index.cgi';
     const CASE_HTTP = 1;
     const CASE_HTTPS = 2;
@@ -515,6 +518,25 @@ class Flexshare extends Engine
     }
 
     /**
+     * Returns system permissions options.
+     *
+     * @return array system permissions
+     * @throws Engine_Exception
+     */
+
+    function get_system_permissions()
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $permissions = array(
+            self::PERMISSIONS_SECURE => lang('base_disabled'),
+            self::PERMISSIONS_READ_ONLY => lang('flexshare_read_only')
+        );
+
+        return $permissions;
+    }
+
+    /**
      * Returns a list of directory options to map to flexshare.
      *
      * @param string $name the flex share name
@@ -739,6 +761,26 @@ class Flexshare extends Engine
         $this->_set_parameter($name, 'ShareDir', $directory);
     }
 
+    /**
+     * Sets a flex share's system permissions.
+     *
+     * @param string $name        flexshare name
+     * @param string $permissions permissions
+     *
+     * @return void
+     * @throws Validation_Exception, Engine_Exception
+     */
+
+    function set_system_permissions($name, $permissions)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        Validation_Exception::is_valid($this->validate_system_permissions($permissions));
+
+        $this->_set_parameter($name, 'ShareSystemPermissions', $permissions);
+    }
+
+    /**
     /**
      * Sets the state of a flexshare.
      *
@@ -1552,7 +1594,7 @@ class Flexshare extends Engine
         $shares = $this->_get_shares(self::TYPE_ALL);
 
         foreach ($shares as $name => $detail)
-            $this->_update_folder_attributes($detail['ShareDir'], $detail['ShareOwner'], $detail['ShareGroup']);
+            $this->_update_folder_attributes($detail['ShareDir'], $detail['ShareOwner'], $detail['ShareGroup'], $detail['ShareSystemPermissions']);
     }
 
     /**
@@ -1584,7 +1626,7 @@ class Flexshare extends Engine
         $this->_update_folder_links($name, $this->_get_parameter($name, 'ShareDir'));
 
         if ($update_perms)
-            $this->_update_folder_attributes($share['ShareDir'], $share['ShareOwner'], $share['ShareGroup']);
+            $this->_update_folder_attributes($share['ShareDir'], $share['ShareOwner'], $share['ShareGroup'], $share['ShareSystemPermissions']);
     }
 
     /**
@@ -1977,6 +2019,24 @@ class Flexshare extends Engine
 
         if (! clearos_is_valid_boolean($state))
             return lang('flexshare_ftp_state_invalid');
+    }
+
+    /**
+     * Validates system perrmission.
+     *
+     * @param boolean $permission permission
+     *
+     * @return string error message if permission is invalid
+     */
+
+    function validate_system_permissions($permissions)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $permissions_options = $this->get_system_permissions();
+
+        if (!array_key_exists($permissions, $permissions_options))
+            return lang('flexshare_invalid_permissions');
     }
 
     /**
@@ -3222,6 +3282,9 @@ class Flexshare extends Engine
                         $share['ShareConfig'] = $config_file;
                         $share['WebDefaultSite'] = ($share['ShareDir'] == '/var/www/html') ? 1 : 0;
 
+                        if (empty($share['ShareSystemPermissions']))
+                            $share['ShareSystemPermissions'] = self::DEFAULT_SYSTEM_PERMISSIONS;
+
                         $shares[$share['Name']] = $share;
 
                         $share = array('WebEnabled' => 0, 'FtpEnabled' => 0, 'FileEnabled' => 0, 'EmailEnabled' => 0);
@@ -3313,14 +3376,15 @@ class Flexshare extends Engine
      * Too much command line hacking will leave the group ownership of
      * files out of whack.  This method fixes this common issue.
      *
-     * @param string $directory share directory
-     * @param string $owner     owner
-     * @param string $group     group name
+     * @param string $directory   share directory
+     * @param string $owner       owner
+     * @param string $group       group name
+     * @param string $permissions directory permissions
      *
      * @return void
      */
 
-    protected function _update_folder_attributes($directory, $owner, $group)
+    protected function _update_folder_attributes($directory, $owner, $group, $permissions)
     {
         clearos_profile(__METHOD__, __LINE__);
 
@@ -3331,7 +3395,7 @@ class Flexshare extends Engine
             $options['background'] = TRUE;
 
             $shell = new Shell();
-            $shell->execute(self::CMD_UPDATE_PERMS, "'$directory' '$owner' '$group'", TRUE, $options);
+            $shell->execute(self::CMD_UPDATE_PERMS, "'$directory' '$owner' '$group' '$permissions'", TRUE, $options);
         } catch (Exception $e) {
             // Not fatal
         }

@@ -90,3 +90,5 @@ $lang['flexshare_share_not_found'] = 'Share not found.';
 $lang['flexshare_name_overlaps_with_username'] = 'Flexshare name overlaps with a username.';
 $lang['flexshare_name_overlaps_with_group'] = 'Flexshare name overlaps with a group name.';
 $lang['flexshare_share_already_exists'] = 'Flexshare already exists.';
+$lang['flexshare_system_permissions'] = 'System Permissions';
+$lang['flexshare_third_party_app_access'] = 'Third Party App Access';

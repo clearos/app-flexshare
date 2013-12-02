@@ -1,7 +1,7 @@
 
 Name: app-flexshare
 Epoch: 1
-Version: 1.5.10
+Version: 1.5.14
 Release: 1%{dist}
 Summary: Flexshare
 License: GPLv3
@@ -84,7 +84,6 @@ exit 0
 %files core
 %defattr(-,root,root)
 %exclude /usr/clearos/apps/flexshare/packaging
-%exclude /usr/clearos/apps/flexshare/tests
 %dir /usr/clearos/apps/flexshare
 %dir /etc/clearos/flexshare.d
 %dir /var/clearos/flexshare

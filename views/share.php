@@ -77,6 +77,7 @@ echo field_input('name', $name, lang('flexshare_share_name'), $share_name_read_o
 echo field_toggle_enable_disable('enabled', $enabled, lang('base_status'), $read_only);
 echo field_input('description', $description, lang('base_description'), $read_only);
 echo field_dropdown('group', $group_options, $group, lang('flexshare_group'), $read_only);
+echo field_dropdown('permissions', $permissions_options, $permissions, lang('flexshare_third_party_app_access'), $read_only);
 if (! $use_default)
     echo field_dropdown('directory', $directories, $directory, lang('flexshare_directory'), $read_only);
 

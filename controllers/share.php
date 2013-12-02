@@ -188,10 +188,10 @@ class Share extends ClearOS_Controller
         // Set validation rules
         //---------------------
          
-        // Name cannot be set once added.
         $this->form_validation->set_policy('name', 'flexshare/Flexshare', 'validate_name', TRUE);
         $this->form_validation->set_policy('description', 'flexshare/Flexshare', 'validate_description', TRUE);
         $this->form_validation->set_policy('group', 'flexshare/Flexshare', 'validate_group', TRUE);
+        $this->form_validation->set_policy('permissions', 'flexshare/Flexshare', 'validate_system_permissions', TRUE);
 
         if ($this->input->post('directory'))
             $this->form_validation->set_policy('directory', 'flexshare/Flexshare', 'validate_directory', TRUE);
@@ -213,6 +213,7 @@ class Share extends ClearOS_Controller
                 if ($form_type == 'edit') {
                     $this->flexshare->set_description($share, $this->input->post('description'));
                     $this->flexshare->set_group($share, $this->input->post('group'));
+                    $this->flexshare->set_system_permissions($share, $this->input->post('permissions'));
                     $this->flexshare->set_directory($share, $directory);
                     $this->flexshare->set_share_state($share, $this->input->post('enabled'));
                     $this->flexshare->update_share($share, TRUE);
@@ -225,6 +226,7 @@ class Share extends ClearOS_Controller
                         $this->input->post('group'),
                         $directory
                     );
+                    $this->flexshare->set_system_permissions($share, $this->input->post('permissions'));
                     $this->flexshare->set_share_state(strtolower($this->input->post('name')), TRUE);
                     $this->flexshare->update_share($share, TRUE);
 
@@ -242,10 +244,13 @@ class Share extends ClearOS_Controller
         try {
             $data['form_type'] = $form_type;
 
+            $data['permissions_options'] = $this->flexshare->get_system_permissions();
+
             if ($form_type !== 'add') {
                 $info = $this->flexshare->get_share($share);
                 $data['name'] = $info['Name'];
                 $data['description'] = $info['ShareDescription'];
+                $data['permissions'] = $info['ShareSystemPermissions'];
                 $data['group'] = $info['ShareGroup'];
                 $data['directory'] = $info['ShareDir'];
                 $data['enabled'] = ($info['ShareEnabled'] == 0) ? FALSE: TRUE;
