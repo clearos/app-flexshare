@@ -1,7 +1,7 @@
 
 Name: app-flexshare
 Epoch: 1
-Version: 1.5.14
+Version: 1.5.22
 Release: 1%{dist}
 Summary: Flexshare
 License: GPLv3
@@ -40,6 +40,7 @@ cp -r * %{buildroot}/usr/clearos/apps/flexshare/
 
 install -d -m 0755 %{buildroot}/etc/clearos/flexshare.d
 install -d -m 0755 %{buildroot}/var/clearos/flexshare
+install -d -m 0755 %{buildroot}/var/clearos/flexshare/backup
 install -d -m 0755 %{buildroot}/var/flexshare
 install -d -m 0755 %{buildroot}/var/flexshare/shares
 install -D -m 0644 packaging/app-flexshare.cron %{buildroot}/etc/cron.d/app-flexshare
@@ -87,6 +88,7 @@ exit 0
 %dir /usr/clearos/apps/flexshare
 %dir /etc/clearos/flexshare.d
 %dir /var/clearos/flexshare
+%dir /var/clearos/flexshare/backup
 %dir /var/flexshare
 %dir /var/flexshare/shares
 /usr/clearos/apps/flexshare/deploy

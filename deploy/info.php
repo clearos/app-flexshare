@@ -5,7 +5,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 $app['basename'] = 'flexshare';
-$app['version'] = '1.5.15';
+$app['version'] = '1.5.22';
 $app['release'] = '1';
 $app['vendor'] = 'ClearFoundation';
 $app['packager'] = 'ClearFoundation';
@@ -38,6 +38,7 @@ $app['core_directory_manifest'] = array(
     '/var/flexshare' => array(),
     '/var/flexshare/shares' => array(),
     '/var/clearos/flexshare' => array(),
+    '/var/clearos/flexshare/backup' => array(),
 );
 
 $app['core_file_manifest'] = array( 

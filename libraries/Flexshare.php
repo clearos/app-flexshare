@@ -128,6 +128,7 @@ class Flexshare extends Engine
     const PATH_ROOT = '/var/flexshare';
     const PATH_TEMP = '/var/tmp';
     const PATH_CONFIGLET = '/etc/clearos/flexshare.d';
+    const PATH_BACKUP = '/var/clearos/flexshare/backup';
     const FILE_INITIALIZED = '/var/clearos/flexshare/initialized';
     const SHARE_PATH = '/var/flexshare/shares';
     const HTTPD_LOG_PATH = '/var/log/httpd';
@@ -1587,7 +1588,7 @@ class Flexshare extends Engine
      * @return void
      */
 
-    public function update_share_permissions()
+    function update_share_permissions()
     {
         clearos_profile(__METHOD__, __LINE__);
 
@@ -1634,57 +1635,32 @@ class Flexshare extends Engine
      *
      * See tracker #1219 for more information
      *
+     * @param string $name virtual host name
+     *
      * @return void
      */
 
-    public function upgrade_virtual_hosts()
+    function upgrade_web_site($name)
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $shares = $this->_get_shares(self::TYPE_WEB_SITE);
+        try {
+            $share = $this->get_share($name);
 
-        foreach ($shares as $name => $share) {
-            if (!isset($share['WebEnabled']) || ($share['WebEnabled'] == FALSE)) {
-                clearos_log('flexshare', 'converting web server virtual host: ' . $name);
-
-                // Load old configuration files
-                //-----------------------------
-                try {
-                    if (empty($share['WebDefaultSite']))
-                        $vhost_filename = 'virtual.' . $name . '.conf';
-                    else
-                        $vhost_filename = 'clearos.default.conf';
-
-                    $file = new File(self::WEB_VIRTUAL_HOST_PATH . '/' . $vhost_filename);
-                    $alias = $file->lookup_value('/\s*ServerAlias\s*/');
-                } catch (File_No_Match_Exception $e) {
-                    $alias = '';
-                } catch (File_Not_Found_Exception $e) {
-                    $alias = '';
-                }
-
-                // Set sane defaults to match existing capabilities
-                //-------------------------------------------------
-
-                $this->set_web_access($name, self::ACCESS_ALL);
-                $this->set_web_allow_ssi($name, TRUE);
-                $this->set_web_cgi($name, FALSE);
-                $this->set_web_follow_symlinks($name, TRUE);
-                $this->set_web_htaccess_override($name, TRUE);
-                $this->set_web_override_port($name, FALSE, 80);
-                $this->set_web_php($name, TRUE);
-                $this->set_web_realm($name, $share['ShareDescription']);
-                $this->set_web_require_authentication($name, FALSE);
-                $this->set_web_require_ssl($name, FALSE);
-                $this->set_web_server_alias($name, $alias);
-                $this->set_web_server_name($name, $name);
-                $this->set_web_show_index($name, TRUE);
-                $this->set_web_enabled($name, TRUE);
-
-                // Delete old file
-                $file->delete();
-            }
+            if (empty($share['WebDefaultSite']))
+                $vhost_filename = 'virtual.' . $name . '.conf';
+            else
+                $vhost_filename = 'clearos.default.conf';
+        } catch (File_No_Match_Exception $e) {
+            return;
+        } catch (File_Not_Found_Exception $e) {
+            return;
         }
+
+        clearos_log('flexshare', 'converting web server virtual host: ' . $name);
+
+        $file = new File(self::WEB_VIRTUAL_HOST_PATH . '/' . $vhost_filename);
+        $file->move_to(self::PATH_BACKUP . '/' . $vhost_filename . '-' . time());
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -2742,6 +2718,9 @@ class Flexshare extends Engine
             if (! isset($share['WebEnabled']) || ! $share['WebEnabled'])
                 continue;
 
+            if (isset($share['WebCustomConfiguration']) && $share['WebCustomConfiguration'])
+                continue;
+
             // Get LAN info, but only if it is necessary (expensive call)
             //-----------------------------------------------------------
 
@@ -3281,6 +3260,23 @@ class Flexshare extends Engine
 
                         $share['ShareConfig'] = $config_file;
                         $share['WebDefaultSite'] = ($share['ShareDir'] == '/var/www/html') ? 1 : 0;
+
+                        // Legacy web server configuration
+                        if ($share['ShareInternal'] == 1) {
+                            if (empty($share['WebDefaultSite']))
+                                $vhost_filename = 'virtual.' . $share['Name'] . '.conf';
+                            else
+                                $vhost_filename = 'clearos.default.conf';
+
+                            $file = new File(self::WEB_VIRTUAL_HOST_PATH . '/' . $vhost_filename);
+
+                            if ($file->exists())
+                                $share['WebCustomConfiguration'] = TRUE;
+                            else
+                                $share['WebCustomConfiguration'] = FALSE;
+                        }
+
+                        $file = new File(self::WEB_VIRTUAL_HOST_PATH . '/' . $vhost_filename);
 
                         if (empty($share['ShareSystemPermissions']))
                             $share['ShareSystemPermissions'] = self::DEFAULT_SYSTEM_PERMISSIONS;

@@ -36,8 +36,6 @@ $flexshare = new Flexshare();
 try { 
     $shares = $flexshare->get_share_summary();
 
-    $flexshare->upgrade_virtual_hosts();
-
     foreach ($shares as $share => $details) {
         // If ShareDir is set to /var/flexshare/shares (wrong) then set it to the default.
         // Tracker #605
