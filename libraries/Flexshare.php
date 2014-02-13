@@ -1835,6 +1835,9 @@ class Flexshare extends Engine
         if (!clearos_library_installed('web_server/Httpd'))
             return;
 
+        if (empty($server_name))
+            return;
+
         $httpd = new Httpd();
 
         return $httpd->validate_server_name($server_name);
@@ -2777,7 +2780,7 @@ class Flexshare extends Engine
             //-------------------------
 
             $config_directory[] = "<Directory " . $share['ShareDir'] . ">";
-                $options = '';
+            $options = '';
 
             if ($share['WebShowIndex'])
                 $options .= ' +Indexes';
@@ -3048,10 +3051,12 @@ class Flexshare extends Engine
         $inx = 0;
 
         foreach ($server_names as $server_name) {
-            if (empty($share['ShareInternal']))
+            if (empty($share['ShareInternal'])) {
                 $config_aliases[] = "Alias " . $share_aliases[$inx] . " " . self::SHARE_PATH . "/$name\n";
-            else if ($share['ShareInternal'] == 2)
-                $config_aliases[] = "Alias " . $share_aliases[$inx] . " " . $document_roots[$inx] . "\n";
+            } else if ($share['ShareInternal'] == 2) {
+                if (!empty($share_aliases[$inx]))
+                    $config_aliases[] = "Alias " . $share_aliases[$inx] . " " . $document_roots[$inx] . "\n";
+            }
 
             $inx++;
         }
@@ -3082,36 +3087,37 @@ class Flexshare extends Engine
 
         $server_names = array();
         $server_aliases = array();
-        $share_aliases = array();
         $document_roots = array();
 
+        $share['WebServerName'] = trim($share['WebServerName']);
+        $share['WebServerAlias'] = trim($share['WebServerAlias']);
+
         if (empty($share['ShareInternal'])) {
-            $server_names[] = $name . '.' . trim($share['WebServerName']);
-            $server_aliases[] = empty($share['WebServerAlias']) ? '' : trim($share['WebServerAlias']);
-            $share_aliases[] = "/flexshare/$name";
+            $server_names[] = $name . '.' . $share['WebServerName'];
+            $server_aliases[] = empty($share['WebServerAlias']) ? '' : $share['WebServerAlias'];
             $document_roots[] = self::SHARE_PATH . "/$name";
-            $access_log = trim($share['WebServerName']) . '_access_log common';
-            $error_log = trim($share['WebServerName']) . '_error_log';
+            $access_log = $share['WebServerName'] . '_access_log common';
+            $error_log = $share['WebServerName'] . '_error_log';
         } else if ($share['ShareInternal'] == 2) {
-            $server_names[] = trim($share['WebServerName']);
-            $server_names[] = trim($share['WebServerNameAlternate']);
-            $server_aliases[] = trim($share['WebServerAlias']);
-            $server_aliases[] = trim($share['WebServerAliasAlternate']);
-            $share_aliases[] = trim($share['WebDirectoryAlias']);
-            $share_aliases[] = trim($share['WebDirectoryAliasAlternate']);
+            if (!empty($share['WebServerName']))
+                $server_names[] = $share['WebServerName'];
+            if (!empty($share['WebServerNameAlternate']))
+                $server_names[] = $share['WebServerNameAlternate'];
+
+            $server_aliases[] = $share['WebServerAlias'];
+            $server_aliases[] = $share['WebServerAliasAlternate'];
             $document_roots[] = $share['ShareDir'] . '/live';
             $document_roots[] = $share['ShareDir'] . '/test';
-            $access_log = trim($share['WebServerName']) . '_access_log combined';
-            $error_log = trim($share['WebServerName']) . '_error_log';
+            $access_log = preg_replace('/webapp-/', '', $name) . '_access_log combined';
+            $error_log = preg_replace('/webapp-/', '', $name) . '_error_log';
         } else {
-            $server_names[] = trim($share['WebServerName']);
-            $server_aliases[] = trim($share['WebServerAlias']);
-            $share_aliases[] = "/flexshare/$name";
+            $server_names[] = $share['WebServerName'];
+            $server_aliases[] = $share['WebServerAlias'];
             $document_roots[] = $share['ShareDir'];
 
             if (empty($share['WebDefaultSite'])) {
-                $access_log = trim($share['WebServerName']) . '_access_log combined';
-                $error_log = trim($share['WebServerName']) . '_error_log';
+                $access_log = $share['WebServerName'] . '_access_log combined';
+                $error_log = $share['WebServerName'] . '_error_log';
             } else {
                 $access_log = 'access_log combined';
                 $error_log = 'error_log';
@@ -3275,8 +3281,6 @@ class Flexshare extends Engine
                             else
                                 $share['WebCustomConfiguration'] = FALSE;
                         }
-
-                        $file = new File(self::WEB_VIRTUAL_HOST_PATH . '/' . $vhost_filename);
 
                         if (empty($share['ShareSystemPermissions']))
                             $share['ShareSystemPermissions'] = self::DEFAULT_SYSTEM_PERMISSIONS;
