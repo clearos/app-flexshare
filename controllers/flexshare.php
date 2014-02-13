@@ -55,6 +55,16 @@ class Flexshare extends ClearOS_Controller
 
     function index()
     {
+        // Show account status widget if we're not in a happy state
+        //---------------------------------------------------------
+
+        $this->load->module('accounts/status');
+
+        if ($this->status->unhappy()) {
+            $this->status->widget('flexshare');
+            return;
+        }
+
         // Load libraries
         //---------------
 
@@ -63,7 +73,6 @@ class Flexshare extends ClearOS_Controller
         // Load controllers
         //-----------------
 
-        // $controllers = array('flexshare/shares', 'flexshare/web_apps');
         $controllers = array('flexshare/shares');
 
         $this->page->view_controllers($controllers, lang('flexshare_app_name'));
