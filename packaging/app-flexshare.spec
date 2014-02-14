@@ -23,7 +23,7 @@ Requires: app-mode-core
 Requires: app-network-core
 Requires: app-storage-core >= 1:1.4.7
 Requires: app-tasks-core
-Requires: app-certificate-manager
+Requires: app-certificate-manager-core
 
 %description core
 Flexshares are flexible share resources that allow an administrator to quickly and easily define data sharing, collaboration and access areas via web, file, and FTP.
