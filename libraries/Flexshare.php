@@ -464,6 +464,30 @@ class Flexshare extends Engine
     }
 
     /**
+     * Returns security permissions option.
+     *
+     * @return array
+     * @throws Engine_Exception
+     */
+
+    function get_enforce_group_permissions()
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        try {
+            $option = $this->_get_global_parameter('FlexshareSecurityPermissions');
+        } catch (Flexshare_Parameter_Not_Found_Exception $e) {
+            // Ignore
+        } catch (Engine_Exception $e) {
+            // Ignore
+        }
+
+        $retval = (isset($option) && preg_match('/off/i', $option)) ? FALSE : TRUE;
+
+        return $retval;
+    }
+
+    /**
      * Returns information on a specific flexshare configuration.
      *
      * @param string $name flexshare name

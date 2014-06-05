@@ -56,4 +56,8 @@ clearos_load_library('flexshare/Flexshare');
 ///////////////////////////////////////////////////////////////////////////////
 
 $flexshare = new Flexshare();
-$flexshare->update_share_permissions();
+
+$enforce = $flexshare->get_enforce_group_permissions();
+
+if ($enforce)
+    $flexshare->update_share_permissions();
