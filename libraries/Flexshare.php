@@ -1721,7 +1721,7 @@ class Flexshare extends Engine
         $group = Group_Factory::create($group);
 
         if (! $group->exists())
-            return lang('flexshare_invalid_group');
+            return lang('flexshare_group_invalid');
     }
 
     /**
@@ -1929,7 +1929,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
         $options = $this->get_ftp_permission_options();
         if (!array_key_exists($permission, $options))
-            return lang('flexshare_invalid_permission');
+            return lang('flexshare_permissions_invalid');
     }
 
     /**
@@ -1945,7 +1945,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
         // Invalid characters in greeting?
         //if (preg_match("//" $greeting))
-        //    return lang('flexshare_invalid_greeting');
+        //    return lang('flexshare_greeting_invalid');
     }
 
     /**
@@ -2021,7 +2021,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if (! clearos_is_valid_boolean($state))
-            return lang('flexshare_ftp_state_invalid');
+            return lang('base_state_invalid');
     }
 
     /**
@@ -2039,7 +2039,7 @@ class Flexshare extends Engine
         $permissions_options = $this->get_system_permissions();
 
         if (!array_key_exists($permissions, $permissions_options))
-            return lang('flexshare_invalid_permissions');
+            return lang('flexshare_permissions_invalid');
     }
 
     /**
@@ -2057,7 +2057,7 @@ class Flexshare extends Engine
         $options = $this->get_web_access_options();
 
         if (!array_key_exists($accessibility, $options))
-            return lang('flexshare_invalid_accessibility');
+            return lang('flexshare_accessibility_invalid');
     }
 
     /**
@@ -2073,7 +2073,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if (! clearos_is_valid_boolean($state))
-            return lang('flexshare_allow_ssi_invalid');
+            return lang('base_state_invalid');
     }
 
     /**
@@ -2089,7 +2089,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if (! clearos_is_valid_boolean($state))
-            return lang('flexshare_cgi_state_invalid');
+            return lang('base_state_invalid');
     }
 
     /**
@@ -2105,7 +2105,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if (! clearos_is_valid_boolean($state))
-            return lang('flexshare_follow_symlinks_invalid');
+            return lang('base_state_invalid');
     }
 
     /**
@@ -2121,7 +2121,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if (! clearos_is_valid_boolean($state))
-            return lang('flexshare_htaccess_override_invalid');
+            return lang('base_state_invalid');
     }
 
     /**
@@ -2156,7 +2156,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if (! clearos_is_valid_boolean($state))
-            return lang('flexshare_override_port_invalid');
+            return lang('base_state_invalid');
     }
 
     /**
@@ -2172,7 +2172,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if (! clearos_is_valid_boolean($state))
-            return lang('flexshare_php_state_invalid');
+            return lang('base_state_invalid');
     }
 
     /**
@@ -2188,7 +2188,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if (! clearos_is_valid_boolean($state))
-            return lang('flexshare_require_authentication_invalid');
+            return lang('base_state_invalid');
     }
 
     /**
@@ -2204,7 +2204,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if (! clearos_is_valid_boolean($state))
-            return lang('flexshare_require_ssl_invalid');
+            return lang('base_state_invalid');
     }
 
     /**
@@ -2220,7 +2220,7 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         if (! clearos_is_valid_boolean($state))
-            return lang('flexshare_show_index_invalid');
+            return lang('base_state_invalid');
     }
 
     ///////////////////////////////////////////////////////////////////////////////
