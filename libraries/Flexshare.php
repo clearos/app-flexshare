@@ -336,6 +336,40 @@ class Flexshare extends Engine
     }
 
     /**
+     * Auto configures Flexshare on events like a network change.
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function auto_configure()
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        try {
+            if (clearos_library_installed('ftp/ProFTPd')) {
+                $this->_generate_ftp_flexshares();
+
+                $proftpd = new ProFTPd();
+                $proftpd->reset(TRUE);
+            }
+        } catch (Exception $e) {
+            // Not fatal
+        }
+
+        try {
+            if (clearos_library_installed('web_server/Httpd')) {
+                $this->_generate_web_flexshares();
+
+                $httpd = new Httpd();
+                $httpd->reset(TRUE);
+            }
+        } catch (Exception $e) {
+            // Not fatal
+        }
+    }
+
+    /**
      * Deletes an existing flexshare.
      *
      * @param string  $name       flexshare name
@@ -2387,6 +2421,10 @@ class Flexshare extends Engine
 
         // Get file listing in FTP confs dir
         $folder = new Folder(self::FTP_VIRTUAL_HOST_PATH);
+
+        if (!$folder->exists())
+            return;
+
         $confs = $folder->get_listing();
         $index = 0;
 
@@ -2510,8 +2548,15 @@ class Flexshare extends Engine
 
             if (! $append) {
                 $newlines[] = self::WRITE_WARNING;
-                // Note: clearsync will automatically handle IP address changes
-                $newlines[] = "<VirtualHost 127.0.0.1>";
+                // Note: event system will automatically handle IP address changes.
+                $iface_manager = new Iface_Manager();
+                $external_ips = $iface_manager->get_external_ip_addresses();
+                $trusted_ips = $iface_manager->get_most_trusted_ips();
+
+                $ips = array_merge($external_ips, $trusted_ips);
+                $ip_list = implode(' ', array_unique($ips));
+
+                $newlines[] = "<VirtualHost $ip_list>";
                 $newlines[] = "\tPort $port";
                 $newlines[] = "\tDefaultRoot " . self::SHARE_PATH . "/";
                 $newlines[] = "\tRequireValidShell off";

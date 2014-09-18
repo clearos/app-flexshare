@@ -47,6 +47,7 @@ install -D -m 0644 packaging/app-flexshare.cron %{buildroot}/etc/cron.d/app-flex
 install -D -m 0755 packaging/flexshare %{buildroot}/usr/sbin/flexshare
 install -D -m 0600 packaging/flexshare.conf %{buildroot}/etc/clearos/flexshare.conf
 install -D -m 0644 packaging/flexshare_default.conf %{buildroot}/etc/clearos/storage.d/flexshare_default.conf
+install -D -m 0755 packaging/network-configuration-event %{buildroot}/var/clearos/events/network_configuration/flexshare
 install -D -m 0755 packaging/updateflexperms %{buildroot}/usr/sbin/updateflexperms
 
 %post
@@ -98,4 +99,5 @@ exit 0
 /usr/sbin/flexshare
 %config(noreplace) /etc/clearos/flexshare.conf
 /etc/clearos/storage.d/flexshare_default.conf
+/var/clearos/events/network_configuration/flexshare
 /usr/sbin/updateflexperms

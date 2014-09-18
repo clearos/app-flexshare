@@ -62,4 +62,8 @@ $app['core_file_manifest'] = array(
         'config' => TRUE,
         'config_params' => 'noreplace',
     ),
+    'network-configuration-event'=> array(
+        'target' => '/var/clearos/events/network_configuration/flexshare',
+        'mode' => '0755'
+    ),
 );
