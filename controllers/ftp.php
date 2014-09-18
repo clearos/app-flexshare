@@ -136,8 +136,8 @@ class FTP extends ClearOS_Controller
                 $this->page->set_status_updated();
                 redirect('/flexshare/shares/summary/'. $share);
             } catch (Exception $e) {
-                // TODO: using non-standard exception handling
-                $this->page->set_message(clearos_exception_message($e));
+                $this->page->view_exception($e);
+                return;
             }
         }
 

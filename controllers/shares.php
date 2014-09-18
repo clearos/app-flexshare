@@ -83,7 +83,8 @@ class Shares extends ClearOS_Controller
         try {
             $data['flexshares'] = $this->flexshare->get_share_summary();
         } catch (Exception $e) {
-            $this->page->set_message(clearos_exception_message($e));
+            $this->page->view_exception($e);
+            return;
         }
  
         // Load views

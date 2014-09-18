@@ -158,7 +158,8 @@ class Web extends ClearOS_Controller
 
                 redirect('/flexshare/shares/summary/'. $share);
             } catch (Exception $e) {
-                $this->page->set_message(clearos_exception_message($e));
+                $this->page->view_exception($e);
+                return;
             }
         }
 

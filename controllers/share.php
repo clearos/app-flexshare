@@ -234,7 +234,8 @@ class Share extends ClearOS_Controller
                 }
 
             } catch (Exception $e) {
-                $this->page->set_message(clearos_exception_message($e));
+                $this->page->view_exception($e);
+                return;
             }
         }
 
