@@ -88,7 +88,7 @@ if ($flexshare->exists($name)) {
     if ($action === 'activate')
         $flexshare->activate($name);
     else if ($action === 'deactivate')
-        echo "TODO"; // FIXME
+        echo "TODO"; // TODO
 } else {
     echo lang('flexshare_share_not_found') . "\n";
 }
