@@ -22,12 +22,6 @@ USER=$2
 GROUP=$3
 DIR_PERMS=$4
 
-# FIXME: Professional beta - remove after final release
-BETA=`grep ClearOS.Prof /etc/clearos-release`
-if [ -n "$BETA" ]; then
-    DIR_PERMS="0775"
-fi
-
 chown $USER.$GROUP "$1"
 chmod $DIR_PERMS "$1"
 
