@@ -5,7 +5,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 $app['basename'] = 'flexshare';
-$app['version'] = '2.0.18';
+$app['version'] = '2.0.19';
 $app['release'] = '1';
 $app['vendor'] = 'ClearFoundation';
 $app['packager'] = 'ClearFoundation';
@@ -30,7 +30,7 @@ $app['core_requires'] = array(
     'app-network-core',
     'app-storage-core >= 1:1.4.7',
     'app-tasks-core',
-    'app-certificate-manager-core'
+    'app-certificate-manager-core >= 2.0.19'
 );
 
 $app['core_directory_manifest'] = array(

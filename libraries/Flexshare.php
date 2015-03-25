@@ -67,6 +67,7 @@ use \clearos\apps\network\Network_Utils as Network_Utils;
 use \clearos\apps\samba_common\Samba as Samba;
 use \clearos\apps\users\User_Factory as User_Factory;
 use \clearos\apps\web_server\Httpd as Httpd;
+use \clearos\apps\certificate_manager\CertManager;
 
 clearos_load_library('base/Configuration_File');
 clearos_load_library('base/Engine');
@@ -80,6 +81,7 @@ clearos_load_library('network/Network_Utils');
 clearos_load_library('samba_common/Samba');
 clearos_load_library('users/User_Factory');
 clearos_load_library('web_server/Httpd');
+clearos_load_library('certificate_manager/CertManager');
 
 // Exceptions
 //-----------
@@ -1280,6 +1282,19 @@ class Flexshare extends Engine
             throw new Engine_Exception(FLEXSHARE_LANG_WARNING_CONFIG, COMMON_WARNING);
 
         $this->_set_parameter($name, 'WebPhp', $web_php);
+    }
+
+    /**
+     * Sets Certificate on the flexshare.
+     *
+     * @param string $name    flexshare name
+     * @param string $cert    certificate name
+     *
+     * @return void
+     */
+    function set_web_certificate($name, $cert) {
+        clearos_profile(__METHOD__, __LINE__);
+        $this->_set_parameter($name, 'WebCertificate', $cert);
     }
 
     /**
@@ -2740,6 +2755,9 @@ class Flexshare extends Engine
         $vhosts = $folder->get_listing();
         $index = 0;
 
+        // load certificates
+        $certs = CertManager::getCerts();
+
         foreach ($vhosts as $vhost) {
             // Flexshares are prefixed with 'flexshare-'.  Find these files
             if (preg_match("/flex-443.conf|^" . self::PREFIX . ".*vhost$|^" . self::PREFIX . ".*conf$/i", $vhost)) {
@@ -3003,7 +3021,7 @@ class Flexshare extends Engine
                 }
 
                 // Create new configuration files in parallel
-                $config_virtual_host = $this->_generate_web_virtual_hosts($share, $port);
+                $config_virtual_host = $this->_generate_web_virtual_hosts($share, $port, $certs);
 
                 $config_lines = array_merge(
                     $config_doc_comment,
@@ -3143,7 +3161,7 @@ class Flexshare extends Engine
      * @throws Engine_Exception
      */
 
-    protected function _generate_web_virtual_hosts($share, $port)
+    protected function _generate_web_virtual_hosts($share, $port, $certs)
     {
         clearos_profile(__METHOD__, __LINE__);
 
@@ -3192,6 +3210,12 @@ class Flexshare extends Engine
                 $error_log = 'error_log';
             }
         }
+        $cert = $share['WebCertificate'];
+
+        if(!$cert || $certs[$cert] == null) {
+        	$cert = CertManager::CERT_DEF;
+        }
+        $cert_files = $certs[$cert];
 
         // Build VirtualHost block
         //------------------------
@@ -3215,9 +3239,17 @@ class Flexshare extends Engine
             $config_virtual_host[] = "\tCustomLog " . self::HTTPD_LOG_PATH . "/" . $access_log;
 
             if (($port === 443) || $share['WebReqSsl']) {
-                $config_virtual_host[] = "\tSSLEngine on\n" .
-                    "\tSSLCertificateFile /etc/pki/tls/certs/localhost.crt\n" .
-                    "\tSSLCertificateKeyFile /etc/pki/tls/private/localhost.key\n" .
+                $config_virtual_host[] = "\tSSLEngine on";
+
+                $config_virtual_host[] = "\tSSLCertificateFile " . CertManager::CERT_PLACE . "/$cert." . CertManager::CERT_CRT;
+                $config_virtual_host[] = "\tSSLCertificateKeyFile " . CertManager::CERT_PLACE . "/$cert." . CertManager::CERT_KEY;
+
+                $cert_ca = CertManager::CERT_PLACE . "/$cert." . CertManager::CERT_CA;
+                if($cert_files[CertManager::CERT_CA]) {
+                	$config_virtual_host[] = "\tSSLCACertificateFile " . $cert_ca;
+                }
+
+                $config_virtual_host[] =
                     "\t# No weak export crypto allowed\n" .
                     "\t# SSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP:+eNULL\n" .
                     "\tSSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:!EXP:+eNULL\n" .
