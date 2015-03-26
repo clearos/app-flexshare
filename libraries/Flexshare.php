@@ -2832,13 +2832,10 @@ class Flexshare extends Engine
                 $config_directory[] = "\tOptions +ExecCGI";
 
                 if ($share["WebAccess"] == self::ACCESS_LAN) {
-                    $config_directory[] = "\tOrder Deny,Allow";
-                    $config_directory[] = "\tDeny from all";
+                    $config_directory[] = "\tRequire local";
                     if (count($lans) > 0) {
-                        $allow_list = '';
                         foreach ($lans as $lan)
-                            $allow_list .= "$lan ";
-                        $config_directory[] = "\tAllow from " . $allow_list;
+                            $config_directory[] = "\tRequire ip " . $lan;
                     }
                 }
 
@@ -2877,38 +2874,31 @@ class Flexshare extends Engine
                 $config_directory[] = "\tAuthType Basic";
                 $config_directory[] = "\tAuthBasicProvider external";
                 $config_directory[] = "\tAuthExternal pwauth";
-                $config_directory[] = "\tAuthzUnixgroup on";
-                $config_directory[] = "\tRequire group " . $share['ShareGroup'];
+                $config_directory[] = "\tRequire unix-group " . $share['ShareGroup'];
             }
 
             // LAN access
             //-----------
 
             if ($share['WebAccess'] == self::ACCESS_LAN) {
-                $config_directory[] = "\tOrder deny,allow";
-                $config_directory[] = "\tDeny from all";
-
+                $config_directory[] = "\tRequire local";
                 if (count($lans) > 0) {
-                    $allow_list = '';
                     foreach ($lans as $lan)
-                        $allow_list .= "$lan ";
-
-                    $config_directory[] = "\tAllow from " . $allow_list;
+                        $config_directory[] = "\tRequire ip " . $lan;
                 }
-            } else {
-                $config_directory[] = "\tOrder deny,allow";
-                $config_directory[] = "\tAllow from all";
             }
 
             // PHP support
             //------------
 
             if ($share['WebPhp']) {
-                $config_directory[] = "\tAddType text/html .php";
-                $config_directory[] = "\tAddHandler php5-script .php";
+                // Anything required?
             } else {
-                $config_directory[] = "\tRemoveHandler .php";
-                $config_directory[] = "\tAddType application/x-httpd-php-source .php";
+                $config_directory[] = "\t<FilesMatch \.php$>";
+                $config_directory[] = "\t\tSetHandler None";
+                $config_directory[] = "\t\tForceType text/plain";
+                $config_directory[] = "\t\tSetHandler application/x-httpd-php-source";
+                $config_directory[] = "\t</FilesMatch>";
             }
 
             if ($share['WebReqSsl']) {
@@ -2973,9 +2963,6 @@ class Flexshare extends Engine
                     // Only specify Listen directive for custom ports
                     if (($port != 80) && ($port != 443))
                         $header_lines[] = "Listen *:$port";
-
-                    if ($port != 80)
-                        $header_lines[] = "NameVirtualHost *:$port";
 
                     $header_lines[] = "";
                     $header_lines[] = "# Authentication mechanism";
