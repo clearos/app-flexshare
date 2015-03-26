@@ -60,7 +60,7 @@ if ($form_type === 'summary') {
     echo form_open('/flexshare/web/edit/' . $share['Name']);
     echo form_header(lang('flexshare_web'));
 
-    echo field_toggle_enable_disable('enabled', $share['WebEnabled'], lang('base_status'), $read_only);
+    echo field_toggle_enable_disable('web_enabled', $share['WebEnabled'], lang('base_status'), $read_only);
 
     if ($share['WebEnabled']) {
         echo field_view(lang('flexshare_permissions'), lang('flexshare_read_only'));

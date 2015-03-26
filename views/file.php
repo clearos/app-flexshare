@@ -60,7 +60,7 @@ if ($form_type === 'edit') {
 if ($form_type == 'summary') {
     echo form_open('/flexshare/file/edit/' . $share['Name']);
     echo form_header(lang('flexshare_windows_file_share'));
-    echo field_toggle_enable_disable('enabled', $share['FileEnabled'], lang('base_status'), TRUE);
+    echo field_toggle_enable_disable('file_enabled', $share['FileEnabled'], lang('base_status'), TRUE);
 
     if ($share['FileEnabled']) {
         echo field_dropdown('file_permission', $permission_options, $share['FilePermission'], lang('flexshare_permissions'), $read_only);
