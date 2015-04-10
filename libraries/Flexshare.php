@@ -67,7 +67,7 @@ use \clearos\apps\network\Network_Utils as Network_Utils;
 use \clearos\apps\samba_common\Samba as Samba;
 use \clearos\apps\users\User_Factory as User_Factory;
 use \clearos\apps\web_server\Httpd as Httpd;
-use \clearos\apps\certificate_manager\CertManager;
+use \clearos\apps\certificate_manager\Cert_Manager;
 
 clearos_load_library('base/Configuration_File');
 clearos_load_library('base/Engine');
@@ -81,7 +81,7 @@ clearos_load_library('network/Network_Utils');
 clearos_load_library('samba_common/Samba');
 clearos_load_library('users/User_Factory');
 clearos_load_library('web_server/Httpd');
-clearos_load_library('certificate_manager/CertManager');
+clearos_load_library('certificate_manager/Cert_Manager');
 
 // Exceptions
 //-----------
@@ -2756,7 +2756,7 @@ class Flexshare extends Engine
         $index = 0;
 
         // load certificates
-        $certs = CertManager::getCerts();
+        $certs = Cert_Manager::get_certs();
 
         foreach ($vhosts as $vhost) {
             // Flexshares are prefixed with 'flexshare-'.  Find these files
@@ -3213,7 +3213,7 @@ class Flexshare extends Engine
         $cert = $share['WebCertificate'];
 
         if(!$cert || $certs[$cert] == null) {
-        	$cert = CertManager::CERT_DEF;
+            $cert = Cert_Manager::CERT_DEF;
         }
         $cert_files = $certs[$cert];
 
@@ -3241,12 +3241,11 @@ class Flexshare extends Engine
             if (($port === 443) || $share['WebReqSsl']) {
                 $config_virtual_host[] = "\tSSLEngine on";
 
-                $config_virtual_host[] = "\tSSLCertificateFile " . CertManager::CERT_PLACE . "/$cert." . CertManager::CERT_CRT;
-                $config_virtual_host[] = "\tSSLCertificateKeyFile " . CertManager::CERT_PLACE . "/$cert." . CertManager::CERT_KEY;
+                $config_virtual_host[] = "\tSSLCertificateFile " . Cert_Manager::CERT_PLACE . "/$cert." . Cert_Manager::CERT_CRT;
+                $config_virtual_host[] = "\tSSLCertificateKeyFile " . Cert_Manager::CERT_PLACE . "/$cert." . Cert_Manager::CERT_KEY;
 
-                $cert_ca = CertManager::CERT_PLACE . "/$cert." . CertManager::CERT_CA;
-                if($cert_files[CertManager::CERT_CA]) {
-                	$config_virtual_host[] = "\tSSLCACertificateFile " . $cert_ca;
+                if($cert_files[Cert_Manager::CERT_CA]) {
+                    $config_virtual_host[] = "\tSSLCACertificateFile " . Cert_Manager::CERT_PLACE . "/$cert." . Cert_Manager::CERT_CA;
                 }
 
                 $config_virtual_host[] =
