@@ -2875,6 +2875,8 @@ class Flexshare extends Engine
                 $config_directory[] = "\tAuthBasicProvider external";
                 $config_directory[] = "\tAuthExternal pwauth";
                 $config_directory[] = "\tRequire unix-group " . $share['ShareGroup'];
+            } else {
+                $config_directory[] = "\tRequire all granted";
             }
 
             // LAN access
