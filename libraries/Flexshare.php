@@ -2525,7 +2525,7 @@ class Flexshare extends Engine
                 $newlines[] = "\tCapabilitiesSet +CAP_CHOWN";
 
                 $newlines[] = "";
-                $newlines[] = "\t<Limit LOGIN CDUP CWD PWD XPWD LIST PROT$pasv>";
+                $newlines[] = "\t<Limit LOGIN CDUP PWD XPWD LIST PROT$pasv>";
                 $newlines[] = "\t\tAllowAll";
                 $newlines[] = "\t</Limit>";
                 $newlines[] = "\t<Limit ALL>";
