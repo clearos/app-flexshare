@@ -28,3 +28,9 @@ fi
 #-----------------------
 
 /usr/clearos/apps/flexshare/deploy/upgrade-api
+
+# ClearOS 6 legacy - make sure clearsync event happens
+if [ -x /usr/clearos/apps/ftp/deploy/syncaction ]; then
+    sleep 5
+    /usr/clearos/apps/ftp/deploy/syncaction
+fi
