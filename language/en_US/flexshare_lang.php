@@ -54,6 +54,7 @@ $lang['flexshare_server_url_alt'] = 'Alternative Server URL';
 $lang['flexshare_share_already_exists'] = 'Flexshare already exists.';
 $lang['flexshare_share_name'] = 'Share Name';
 $lang['flexshare_share_not_found'] = 'Share not found.';
+$lang['flexshare_ssl_certificate'] = 'SSL Certificate';
 $lang['flexshare_summary'] = 'Summary';
 $lang['flexshare_third_party_app_access'] = 'Third Party App Access';
 $lang['flexshare_web'] = 'Web';

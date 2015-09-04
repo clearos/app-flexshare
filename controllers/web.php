@@ -121,6 +121,7 @@ class Web extends ClearOS_Controller
         $this->form_validation->set_policy('ssi', 'flexshare/Flexshare', 'validate_web_allow_ssi', TRUE);
         $this->form_validation->set_policy('htaccess', 'flexshare/Flexshare', 'validate_web_htaccess_override', TRUE);
         $this->form_validation->set_policy('require_ssl', 'flexshare/Flexshare', 'validate_web_require_ssl', TRUE);
+        $this->form_validation->set_policy('ssl_certificate', 'flexshare/Flexshare', 'validate_web_ssl_certificate', TRUE);
         $this->form_validation->set_policy('override_port', 'flexshare/Flexshare', 'validate_web_override_port_state', TRUE);
         $this->form_validation->set_policy('require_authentication', 'flexshare/Flexshare', 'validate_web_require_authentication', TRUE);
         $this->form_validation->set_policy('php', 'flexshare/Flexshare', 'validate_web_php', TRUE);
@@ -144,6 +145,7 @@ class Web extends ClearOS_Controller
                 $this->flexshare->set_web_allow_ssi($share, $this->input->post('ssi'));
                 $this->flexshare->set_web_htaccess_override($share, $this->input->post('htaccess'));
                 $this->flexshare->set_web_require_ssl($share, $this->input->post('require_ssl'));
+                $this->flexshare->set_web_ssl_certificate($share, $this->input->post('ssl_certificate'));
                 $this->flexshare->set_web_override_port(
                     $share,
                     $this->input->post('override_port'),
@@ -170,6 +172,7 @@ class Web extends ClearOS_Controller
             $data['form_type'] = $form_type;
             $data['share'] = $this->flexshare->get_share($share);
             $data['accessibility_options'] = $this->flexshare->get_web_access_options();
+            $data['ssl_certificate_options'] = $this->flexshare->get_web_ssl_certificate_options();
             $data['server_name'] = $this->httpd->get_server_name();
 
             $protocol = ($data['share']['WebReqSsl']) ? 'https' : 'http';
