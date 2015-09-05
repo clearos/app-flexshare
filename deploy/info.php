@@ -29,8 +29,12 @@ $app['core_requires'] = array(
     'app-mode-core', 
     'app-network-core',
     'app-storage-core >= 1:1.4.7',
+    'app-certificate-manager-core >= 1:2.1.20',
     'app-tasks-core',
-    'app-certificate-manager-core >= 1:2.1.20'
+);
+
+$app['requires'] = array(
+    'app-certificate-manager'
 );
 
 $app['core_directory_manifest'] = array(
