@@ -3275,8 +3275,9 @@ class Flexshare extends Engine
 
                 $config_virtual_host[] =
                     "\t# No weak export crypto allowed\n" .
-                    "\t# SSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP:+eNULL\n" .
-                    "\tSSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:!EXP:+eNULL\n" .
+                    "\tSSLHonorCipherOrder on\n" .
+                    "\tSSLProtocol all -SSLv2 -SSLv3 -TLSv1\n" .
+                    "\tSSLCipherSuite ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5\n" .
                     "\tSetEnvIf User-Agent \".*MSIE.*\" " .
                     "nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0";
             }
