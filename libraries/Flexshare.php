@@ -3270,6 +3270,9 @@ class Flexshare extends Engine
                 $config_virtual_host[] = "\tSSLCertificateFile " . $cert_files['certificate-filename'];
                 $config_virtual_host[] = "\tSSLCertificateKeyFile " . $cert_files['key-filename'];
 
+                if (array_key_exists('intermediate-filename', $cert_files))
+                    $config_virtual_host[] = "\tSSLCertificateChainFile " . $cert_files['intermediate-filename'];
+
                 if (array_key_exists('ca-filename', $cert_files))
                     $config_virtual_host[] = "\tSSLCACertificateFile " . $cert_files['ca-filename'];
 

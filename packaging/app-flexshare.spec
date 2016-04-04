@@ -1,7 +1,7 @@
 
 Name: app-flexshare
 Epoch: 1
-Version: 2.1.20
+Version: 2.2.0
 Release: 1%{dist}
 Summary: Flexshare
 License: GPLv3
@@ -23,7 +23,7 @@ Requires: app-base-core
 Requires: app-mode-core
 Requires: app-network-core
 Requires: app-storage-core >= 1:1.4.7
-Requires: app-certificate-manager-core >= 1:2.1.20
+Requires: app-certificate-manager-core >= 1:2.2.0
 Requires: app-tasks-core
 
 %description core
