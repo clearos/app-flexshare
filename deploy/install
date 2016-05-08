@@ -13,9 +13,3 @@
 #-------------------
 
 /usr/sbin/storage
-
-# Reload clearsyncd
-#------------------
-
-/sbin/service clearsyncd condrestart >/dev/null 2>&1
-
