@@ -1,1 +1,1 @@
-15 4 * * * root /usr/clearos/apps/flexshare/deploy/set-file-permissions 2>/dev/null
+15 4 * * * root /usr/clearos/apps/flexshare/deploy/set-file-permissions >/dev/null 2>&1
