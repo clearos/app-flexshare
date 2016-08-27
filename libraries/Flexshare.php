@@ -2884,6 +2884,8 @@ class Flexshare extends Engine
                         foreach ($lans as $lan)
                             $config_directory[] = "\tRequire ip " . $lan;
                     }
+                } else {
+                    $config_directory[] = "\tRequire all granted";
                 }
 
                 $config_directory[] = "</Directory>\n";
