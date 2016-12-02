@@ -2885,7 +2885,8 @@ class Flexshare extends Engine
                             $config_directory[] = "\tRequire ip " . $lan;
                     }
                 } else {
-                    $config_directory[] = "\tRequire all granted";
+                    if (!$share['WebReqAuth'])
+                        $config_directory[] = "\tRequire all granted";
                 }
 
                 $config_directory[] = "</Directory>\n";
@@ -2925,7 +2926,8 @@ class Flexshare extends Engine
                 $config_directory[] = "\tAuthExternal pwauth";
                 $config_directory[] = "\tRequire unix-group " . $share['ShareGroup'];
             } else {
-                $config_directory[] = "\tRequire all granted";
+                if ($share['WebAccess'] != self::ACCESS_LAN)
+                    $config_directory[] = "\tRequire all granted";
             }
 
             // LAN access
