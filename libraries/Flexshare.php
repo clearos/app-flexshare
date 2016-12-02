@@ -2924,20 +2924,31 @@ class Flexshare extends Engine
                 $config_directory[] = "\tAuthType Basic";
                 $config_directory[] = "\tAuthBasicProvider external";
                 $config_directory[] = "\tAuthExternal pwauth";
-                $config_directory[] = "\tRequire unix-group " . $share['ShareGroup'];
+                $config_directory[] = "\t<RequireAll>";
+                $config_directory[] = "\t\tRequire unix-group " . $share['ShareGroup'];
+
+                if ($share['WebAccess'] == self::ACCESS_LAN) {
+                    $config_directory[] = "\t\t<RequireAny>";
+                    $config_directory[] = "\t\t\tRequire local";
+                    if (count($lans) > 0) {
+                        foreach ($lans as $lan)
+                            $config_directory[] = "\t\t\tRequire ip " . $lan;
+                    }
+                    $config_directory[] = "\t\t</RequireAny>";
+                }
+                $config_directory[] = "\t</RequireAll>";
+
             } else {
-                if ($share['WebAccess'] != self::ACCESS_LAN)
+                if ($share['WebAccess'] == self::ACCESS_LAN) {
+                    $config_directory[] = "\t<RequireAny>";
+                    $config_directory[] = "\t\tRequire local";
+                    if (count($lans) > 0) {
+                        foreach ($lans as $lan)
+                            $config_directory[] = "\t\tRequire ip " . $lan;
+                    }
+                    $config_directory[] = "\t</RequireAny>";
+                } else {
                     $config_directory[] = "\tRequire all granted";
-            }
-
-            // LAN access
-            //-----------
-
-            if ($share['WebAccess'] == self::ACCESS_LAN) {
-                $config_directory[] = "\tRequire local";
-                if (count($lans) > 0) {
-                    foreach ($lans as $lan)
-                        $config_directory[] = "\tRequire ip " . $lan;
                 }
             }
 
