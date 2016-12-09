@@ -23,7 +23,7 @@ Requires: app-base-core
 Requires: app-mode-core
 Requires: app-network-core
 Requires: app-storage-core >= 1:1.4.7
-Requires: app-certificate-manager-core >= 1:2.2.0
+Requires: app-certificate-manager-core >= 1:2.3.2
 Requires: app-tasks-core
 
 %description core

@@ -93,7 +93,7 @@ echo field_input('server_name', $server_name, lang('flexshare_web_server_name'),
 echo field_dropdown('web_access', $accessibility_options, $share['WebAccess'], lang('flexshare_web_accessibility'), $read_only);
 echo field_toggle_enable_disable('require_authentication', $share['WebReqAuth'], lang('flexshare_web_require_authentication'), $read_only);
 echo field_toggle_enable_disable('require_ssl', $share['WebReqSsl'], lang('flexshare_web_require_ssl'), $read_only);
-echo field_dropdown('ssl_certificate', $ssl_certificate_options, $share['WebSslCertificate'], lang('flexshare_ssl_certificate'), $read_only);
+echo field_dropdown('ssl_certificate', $ssl_certificate_options, $share['WebSslCertificate'], lang('certificate_manager_digital_certificate'), $read_only);
 echo field_toggle_enable_disable('show_index', $share['WebShowIndex'], lang('flexshare_web_show_index'), $read_only);
 echo field_toggle_enable_disable('follow_symlinks', $share['WebFollowSymLinks'], lang('flexshare_web_follow_symlinks'), $read_only);
 echo field_toggle_enable_disable('ssi', $share['WebAllowSSI'], lang('flexshare_web_allow_ssi'), $read_only);

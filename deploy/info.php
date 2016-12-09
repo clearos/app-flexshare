@@ -29,7 +29,7 @@ $app['core_requires'] = array(
     'app-mode-core', 
     'app-network-core',
     'app-storage-core >= 1:1.4.7',
-    'app-certificate-manager-core >= 1:2.2.0',
+    'app-certificate-manager-core >= 1:2.3.2',
     'app-tasks-core',
 );
 
