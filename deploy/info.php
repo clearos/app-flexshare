@@ -31,6 +31,7 @@ $app['core_requires'] = array(
     'app-storage-core >= 1:1.4.7',
     'app-certificate-manager-core >= 1:2.3.2',
     'app-tasks-core',
+    'clearos-base >= 7.0.1',
 );
 
 $app['requires'] = array(

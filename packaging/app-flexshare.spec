@@ -25,6 +25,7 @@ Requires: app-network-core
 Requires: app-storage-core >= 1:1.4.7
 Requires: app-certificate-manager-core >= 1:2.3.2
 Requires: app-tasks-core
+Requires: clearos-base >= 7.0.1
 
 %description core
 Flexshares are flexible share resources that allow an administrator to quickly and easily define data sharing, collaboration and access areas via web, file, and FTP.
@@ -87,6 +88,7 @@ exit 0
 %files core
 %defattr(-,root,root)
 %exclude /usr/clearos/apps/flexshare/packaging
+%exclude /usr/clearos/apps/flexshare/unify.json
 %dir /usr/clearos/apps/flexshare
 %dir /etc/clearos/flexshare.d
 %dir /var/clearos/flexshare

@@ -1,5 +1,14 @@
 #!/bin/sh
 
+# Sudoers
+#--------
+
+/usr/sbin/addsudo /usr/sbin/httpd app-flexshare-core
+/usr/sbin/addsudo /usr/sbin/proftpd app-flexshare-core
+/usr/sbin/addsudo /usr/sbin/updateflexperms app-flexshare-core
+/usr/sbin/addsudo /bin/mount app-flexshare-core
+/usr/sbin/addsudo /bin/umount app-flexshare-core
+
 # Add flexshares user
 #--------------------
 
