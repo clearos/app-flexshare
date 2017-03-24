@@ -154,6 +154,9 @@ class Flexshare extends Engine
     const DEFAULT_PORT_FTPES = 900;
     const DEFAULT_SSI_PARAM = 'IncludesNOExec';
     const DEFAULT_SYSTEM_PERMISSIONS = '0770';
+    const ENFORCE_ON = 'on';
+    const ENFORCE_OFF = 'off';
+    const ENFORCE_FULL = 'full';
     const REGEX_OPEN = '/^<Share\s(.*)>$/i';
     const REGEX_CLOSE = '/^<\/Share>$/i';
     const ACCESS_LAN = 0;
@@ -518,9 +521,10 @@ class Flexshare extends Engine
             // Ignore
         }
 
-        $retval = (isset($option) && preg_match('/off/i', $option)) ? FALSE : TRUE;
+        if (empty($option))
+            $option = 'on';
 
-        return $retval;
+        return $option;
     }
 
     /**
@@ -1684,7 +1688,13 @@ class Flexshare extends Engine
     {
         clearos_profile(__METHOD__, __LINE__);
 
-        $shares = $this->_get_shares(self::TYPE_ALL);
+        $enforce = $this->get_enforce_group_permissions();
+
+        if ($enforce == self::ENFORCE_OFF)
+            return;
+
+        $type = ($enforce == self::ENFORCE_FULL) ? self::TYPE_ALL : self::TYPE_FILE_SHARE;
+        $shares = $this->_get_shares($type);
 
         foreach ($shares as $name => $detail)
             $this->_update_folder_attributes($detail['ShareDir'], $detail['ShareOwner'], $detail['ShareGroup'], $detail['ShareSystemPermissions']);
