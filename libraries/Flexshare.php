@@ -146,6 +146,7 @@ class Flexshare extends Engine
     const CMD_UPDATE_PERMS = '/usr/sbin/updateflexperms';
     const CONSTANT_ACCOUNT_USERNAME = 'flexshare';
     const CONSTANT_FILES_USERNAME = 'flexshares';
+    const CONSTANT_WEB_SITE_USERNAME = 'apache';
     const CONSTANT_WEB_APP_USERNAME = 'apache';
     const MBOX_HOSTNAME = 'localhost';
     const DEFAULT_PORT_WEB = 80;
@@ -186,6 +187,12 @@ class Flexshare extends Engine
     const TYPE_WEB_SITE = 'web_site';
     const TYPE_WEB_APP = 'web_app';
     const TYPE_FILE_SHARE = 'file_share';
+    const FOLDER_LAYOUT_SANDBOX = 'sandbox';
+    const FOLDER_LAYOUT_STANDARD = 'standard';
+    const SANDBOX_LOG_SUBDIR = 'logs';
+    const SANDBOX_DOCROOT_SUBDIR = 'html';
+    const SANDBOX_ERRORS_SUBDIR = 'error';
+
     const WRITE_WARNING = '
 #----------------------------------------------------------------
 # WARNING: This file is automatically created by webconfig.
@@ -313,7 +320,9 @@ class Flexshare extends Engine
         $folder = new Folder(self::SHARE_PATH . "/$name");
 
         if (! $folder->exists()) {
-            if (!empty($internal) || clearos_app_installed('web_server'))
+            if ($internal == 1)
+                $folder_owner = self::CONSTANT_WEB_SITE_USERNAME;
+            else if ($internal == 2)
                 $folder_owner = self::CONSTANT_WEB_APP_USERNAME;
             else
                 $folder_owner = self::CONSTANT_FILES_USERNAME;
@@ -656,6 +665,24 @@ class Flexshare extends Engine
         $options = array(
            self::ACCESS_LAN => lang('flexshare_access_lan'),
            self::ACCESS_ALL => lang('base_all')
+        );
+
+        return $options;
+    }
+
+    /**
+     * Returns a list of valid web folder layout options.
+     *
+     * @return array
+     */
+
+    function get_web_folder_layout_options()
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $options = array(
+           self::FOLDER_LAYOUT_STANDARD => lang('flexshare_standard'),
+           self::FOLDER_LAYOUT_SANDBOX => lang('flexshare_sandbox')
         );
 
         return $options;
@@ -1040,6 +1067,25 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         $this->_set_parameter($name, 'WebShowIndex', $show_index);
+    }
+
+    /**
+     * Sets web folder layout
+     *
+     * @param string $name   flexshare name
+     * @param bool   $layout folder layout
+     *
+     * @return void
+     * @throws Engine_Exception
+     */
+
+    function set_web_folder_layout($name, $layout)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        Validation_Exception::is_valid($this->validate_web_folder_layout($layout));
+
+        $this->_set_parameter($name, 'WebFolderLayout', $layout);
     }
 
     /**
@@ -2184,6 +2230,24 @@ class Flexshare extends Engine
     }
 
     /**
+     * Validation routine for flexshare web folder layout.
+     *
+     * @param string $layout folder layout
+     *
+     * @return string error message if folder layout is invalid
+     */
+
+    function validate_web_folder_layout($layout)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $options = $this->get_web_folder_layout_options();
+
+        if (!array_key_exists($layout, $options))
+            return lang('flexshare_folder_layout_invalid');
+    }
+
+    /**
      * Validation routine for web follow symlinks.
      *
      * @param boolean $state state
@@ -2882,7 +2946,7 @@ class Flexshare extends Engine
                 $cgifolder = new Folder(self::SHARE_PATH . "/$name/cgi-bin", TRUE);
 
                 if (!$cgifolder->exists())
-                    $cgifolder->create(self::CONSTANT_FILES_USERNAME, self::CONSTANT_FILES_USERNAME, "0777");
+                    $cgifolder->create(self::CONSTANT_WEB_SITE_USERNAME, self::CONSTANT_FILES_USERNAME, "0777");
 
                 // Build <Directory> block for for cgi-bin
                 $config_directory[] = "<Directory " . $share['ShareDir'] . "/cgi-bin>";
@@ -2900,6 +2964,26 @@ class Flexshare extends Engine
                 }
 
                 $config_directory[] = "</Directory>\n";
+            }
+
+            // Sandbox subdir handling
+            //-------------------------
+
+            if ($share['WebFolderLayout'] && ($share['WebFolderLayout'] == self::FOLDER_LAYOUT_SANDBOX)) {
+                $log_folder = new Folder(self::SHARE_PATH . "/$name/" . self::SANDBOX_LOG_SUBDIR, TRUE);
+
+                if (!$log_folder->exists())
+                    $log_folder->create(self::CONSTANT_WEB_SITE_USERNAME, $share['ShareGroup'], '0775');
+
+                $docroot_folder = new Folder(self::SHARE_PATH . "/$name/" . self::SANDBOX_DOCROOT_SUBDIR, TRUE);
+
+                if (!$docroot_folder->exists())
+                    $docroot_folder->create(self::CONSTANT_WEB_SITE_USERNAME, $share['ShareGroup'], '0775');
+
+                $errors_folder = new Folder(self::SHARE_PATH . "/$name/" . self::SANDBOX_ERRORS_SUBDIR, TRUE);
+
+                if (!$errors_folder->exists())
+                    $errors_folder->create(self::CONSTANT_WEB_SITE_USERNAME, $share['ShareGroup'], '0775');
             }
 
             // Build <Directory> block
@@ -3222,12 +3306,22 @@ class Flexshare extends Engine
         $share['WebServerName'] = trim($share['WebServerName']);
         $share['WebServerAlias'] = trim($share['WebServerAlias']);
 
+        if (empty($share['WebFolderLayout'])) {
+            $log_subdir = '';
+            $docroot_subdir = '';
+            $error_subdir = '';
+        } else {
+            $log_subdir = 'logs';
+            $docroot_subdir = 'html';
+            $error_subdir = 'error';
+        }
+
         if (empty($share['ShareInternal'])) {
             $server_names[] = $name . '.' . $share['WebServerName'];
             $server_aliases[] = empty($share['WebServerAlias']) ? '' : $share['WebServerAlias'];
             $document_roots[] = self::SHARE_PATH . "/$name";
-            $access_log = $share['WebServerName'] . '_access_log common';
-            $error_log = $share['WebServerName'] . '_error_log';
+            $access_log = self::HTTPD_LOG_PATH . '/' . $share['WebServerName'] . '_access_log common';
+            $error_log = self::HTTPD_LOG_PATH . '/' . $share['WebServerName'] . '_error_log';
         } else if ($share['ShareInternal'] == 2) {
             if (!empty($share['WebServerName']))
                 $server_names[] = $share['WebServerName'];
@@ -3238,19 +3332,26 @@ class Flexshare extends Engine
             $server_aliases[] = $share['WebServerAliasAlternate'];
             $document_roots[] = $share['ShareDir'] . '/live';
             $document_roots[] = $share['ShareDir'] . '/test';
-            $access_log = preg_replace('/webapp-/', '', $name) . '_access_log combined';
-            $error_log = preg_replace('/webapp-/', '', $name) . '_error_log';
+            $access_log = self::HTTPD_LOG_PATH . '/' . preg_replace('/webapp-/', '', $name) . '_access_log combined';
+            $error_log = self::HTTPD_LOG_PATH . '/' . preg_replace('/webapp-/', '', $name) . '_error_log';
         } else {
             $server_names[] = $share['WebServerName'];
             $server_aliases[] = $share['WebServerAlias'];
-            $document_roots[] = $share['ShareDir'];
 
             if (empty($share['WebDefaultSite'])) {
-                $access_log = $share['WebServerName'] . '_access_log combined';
-                $error_log = $share['WebServerName'] . '_error_log';
+                if ($share['WebFolderLayout'] && ($share['WebFolderLayout'] == self::FOLDER_LAYOUT_SANDBOX)) {
+                    $document_roots[] = $share['ShareDir'] . '/' . self::SANDBOX_DOCROOT_SUBDIR;
+                    $access_log = $share['ShareDir'] . '/' . self::SANDBOX_LOG_SUBDIR . '/' . $share['WebServerName'] . '_access_log combined';
+                    $error_log = $share['ShareDir'] . '/' . self::SANDBOX_LOG_SUBDIR . '/' . $share['WebServerName'] . '_error_log';
+                } else {
+                    $document_roots[] = $share['ShareDir'];
+                    $access_log = self::HTTPD_LOG_PATH . '/' . $share['WebServerName'] . '_access_log combined';
+                    $error_log = self::HTTPD_LOG_PATH . '/' . $share['WebServerName'] . '_error_log';
+                }
             } else {
-                $access_log = 'access_log combined';
-                $error_log = 'error_log';
+                $document_roots[] = $share['ShareDir'];
+                $access_log = self::HTTPD_LOG_PATH . '/' . 'access_log combined';
+                $error_log = self::HTTPD_LOG_PATH . '/' . 'error_log';
             }
         }
 
@@ -3286,8 +3387,8 @@ class Flexshare extends Engine
             if ($share['WebCgi'])
                 $config_virtual_host[] = "\tScriptAlias /cgi-bin/ " . self::SHARE_PATH . "/$name/cgi-bin/";
 
-            $config_virtual_host[] = "\tErrorLog " . self::HTTPD_LOG_PATH . "/" . $error_log;
-            $config_virtual_host[] = "\tCustomLog " . self::HTTPD_LOG_PATH . "/" . $access_log;
+            $config_virtual_host[] = "\tErrorLog " . $error_log;
+            $config_virtual_host[] = "\tCustomLog " . $access_log;
 
             if (($port === 443) || $share['WebReqSsl']) {
                 $config_virtual_host[] = "\tSSLEngine on";
@@ -3395,7 +3496,7 @@ class Flexshare extends Engine
                 if (preg_match('/\.conf$/', $configlet))
                     $configs[] = self::PATH_CONFIGLET . '/' . $configlet;
             }
-                    
+
             foreach ($configs as $config_file) {
                 $file = new File($config_file);
 
@@ -3413,7 +3514,9 @@ class Flexshare extends Engine
                         $share[$match[1]] = $match[2];
                     } elseif (preg_match(self::REGEX_CLOSE, $line)) {
                         // ShareConfig and ShareOwner are implied fields
-                        if (($share['ShareInternal'] == 2) || clearos_app_installed('web_server'))
+                        if ($share['ShareInternal'] == 1)
+                            $share['ShareOwner'] = self::CONSTANT_WEB_SITE_USERNAME;
+                        else if ($share['ShareInternal'] == 2)
                             $share['ShareOwner'] = self::CONSTANT_WEB_APP_USERNAME;
                         else
                             $share['ShareOwner'] = self::CONSTANT_FILES_USERNAME;

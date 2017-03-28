@@ -1,5 +1,6 @@
 <?php
 
+
 $lang['flexshare_accessibility_invalid'] = 'Accessibility is invalid.';
 $lang['flexshare_access_lan'] = 'LAN Only';
 $lang['flexshare_allow_unencrypted_ftp'] = 'Allow Unencrypted FTP';
@@ -18,6 +19,7 @@ $lang['flexshare_file_server_url'] = 'Server URL';
 $lang['flexshare_flexshare'] = 'Flexshare';
 $lang['flexshare_flexshares'] = 'Flexshares';
 $lang['flexshare_flexshare_storage'] = 'Flexshare Storage';
+$lang['flexshare_folder_layout_invalid'] = 'Folder layout is invalid.';
 $lang['flexshare_ftp_and_ftpes_port'] = 'FTP and FTPES Port';
 $lang['flexshare_ftp_cannot_use_default_ports'] = 'The standard FTP/FTPS ports (21, 990) are reserved and cannot be used with Flexshares.';
 $lang['flexshare_ftp'] = 'FTP';
@@ -49,11 +51,13 @@ $lang['flexshare_port_range_invalid'] = 'Port range is invalid.';
 $lang['flexshare_ports'] = 'Ports';
 $lang['flexshare_read_only'] = 'Read Only';
 $lang['flexshare_read_write'] = 'Read/Write';
+$lang['flexshare_sandbox'] = 'Sandbox';
 $lang['flexshare_server_url_alt'] = 'Alternative Server URL';
 $lang['flexshare_server_url'] = 'Server URL';
 $lang['flexshare_share_already_exists'] = 'Flexshare already exists.';
 $lang['flexshare_share_name'] = 'Share Name';
 $lang['flexshare_share_not_found'] = 'Share not found.';
+$lang['flexshare_standard'] = 'Standard';
 $lang['flexshare_summary'] = 'Summary';
 $lang['flexshare_third_party_app_access'] = 'Third Party App Access';
 $lang['flexshare_web_accessibility'] = 'Accessibility';
@@ -61,6 +65,7 @@ $lang['flexshare_web_allow_htaccess'] = 'Allow [.htaccess] Override';
 $lang['flexshare_web_allow_ssi'] = 'Allow Server Side Includes';
 $lang['flexshare_web_enable_cgi'] = 'Enable CGI';
 $lang['flexshare_web_enable_php'] = 'Enable PHP';
+$lang['flexshare_web_folder_layout'] = 'Folder Layout';
 $lang['flexshare_web_follow_symlinks'] = 'Follow Symlinks / Allow Rewrite';
 $lang['flexshare_web_override_default_port'] = 'Override Default Port';
 $lang['flexshare_web_realm_invalid'] = 'Realm is invalid.';
