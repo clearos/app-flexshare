@@ -3514,10 +3514,10 @@ class Flexshare extends Engine
                         $share[$match[1]] = $match[2];
                     } elseif (preg_match(self::REGEX_CLOSE, $line)) {
                         // ShareConfig and ShareOwner are implied fields
-                        if ($share['ShareInternal'] == 1)
-                            $share['ShareOwner'] = self::CONSTANT_WEB_SITE_USERNAME;
-                        else if ($share['ShareInternal'] == 2)
+                        if ($share['ShareInternal'] == 2)
                             $share['ShareOwner'] = self::CONSTANT_WEB_APP_USERNAME;
+                        else if (clearos_app_installed('web_server'))
+                            $share['ShareOwner'] = self::CONSTANT_WEB_SITE_USERNAME;
                         else
                             $share['ShareOwner'] = self::CONSTANT_FILES_USERNAME;
 
