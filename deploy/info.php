@@ -5,7 +5,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 $app['basename'] = 'flexshare';
-$app['version'] = '2.3.5';
+$app['version'] = '2.3.6';
 $app['release'] = '1';
 $app['vendor'] = 'ClearFoundation';
 $app['packager'] = 'ClearFoundation';
@@ -29,7 +29,7 @@ $app['core_requires'] = array(
     'app-mode-core', 
     'app-network-core',
     'app-storage-core >= 1:1.4.7',
-    'app-certificate-manager-core >= 1:2.3.2',
+    'app-certificate-manager-core >= 1:2.3.25',
     'app-tasks-core',
     'clearos-base >= 7.0.1',
 );

@@ -2893,6 +2893,8 @@ class Flexshare extends Engine
 
         $lans = NULL;
         $newlines = array();
+        $flexshare_certs = array();
+        $website_certs = array();
 
         foreach ($shares as $share) {
             $name = $share['Name'];
@@ -2913,6 +2915,16 @@ class Flexshare extends Engine
 
             if (isset($share['WebCustomConfiguration']) && $share['WebCustomConfiguration'])
                 continue;
+
+            // Certs
+            //------
+
+            if (!empty($share['WebSslCertificate'])) {
+                if (($share['ShareInternal'] == 1) || ($share['ShareInternal'] == 2))
+                    $website_certs[$name] = $share['WebSslCertificate'];
+                else
+                    $flexshare_certs[$name] = $share['WebSslCertificate'];
+            }
 
             // Get LAN info, but only if it is necessary (expensive call)
             //-----------------------------------------------------------
@@ -3219,6 +3231,13 @@ class Flexshare extends Engine
         } else {
             throw new Engine_Exception(lang('flexshare_config_validation_failed'), CLEAROS_ERROR);
         }
+
+        // Report state of certs to Certificate Manager
+        //---------------------------------------------
+
+        $certificate_manager = new Certificate_Manager();
+        $certificate_manager->register($flexshare_certs, 'flexshare', lang('flexshare_app_name'));
+        $certificate_manager->register($website_certs, 'web_server', lang('web_server_app_name'));
     }
 
     /**

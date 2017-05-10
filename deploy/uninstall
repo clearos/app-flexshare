@@ -5,3 +5,12 @@ if [ -e /var/clearos/flexshare/initialized ]; then
     rm -f /var/clearos/flexshare/initialized
 fi
 
+if [ -e /var/clearos/certificate_manager/state/flexshare.conf ]; then
+    logger -p local6.notice -t installer "app-flexshare-core - removing Flexshare certificate manager state file"
+    rm -f /var/clearos/certificate_manager/state/flexshare.conf
+fi
+
+if [ -e /var/clearos/certificate_manager/state/web_server ]; then
+    logger -p local6.notice -t installer "app-flexshare-core - removing web site certificate manager state file"
+    rm -f /var/clearos/certificate_manager/state/web_server.conf
+fi
