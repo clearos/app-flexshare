@@ -112,6 +112,13 @@ class Web extends ClearOS_Controller
         $this->load->library('web_server/Httpd');
         $this->load->library('flexshare/Flexshare');
 
+        if (clearos_load_library('php_engines/PHP_Engines')) {
+            $this->load->library('php_engines/PHP_Engines');
+            $data['php_engines_installed'] = TRUE;
+        } else {
+            $data['php_engines_installed'] = FALSE;
+        }
+
         // Validation
         //-----------
 
@@ -130,6 +137,9 @@ class Web extends ClearOS_Controller
 
         if ($this->input->post('override_port'))
             $this->form_validation->set_policy('port', 'flexshare/Flexshare', 'validate_web_override_port', TRUE);
+
+        if ($data['php_engines_installed'])
+            $this->form_validation->set_policy('php_engine', 'php_engines/PHP_Engines', 'validate_engine', TRUE);
 
         $form_ok = $this->form_validation->run();
 
@@ -155,6 +165,9 @@ class Web extends ClearOS_Controller
                 $this->flexshare->set_web_php($share, $this->input->post('php'));
                 $this->flexshare->set_web_cgi($share, $this->input->post('cgi'));
 
+                if ($data['php_engines_installed'])
+                    $this->flexshare->set_web_php_engine($share, $this->input->post('php_engine'));
+
                 // Set enabled after all parameters have been set
                 $this->flexshare->set_web_enabled($share, $this->input->post('enabled'));
 
@@ -174,6 +187,9 @@ class Web extends ClearOS_Controller
             $data['accessibility_options'] = $this->flexshare->get_web_access_options();
             $data['ssl_certificate_options'] = $this->flexshare->get_web_ssl_certificate_options();
             $data['server_name'] = $this->httpd->get_server_name();
+
+            if ($data['php_engines_installed'])
+                $data['php_engine_options'] = $this->php_engines->get_engines();
 
             $protocol = ($data['share']['WebReqSsl']) ? 'https' : 'http';
 

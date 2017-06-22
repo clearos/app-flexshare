@@ -76,3 +76,4 @@ $lang['flexshare_web_server_name'] = 'Server Name';
 $lang['flexshare_web_show_index'] = 'Show Index';
 $lang['flexshare_web'] = 'Web';
 $lang['flexshare_windows_file_share'] = 'Windows File Share';
+$lang['flexshare_php_engine'] = 'PHP Engine';

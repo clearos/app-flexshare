@@ -99,6 +99,8 @@ echo field_toggle_enable_disable('show_index', $share['WebShowIndex'], lang('fle
 echo field_toggle_enable_disable('follow_symlinks', $share['WebFollowSymLinks'], lang('flexshare_web_follow_symlinks'), $read_only);
 echo field_toggle_enable_disable('ssi', $share['WebAllowSSI'], lang('flexshare_web_allow_ssi'), $read_only);
 echo field_toggle_enable_disable('htaccess', $share['WebHtaccessOverride'], lang('flexshare_web_allow_htaccess'), $read_only);
+if ($php_engines_installed)
+    echo field_dropdown('php_engine', $php_engine_options, $share['WebPhpEngine'], lang('flexshare_php_engine'), $read_only);
 echo field_toggle_enable_disable('php', $share['WebPhp'], lang('flexshare_web_enable_php'), $read_only);
 echo field_toggle_enable_disable('cgi', $share['WebCgi'], lang('flexshare_web_enable_cgi'), $read_only);
 echo fieldset_footer();

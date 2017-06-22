@@ -977,6 +977,25 @@ class Flexshare extends Engine
     }
 
     /**
+     * Sets the PHP engine version.
+     *
+     * @param string $name flexshare name
+     * @param string $version PHP engine version
+     *
+     * @return void
+     * @throws Validation_Exception, Engine_Exception
+     */
+
+    function set_web_php_engine($name, $version)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        Validation_Exception::is_valid($this->validate_web_php_engine($version));
+
+        $this->_set_parameter($name, 'WebPhpEngine', $version);
+    }
+
+    /**
      * Sets the server alias of web-based access.
      *
      * @param string $name         flexshare name
@@ -1941,6 +1960,28 @@ class Flexshare extends Engine
      * @return mixed void if directory alias is valid, errmsg otherwise
      */
 
+    function validate_web_php_engine($engine)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $retval = '';
+
+        if (clearos_load_library('php_engines/PHP_Engines')) {
+            $php = new \clearos\apps\php_engines\PHP_Engines();
+            $retval = $php->validate_engine($engine);
+        }
+
+        return $retval;
+    }
+
+    /**
+     * Validation routine for web directory alias.
+     *
+     * @param string $alias directory alias
+     *
+     * @return mixed void if directory alias is valid, errmsg otherwise
+     */
+
     function validate_web_directory_alias($alias)
     {
         clearos_profile(__METHOD__, __LINE__);
@@ -1948,6 +1989,10 @@ class Flexshare extends Engine
         return;
     }
 
+    /**
+     * Validation routine for web server alias.
+     *
+     * @param string $server_alias web server alias
     /**
      * Validation routine for web server alias.
      *
@@ -2888,13 +2933,25 @@ class Flexshare extends Engine
                 array_unshift($shares, $share);
         }
 
+        // Grab the list of ports from the PHP Engine app
+        //-----------------------------------------------
+
+        if (clearos_load_library('php_engines/PHP_Engines')) {
+            $php_engine = new \clearos\apps\php_engines\PHP_Engines();
+            $php_engine_ports = $php_engine->get_ports();
+        } else {
+            $php_engine_ports = [];
+        }
+
         // Recreate all virtual configs
         //-----------------------------
 
         $lans = NULL;
         $newlines = array();
         $flexshare_certs = array();
+        $flexshare_php_engines = array();
         $website_certs = array();
+        $website_php_engines = array();
 
         foreach ($shares as $share) {
             $name = $share['Name'];
@@ -2925,6 +2982,12 @@ class Flexshare extends Engine
                 else
                     $flexshare_certs[$name] = $share['WebSslCertificate'];
             }
+
+            // PHP Engines
+            //------------
+
+            if (!empty($share['WebPhpEngine']))
+                $website_php_engines[$name] = $share['WebPhpEngine'];
 
             // Get LAN info, but only if it is necessary (expensive call)
             //-----------------------------------------------------------
@@ -3024,6 +3087,16 @@ class Flexshare extends Engine
 
             if ($share['WebHtaccessOverride'])
                 $config_directory[] = "\tAllowOverride All";
+
+            if ($share['WebPhpEngine'] && clearos_load_library('php_engines/PHP_Engines')) {
+                $port = $php_engine_ports[$share['WebPhpEngine']];
+
+                if ($port) {
+                    $config_directory[] = "\t<FilesMatch \.php$>";
+                    $config_directory[] = "\t\tSetHandler \"proxy:fcgi://127.0.0.1:$port\"";
+                    $config_directory[] = "\t</FilesMatch>";
+                }
+            }
 
             if ($share['WebReqAuth']) {
                 $config_directory[] = "\tAuthName \"" . $share['WebRealm'] . "\"";
@@ -3238,6 +3311,12 @@ class Flexshare extends Engine
         $certificate_manager = new Certificate_Manager();
         $certificate_manager->register($flexshare_certs, 'flexshare', lang('flexshare_app_name'));
         $certificate_manager->register($website_certs, 'web_server', lang('web_server_app_name'));
+
+        if (clearos_load_library('php_engines/PHP_Engines')) {
+            $php = new \clearos\apps\php_engines\PHP_Engines();
+            $php->register($website_php_engines, 'web_server', lang('web_server_app_name'));
+            $php->register($flexshare_php_engines, 'flexshare', lang('flexshare_app_name'));
+        }
     }
 
     /**
