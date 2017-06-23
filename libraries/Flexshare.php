@@ -1964,6 +1964,9 @@ class Flexshare extends Engine
     {
         clearos_profile(__METHOD__, __LINE__);
 
+        if (empty($engine))
+            return;
+
         $retval = '';
 
         if (clearos_load_library('php_engines/PHP_Engines')) {
@@ -2986,8 +2989,16 @@ class Flexshare extends Engine
             // PHP Engines
             //------------
 
-            if (!empty($share['WebPhpEngine']))
-                $website_php_engines[$name] = $share['WebPhpEngine'];
+            // Handle upgrade - if WebPhpEngine is not set, but PHP is running, it's using mod_php
+            if (!isset($share['WebPhpEngine']) && $share['WebPhp'])
+                $share['WebPhpEngine'] = 'httpd';
+
+            if (!empty($share['WebPhpEngine'])) {
+                if (($share['ShareInternal'] == 1) || ($share['ShareInternal'] == 2))
+                    $website_php_engines[$name] = $share['WebPhpEngine'];
+                else
+                    $flexshare_php_engines[$name] = $share['WebPhpEngine'];
+            }
 
             // Get LAN info, but only if it is necessary (expensive call)
             //-----------------------------------------------------------

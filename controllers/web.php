@@ -165,8 +165,13 @@ class Web extends ClearOS_Controller
                 $this->flexshare->set_web_php($share, $this->input->post('php'));
                 $this->flexshare->set_web_cgi($share, $this->input->post('cgi'));
 
-                if ($data['php_engines_installed'])
-                    $this->flexshare->set_web_php_engine($share, $this->input->post('php_engine'));
+                if ($data['php_engines_installed']) {
+                    $php_enabled = $this->input->post('php');
+                    if ($php_enabled)
+                        $this->flexshare->set_web_php_engine($share, $this->input->post('php_engine'));
+                    else
+                        $this->flexshare->set_web_php_engine($share, '');
+                }
 
                 // Set enabled after all parameters have been set
                 $this->flexshare->set_web_enabled($share, $this->input->post('enabled'));

@@ -7,7 +7,7 @@
  * @package    flexshare
  * @subpackage javascript
  * @author     ClearFoundation <developer@clearcenter.com>
- * @copyright  2011 ClearFoundation
+ * @copyright  2011-2017 ClearFoundation
  * @license    http://www.gnu.org/copyleft/gpl.html GNU General Public License version 3 or later
  * @link       http://www.clearfoundation.com/docs/developer/apps/flexshare/
  */
@@ -36,12 +36,36 @@
 $bootstrap = getenv('CLEAROS_BOOTSTRAP') ? getenv('CLEAROS_BOOTSTRAP') : '/usr/clearos/framework/shared';
 require_once $bootstrap . '/bootstrap.php';
 
-clearos_load_language('flexshare');
+///////////////////////////////////////////////////////////////////////////////
+// T R A N S L A T I O N S
+///////////////////////////////////////////////////////////////////////////////
+
 clearos_load_language('base');
+clearos_load_language('flexshare');
+
+///////////////////////////////////////////////////////////////////////////////
+// J A V A S C R I P T
+///////////////////////////////////////////////////////////////////////////////
 
 header('Content-Type: application/x-javascript');
+?>
 
-echo "
+$(document).ready(function() {
+
+    $('#php').on('click', function(e) {
+        handlePhp();
+    });
+
+    handlePhp();
+
+    function handlePhp() {
+        if ($('#php').val() == 0)
+            $('#php_engine_field').hide();
+        else
+            $('#php_engine_field').show();
+    }
+});
+
 var DEFAULT_PORT_HTTP = 80;
 var DEFAULT_PORT_HTTPS = 443;
 var DEFAULT_PORT_FTP = 2121;
@@ -181,6 +205,5 @@ $(document).ready(function() {
     }
 
 });
-";
 
 // vim: syntax=javascript ts=4
