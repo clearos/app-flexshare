@@ -3055,7 +3055,7 @@ class Flexshare extends Engine
             // Sandbox subdir handling
             //-------------------------
 
-            if ($share['WebFolderLayout'] && ($share['WebFolderLayout'] == self::FOLDER_LAYOUT_SANDBOX)) {
+            if (isset($share['WebFolderLayout']) && ($share['WebFolderLayout'] == self::FOLDER_LAYOUT_SANDBOX)) {
                 $log_folder = new Folder(self::SHARE_PATH . "/$name/" . self::SANDBOX_LOG_SUBDIR, TRUE);
 
                 if (!$log_folder->exists())
