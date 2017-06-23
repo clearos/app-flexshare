@@ -3413,7 +3413,7 @@ class Flexshare extends Engine
         $document_roots = array();
 
         $share['WebServerName'] = trim($share['WebServerName']);
-        $share['WebServerAlias'] = trim($share['WebServerAlias']);
+        $share['WebServerAlias'] = empty($share['WebServerAlias']) ? '' : trim($share['WebServerAlias']);
 
         if (empty($share['WebFolderLayout'])) {
             $log_subdir = '';
