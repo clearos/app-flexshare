@@ -3356,12 +3356,9 @@ class Flexshare extends Engine
             $share_aliases[] = "/flexshare/$name";
             $document_roots[] = self::SHARE_PATH . "/$name";
         } else if ($share['ShareInternal'] == 2) {
-            $server_names[] = trim($share['WebServerName']);
-            $server_names[] = trim($share['WebServerNameAlternate']);
-            $share_aliases[] = trim($share['WebDirectoryAlias']);
-            $share_aliases[] = trim($share['WebDirectoryAliasAlternate']);
-            $document_roots[] = $share['ShareDir'] . '/live';
-            $document_roots[] = $share['ShareDir'] . '/test';
+            $server_names[] = $name . '.' . trim($share['WebServerName']);
+            $share_aliases[] = "/flexshare/$name";
+            $document_roots[] = self::SHARE_PATH . "/$name";
         } else {
             $server_names[] = trim($share['WebServerName']);
             $share_aliases[] = "/flexshare/$name";
@@ -3431,18 +3428,6 @@ class Flexshare extends Engine
             $document_roots[] = self::SHARE_PATH . "/$name";
             $access_log = self::HTTPD_LOG_PATH . '/' . $share['WebServerName'] . '_access_log common';
             $error_log = self::HTTPD_LOG_PATH . '/' . $share['WebServerName'] . '_error_log';
-        } else if ($share['ShareInternal'] == 2) {
-            if (!empty($share['WebServerName']))
-                $server_names[] = $share['WebServerName'];
-            if (!empty($share['WebServerNameAlternate']))
-                $server_names[] = $share['WebServerNameAlternate'];
-
-            $server_aliases[] = $share['WebServerAlias'];
-            $server_aliases[] = $share['WebServerAliasAlternate'];
-            $document_roots[] = $share['ShareDir'] . '/live';
-            $document_roots[] = $share['ShareDir'] . '/test';
-            $access_log = self::HTTPD_LOG_PATH . '/' . preg_replace('/webapp-/', '', $name) . '_access_log combined';
-            $error_log = self::HTTPD_LOG_PATH . '/' . preg_replace('/webapp-/', '', $name) . '_error_log';
         } else {
             $server_names[] = $share['WebServerName'];
             $server_aliases[] = $share['WebServerAlias'];
