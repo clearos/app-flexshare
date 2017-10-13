@@ -1268,7 +1268,6 @@ class Flexshare extends Engine
         // Validate
         // --------
         Validation_Exception::is_valid($this->validate_web_realm($realm));
-
     }
 
     /**
@@ -1421,6 +1420,22 @@ class Flexshare extends Engine
         clearos_profile(__METHOD__, __LINE__);
 
         $this->_set_parameter($name, 'WebSslCertificate', $cert);
+    }
+
+    /**
+     * Sets webapp type.
+     *
+     * @param string $name   flexshare name
+     * @param string $webapp webapp type
+     *
+     * @return void
+     */
+
+    function set_web_webapp($name, $webapp)
+    {
+        clearos_profile(__METHOD__, __LINE__);
+
+        $this->_set_parameter($name, 'WebApp', $webapp);
     }
 
     ////////////////////
