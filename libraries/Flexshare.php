@@ -3448,7 +3448,7 @@ class Flexshare extends Engine
             $server_aliases[] = $share['WebServerAlias'];
 
             if (empty($share['WebDefaultSite'])) {
-                if ($share['WebFolderLayout'] && ($share['WebFolderLayout'] == self::FOLDER_LAYOUT_SANDBOX)) {
+                if (!empty($share['WebFolderLayout']) && ($share['WebFolderLayout'] == self::FOLDER_LAYOUT_SANDBOX)) {
                     $document_roots[] = $share['ShareDir'] . '/' . self::SANDBOX_DOCROOT_SUBDIR;
                     $access_log = $share['ShareDir'] . '/' . self::SANDBOX_LOG_SUBDIR . '/' . $share['WebServerName'] . '_access_log combined';
                     $error_log = $share['ShareDir'] . '/' . self::SANDBOX_LOG_SUBDIR . '/' . $share['WebServerName'] . '_error_log';
