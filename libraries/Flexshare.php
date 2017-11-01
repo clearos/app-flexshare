@@ -2957,6 +2957,14 @@ class Flexshare extends Engine
         if (clearos_load_library('php_engines/PHP_Engines')) {
             $php_engine = new \clearos\apps\php_engines\PHP_Engines();
             $php_engine_ports = $php_engine->get_ports();
+
+            // TODO: remove method check in ClearOS 8.0
+            if (method_exists($php_engine, 'get_version_codes')) {
+                $php_version_codes = $php_engine->get_version_codes();
+            } else {
+                $php_version_codes['rh-php56-php-fpm'] = 56;
+                $php_version_codes['rh-php70-php-fpm'] = 70;
+            }
         } else {
             $php_engine_ports = [];
         }
@@ -3114,8 +3122,18 @@ class Flexshare extends Engine
             if ($share['WebHtaccessOverride'])
                 $config_directory[] = "\tAllowOverride All";
 
+            $phpenv = new File(self::SHARE_PATH . "/$name/.phpenv", TRUE);
+
+            if ($phpenv->exists())
+                $phpenv->delete();
+
             if ($share['WebPhpEngine'] && clearos_load_library('php_engines/PHP_Engines')) {
                 $port = $php_engine_ports[$share['WebPhpEngine']];
+
+                if (!empty($php_version_codes[$share['WebPhpEngine']])) {
+                    $phpenv->create('root', 'root', '0644');
+                    $phpenv->add_lines($php_version_codes[$share['WebPhpEngine']] . "\n");
+                }
 
                 if ($port) {
                     $config_directory[] = "\t<FilesMatch \.php$>";
